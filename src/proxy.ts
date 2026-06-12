@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createMiddlewareClient } from "@/lib/supabase/middleware";
-import { isPublicPath, isAdminPath } from "@/lib/routes";
+import { isPublicPath, isAdminPath, isSuperadminPath } from "@/lib/routes";
 
 /**
  * DENY-BY-DEFAULT middleware (Brief §2, §5, §11).
@@ -41,8 +41,8 @@ export async function proxy(request: NextRequest) {
 
   // Public allowlist — always reachable.
   if (isPublicPath(pathname)) {
-    // If an already-authenticated user hits /login or /start, send them home.
-    if (user && (pathname === "/login" || pathname === "/start")) {
+    // If an already-authenticated user hits /login, send them home.
+    if (user && pathname === "/login") {
       const url = request.nextUrl.clone();
       url.pathname = "/feed";
       url.search = "";
@@ -60,10 +60,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Authenticated. Admin-path role enforcement is delegated to the admin route
-  // group layout (authoritative DB check). Mark the request so layouts can
-  // short-circuit if desired, but do not trust this header for authz.
-  if (isAdminPath(pathname)) {
+  // Authenticated. Role enforcement for admin/superadmin paths is delegated to
+  // the route-group layouts (authoritative DB checks). Mark the request coarsely
+  // for observability, but do NOT trust these headers for authz.
+  if (isSuperadminPath(pathname)) {
+    response.headers.set("x-aushang-superadmin-route", "1");
+  } else if (isAdminPath(pathname)) {
     response.headers.set("x-aushang-admin-route", "1");
   }
 

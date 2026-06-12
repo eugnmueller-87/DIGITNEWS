@@ -45,12 +45,36 @@ fixed in this same skeleton.
   `middleware-manifest.json` under Turbopack is a manifest quirk, not an inactive
   gate — confirmed empirically, not from the manifest.
 
+## Operator-model refactor review
+
+When the project moved from self-service onboarding to the **operator-provisioned
+three-role model** (superadmin / admin / member), the changed surfaces —
+provisioning RPCs, the new RLS, privilege escalation, cross-org isolation — were
+put through a second adversarial review (12 raised, 9 confirmed, 3 rejected).
+None were live exploits; all were latent footguns or robustness gaps, and all
+were fixed in migration `0007` + app code.
+
+| Sev | Finding | Fix |
+| --- | --- | --- |
+| High | The old `delete_user_account()` survived the refactor — a service-role-callable function that deletes a whole org when its last admin leaves (it predates the three-role model and the "never orphan an org" invariant). | Dropped in `0007`. Deliberate teardown is now `delete_org` (superadmin-only, refuses the operator's own org). |
+| Medium | Cross-tenant email enumeration: "already belongs to an org" gave admins an oracle for whether any email existed platform-wide. | `provisionPerson` returns a neutral outcome; the add-person action shows the **same** message whether or not the email already existed. |
+| Medium | `ensureAuthUser` used un-paginated `listUsers()` (broke past 50 users) and could leave an orphan org if admin provisioning failed after org creation. | Replaced with a single `generateLink` call (creates-or-finds + emails). `createOrgWithAdmin` now rolls back the org via `delete_org` if the admin can't be provisioned. |
+| Low | `profiles_update_self` didn't pin the new `membership_status` column — a member could self-forge their invited/active badge. | Pinned in `0007` (mirrors the role/org_id pins). |
+| Low | `generateLink` could silently send no email (misconfigured template) while the UI reported success. | Errors no longer swallowed in the provisioning path; the magic-link email-template requirement is documented in README + `config.toml`. |
+| Low | Stale doc comment in `admin.ts` listed deleted RPCs. | Updated to the live flow list. |
+| Info | Provisioning RPCs authorize on a caller-supplied `p_actor_id`. | Added an `auth.uid()` backstop in `0007`: if a user JWT is present it must match `p_actor_id`, so an accidental future grant-to-`authenticated` can't become self-elevation. |
+
 ## Standing invariants (must hold every phase)
 
-- A user in org A can never read or write any row of org B.
+- A user in org A can never read or write any row of org B (superadmins are the
+  one intended cross-org exception, via explicit `*_superadmin_*` policies).
 - A `member` never sees non-published posts, non-confirmed events, or PII columns.
-- `profiles.role` is written only by security-definer flows; never client-settable.
-- No public surface beyond the `routes.ts` allowlist.
+- A `member` can never become `admin`/`superadmin`; an `admin` can never become
+  `superadmin`, act cross-org, or add/remove admins. Role/org_id/membership_status
+  are written only by security-definer flows; never client-settable.
+- The first `superadmin` is bootstrapped only from `SUPERADMIN_EMAILS` (matched
+  against the validated JWT email), or the documented SQL fallback.
+- No public surface beyond the `routes.ts` allowlist; no public signup or self-join.
 - No server secret in the client bundle (`npm run check:secrets` enforces this).
 - `npm run verify` (typecheck + lint + build + secret scan) is green before push.
 
@@ -58,8 +82,8 @@ fixed in this same skeleton.
 
 - **CSP is report-only.** It does not block yet; promote to enforcing with a
   script nonce once the Supabase/font inventory is finalized.
-- **Rate limiting** on `/join` and magic-link requests relies on Supabase
-  built-ins for now; an app-level token bucket is a Phase 2+ hardening item.
+- **Rate limiting** on magic-link / login requests relies on Supabase built-ins
+  for now; an app-level token bucket is a Phase 2+ hardening item.
 - **`npm audit`** flags a transitive `postcss` advisory inside Next.js's own
   tree; the "fix" downgrades Next to 9.x and is intentionally not applied (see
   README).

@@ -38,7 +38,7 @@ export default async function FeedPage() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Noch keine Aushänge.
             </p>
-            {session.role === "admin" ? (
+            {session.role === "admin" || session.role === "superadmin" ? (
               <p className="mt-2 text-sm text-zinc-400">
                 Sobald du einen Aushang fotografierst und freigibst, erscheint er
                 hier. (Foto-Funktion folgt.)

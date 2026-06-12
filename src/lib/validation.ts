@@ -45,18 +45,23 @@ export function parseOrgType(raw: FormDataEntryValue | null): string {
 }
 
 /**
- * Invite codes are <slug>-<hex>. Restrict to a safe charset and length so a
- * crafted code can't be used for injection in URLs/logs. Validation only — the
- * authoritative check is the DB lookup.
+ * Parse the role an admin/operator assigns when adding a person. The form may
+ * offer 'member' (admins) or 'admin' (superadmins). 'superadmin' is never
+ * settable here — it is granted only via ensure_superadmin / set_admin flows.
  */
-export function parseInviteCode(raw: string): string {
-  const value = String(raw ?? "").trim().toLowerCase();
-  // Upper bound 96 comfortably exceeds the max minted code (slug capped at 40 in
-  // create_org_and_admin + '-' + 12 hex), so valid codes are never rejected.
-  if (!/^[a-z0-9-]{4,96}$/.test(value)) {
-    throw new Error("Ungültiger Einladungscode.");
+export function parseAssignableRole(
+  raw: FormDataEntryValue | null,
+  allowAdmin: boolean,
+): "admin" | "member" {
+  const value = String(raw ?? "member");
+  if (value === "admin") {
+    if (!allowAdmin) {
+      throw new Error("Nicht berechtigt, Admins hinzuzufügen.");
+    }
+    return "admin";
   }
-  return value;
+  if (value === "member") return "member";
+  throw new Error("Ungültige Rolle.");
 }
 
 /**

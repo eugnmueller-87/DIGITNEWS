@@ -14,19 +14,26 @@
 export const PUBLIC_ROUTES = {
   exact: [
     "/login",
-    "/start", // org creation entry (further gated by ALLOW_ORG_SIGNUP server-side)
     "/datenschutz", // Datenschutzerklärung — the one intentionally public legal page
   ],
   prefixes: [
-    "/join/", // /join/[code] — member onboarding
-    "/auth/", // /auth/callback, /auth/confirm — magic-link landing
+    "/auth/", // /auth/callback — magic-link landing
     "/api/ics/", // calendar subscription (token-guarded, not session-guarded)
   ],
 } as const;
 
-/** Admin-only path prefixes (member access here is denied even when logged in). */
+/**
+ * Admin-or-above path prefixes (member access denied even when logged in). The
+ * authoritative role check lives in the route-group layouts (requireAdmin /
+ * requireSuperadmin); middleware only flags these coarsely.
+ */
 export const ADMIN_ROUTES = {
   prefixes: ["/admin", "/review"],
+} as const;
+
+/** Superadmin-only path prefixes (the operator surface). */
+export const SUPERADMIN_ROUTES = {
+  prefixes: ["/operator"],
 } as const;
 
 export function isPublicPath(pathname: string): boolean {
@@ -38,6 +45,12 @@ export function isPublicPath(pathname: string): boolean {
 
 export function isAdminPath(pathname: string): boolean {
   return ADMIN_ROUTES.prefixes.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+}
+
+export function isSuperadminPath(pathname: string): boolean {
+  return SUPERADMIN_ROUTES.prefixes.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
 }

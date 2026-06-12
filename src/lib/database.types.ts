@@ -7,7 +7,8 @@
  * skeleton queries, keeping the build typed without requiring a live project.
  */
 
-export type Role = "admin" | "member";
+export type Role = "superadmin" | "admin" | "member";
+export type MembershipStatus = "invited" | "active";
 export type OrgType = "kita" | "verein" | "kirche" | "betrieb" | "sonstiges";
 export type PostStatus =
   | "processing"
@@ -31,30 +32,9 @@ export interface Profile {
   id: string;
   org_id: string;
   role: Role;
+  membership_status: MembershipStatus;
   display_name: string | null;
   email_digest_opt_in: boolean;
-  created_at: string;
-}
-
-export interface JoinRequest {
-  id: string;
-  org_id: string;
-  invite_id: string;
-  email: string;
-  status: "pending" | "approved" | "rejected";
-  created_at: string;
-}
-
-export interface Invite {
-  id: string;
-  org_id: string;
-  code: string;
-  role: Role;
-  requires_approval: boolean;
-  max_uses: number | null;
-  use_count: number;
-  expires_at: string | null;
-  created_by: string | null;
   created_at: string;
 }
 

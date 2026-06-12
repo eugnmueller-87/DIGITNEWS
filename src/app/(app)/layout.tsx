@@ -23,7 +23,8 @@ export default async function AppLayout({
     .eq("id", session.orgId)
     .maybeSingle();
 
-  const isAdmin = session.role === "admin";
+  const isAdmin = session.role === "admin" || session.role === "superadmin";
+  const isSuperadmin = session.role === "superadmin";
 
   return (
     <div className="flex min-h-full flex-col">
@@ -44,6 +45,14 @@ export default async function AppLayout({
                 className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
               >
                 Mitglieder
+              </Link>
+            )}
+            {isSuperadmin && (
+              <Link
+                href="/operator"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Operator
               </Link>
             )}
             <SignOutButton />

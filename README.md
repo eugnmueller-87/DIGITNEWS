@@ -28,7 +28,7 @@ change.
 | ---------------- | --------------------------------------------------- |
 | Frontend         | Next.js 16 (App Router), React 19, TypeScript, PWA  |
 | DB / Auth / Storage | Supabase (EU region), RLS on every table         |
-| Auth method      | Supabase Auth, **magic link / email OTP only** (no passwords; public signup disabled) |
+| Auth method      | Supabase Auth, **magic link / email OTP only** (no passwords; no public signup — accounts are provisioned) |
 | Styling          | Tailwind CSS v4                                      |
 
 Future phases add: Python FastAPI OCR/redaction worker (Tesseract/PaddleOCR +
@@ -44,9 +44,13 @@ Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push
    detected and masked **locally before any external API call**; fail-closed.
 3. **Only published information.** The tool processes only what the org already
    posted to its own board.
-4. **Two roles, period.** `admin` and `member`. No third role anywhere.
-5. **Deny by default.** No public surface except `/login`, `/start`, `/join/[code]`,
-   `/auth/*`, `/api/ics/*`, and `/datenschutz`. Everything else requires auth.
+4. **Three roles.** `superadmin` (operator — you, cross-org), `admin` (manages
+   their own org's members), `member` (read-only). _Note: this supersedes the
+   brief's original "two roles" — the project moved to an operator-provisioned
+   model where you create orgs and admins manage their own people._
+5. **Deny by default.** No public surface except `/login`, `/auth/*`,
+   `/api/ics/*`, and `/datenschutz`. Everything else requires auth. No public
+   signup or self-service join.
 
 ---
 
@@ -83,6 +87,8 @@ Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push
    - `supabase/migrations/0002_functions.sql`
    - `supabase/migrations/0003_rls.sql`
    - `supabase/migrations/0004_security_hardening.sql`
+   - `supabase/migrations/0005_operator_model.sql` (three-role model)
+   - `supabase/migrations/0006_rls_three_roles.sql` (superadmin RLS)
 6. Configure SMTP (or Supabase's built-in email) so magic links are delivered.
 
 > The `gen_random_uuid` / `gen_random_bytes` functions require the `pgcrypto`
@@ -119,19 +125,38 @@ secret ever leaks into it (Brief §11).
 
 ---
 
-## Onboarding flows
+## Roles & onboarding (operator-provisioned)
 
-- **Create an org** — `/start`: enter org name + type + your email → magic link →
-  on click, the org is created and you become its **admin**, with a shareable
-  join code. Gated by `ALLOW_ORG_SIGNUP` (waitlist toggle).
-- **Join an org** — `/join/[code]`: enter your email. If the invite requires
-  approval, a pending request is recorded and an admin approves it (then you get
-  a link). Otherwise you get a join link immediately.
-- **Log in** — `/login`: existing users request a magic link.
+There is **no public signup and no self-service join**. Accounts are provisioned:
 
-Accounts are **only** created through these server-side security-definer flows
-(`create_org_and_admin`, `redeem_invite`, `redeem_approved_join`). The public
-signup endpoint is off.
+- **Superadmin (operator — you)** logs in (bootstrapped from `SUPERADMIN_EMAILS`)
+  and uses **`/operator`** to create orgs and add each org's first **admin**.
+  Can also grant/revoke admin rights across orgs.
+- **Admin** uses **`/admin/mitglieder`** to add/remove **members** in their own
+  org (enter an email → that person's account is created and a login link is
+  sent; they show as *invited* until first login). Admins cannot add other admins
+  or touch other orgs.
+- **Member** has read-only access (feed, calendar).
+- **Everyone** logs in at **`/login`** with a magic link.
+
+### Bootstrapping the first superadmin
+
+There is no one above the operator, so the first superadmin is **bootstrapped
+from an env allowlist**: put your email in `SUPERADMIN_EMAILS`. On your first
+login, the callback auto-creates an "Operator" anchor org and elevates you to
+`superadmin`.
+
+**SQL fallback (break-glass)** — if you'd rather not use the env, after logging
+in once (you'll be bounced to `/login?error=notprovisioned`), run in Supabase:
+
+```sql
+-- Replace with your auth user id (Authentication → Users):
+select public.ensure_superadmin('<your-auth-user-uuid>', 'you@example.com');
+```
+
+All account creation and role changes flow through server-side security-definer
+RPCs (`create_org`, `add_person`, `remove_person`, `set_admin`,
+`ensure_superadmin`); the public signup endpoint is off.
 
 ---
 
@@ -144,8 +169,10 @@ Defense in depth, four layers:
    non-allowlisted unauthenticated requests to `/login`.
 2. **Server auth helpers (`src/lib/auth.ts`)** — `requireSession()` /
    `requireAdmin()` re-check session + DB-backed role at every protected route.
-3. **Security-definer RPCs** — the only writers of `profiles.role`; pinned
-   `search_path`, input-validated, `service_role`-only.
+3. **Security-definer RPCs** — the only writers of `profiles.role` (`create_org`,
+   `add_person`, `remove_person`, `set_admin`, `ensure_superadmin`); pinned
+   `search_path`, input-validated, `service_role`-only, with the actor's
+   authorization re-checked inside each function.
 4. **Row Level Security + column grants** — the final backstop. Every table is
    org-scoped; members read only published/confirmed rows. Because RLS gates
    rows but **not columns**, PII columns (`ocr_text_raw`, `ocr_text_redacted`,
@@ -154,14 +181,14 @@ Defense in depth, four layers:
    querying the base `posts` table directly. Admin PII access is server-only
    (service role).
 
-**Onboarding intent is bound server-side.** Magic-link URLs carry **no** org or
-invite parameters (those are user-editable and were a privilege-escalation
-vector). The intent lives in the `pending_onboarding` table keyed by email; the
-callback reads it by the *authenticated* email and re-checks the waitlist gate.
+**No onboarding intent in URLs.** Magic links only log a (pre-provisioned) user
+in; they carry no org/role parameters. Account + role assignment happen entirely
+server-side when an operator/admin provisions someone, so there is nothing
+escalatable to tamper with in the link.
 
-This walking skeleton was put through a multi-agent **adversarial security
-review** before first commit; findings and fixes are recorded in
-[`SECURITY.md`](SECURITY.md).
+This skeleton was put through multi-agent **adversarial security reviews** (the
+initial build and the operator-model refactor); findings and fixes are recorded
+in [`SECURITY.md`](SECURITY.md).
 
 **Phase 1 acceptance test:** two users in two different orgs cannot see each
 other's anything. Seed with `supabase/fixtures/two_orgs.sql` and confirm
@@ -183,11 +210,11 @@ internal postcss. Do not run `npm audit fix --force`.
 src/
   app/
     (app)/                 # authenticated shell (requireSession)
-      admin/               # admin-only (requireAdmin) — members, approvals
+      admin/mitglieder/    # admin (requireAdmin) — add/remove members
+      operator/            # superadmin (requireSuperadmin) — create orgs, manage admins
       feed/                # member feed (empty in Phase 1)
-    auth/callback/         # magic-link landing + onboarding finalizer
-    join/[code]/           # member onboarding
-    login/  start/         # auth entry points
+    auth/callback/         # magic-link landing + superadmin bootstrap + activate
+    login/                 # the only auth entry point
     datenschutz/           # the one public legal page
   components/              # UI primitives
   config/brand.ts          # SINGLE source of branding
@@ -198,7 +225,8 @@ src/
     env.ts env.server.ts   # public vs server-only env (secret boundary)
   proxy.ts                 # deny-by-default middleware
 supabase/
-  migrations/              # 0001 schema, 0002 functions, 0003 RLS
+  migrations/              # 0001 schema · 0002 fns · 0003 RLS · 0004 hardening
+                          # · 0005 operator model · 0006 superadmin RLS
   fixtures/two_orgs.sql    # isolation test fixture
   config.toml              # security-critical auth settings (version-controlled)
 scripts/

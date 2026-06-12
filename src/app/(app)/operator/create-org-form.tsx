@@ -1,21 +1,18 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestOrgCreation, type ActionState } from "./actions";
+import { createOrgWithAdmin, type ActionState } from "./actions";
 import { Card, Button, Input, Field, Label, Alert } from "@/components/ui";
 import { ORG_TYPES } from "@/lib/validation";
 
 const initial: ActionState = { ok: false, message: null };
 
-export function StartForm() {
+/** Superadmin form: create an org and its first admin in one step. */
+export function CreateOrgForm() {
   const [state, formAction, pending] = useActionState(
-    requestOrgCreation,
+    createOrgWithAdmin,
     initial,
   );
-
-  if (state.ok) {
-    return <Alert variant="success">{state.message}</Alert>;
-  }
 
   return (
     <Card>
@@ -25,10 +22,9 @@ export function StartForm() {
             id="orgName"
             name="orgName"
             type="text"
-            placeholder="z. B. Kita Sonnenschein"
             maxLength={120}
+            placeholder="z. B. Kita Sonnenschein"
             required
-            autoFocus
           />
         </Field>
 
@@ -52,26 +48,35 @@ export function StartForm() {
           </select>
         </div>
 
-        <Field label="Deine E-Mail-Adresse" htmlFor="email">
+        <Field label="E-Mail der ersten Admin-Person" htmlFor="adminEmail">
           <Input
-            id="email"
-            name="email"
+            id="adminEmail"
+            name="adminEmail"
             type="email"
-            autoComplete="email"
             inputMode="email"
-            placeholder="du@beispiel.de"
+            autoComplete="off"
+            placeholder="admin@beispiel.de"
             required
           />
         </Field>
 
-        {state.message && <Alert variant="error">{state.message}</Alert>}
+        <Field label="Name der Admin-Person (optional)" htmlFor="adminName">
+          <Input
+            id="adminName"
+            name="adminName"
+            type="text"
+            maxLength={80}
+            placeholder="z. B. Anna Müller"
+          />
+        </Field>
+
+        {state.message && (
+          <Alert variant={state.ok ? "success" : "error"}>{state.message}</Alert>
+        )}
 
         <Button type="submit" disabled={pending}>
-          {pending ? "Wird gesendet …" : "Bestätigungs-Link anfordern"}
+          {pending ? "Wird angelegt …" : "Organisation + Admin anlegen"}
         </Button>
-        <p className="text-center text-xs text-zinc-400">
-          Du wirst Administrator:in dieser Organisation.
-        </p>
       </form>
     </Card>
   );

@@ -2,14 +2,16 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Role, MembershipStatus } from "@/lib/database.types";
 
-export type Role = "admin" | "member";
+export type { Role } from "@/lib/database.types";
 
 export interface SessionProfile {
   userId: string;
   email: string | null;
   orgId: string;
   role: Role;
+  membershipStatus: MembershipStatus;
   displayName: string | null;
 }
 
@@ -17,10 +19,10 @@ export interface SessionProfile {
  * Resolve the current authenticated user AND their profile (org + role).
  *
  * Uses getUser() (JWT validated against the auth server) — never getSession()
- * for authz. Reads the profile through the RLS-governed server client, so it
- * can only ever return the caller's own profile. Returns null when there is no
- * authenticated user OR no profile yet (e.g. authenticated but mid-onboarding,
- * before a profile exists).
+ * for authz. Reads the profile through the RLS-governed server client, so it can
+ * only ever return the caller's own profile. Returns null when there is no
+ * authenticated user OR no profile yet (an authenticated user without a profile
+ * has not been provisioned by an operator/admin).
  *
  * This is the authoritative authorization primitive. Middleware is a coarse
  * gate; THIS is the boundary every protected route must pass through.
@@ -35,7 +37,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("org_id, role, display_name")
+    .select("org_id, role, membership_status, display_name")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -46,6 +48,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     email: user.email ?? null,
     orgId: profile.org_id,
     role: profile.role as Role,
+    membershipStatus: profile.membership_status as MembershipStatus,
     displayName: profile.display_name,
   };
 }
@@ -61,30 +64,30 @@ export async function requireSession(): Promise<SessionProfile> {
 }
 
 /**
- * Require an authenticated ADMIN. Redirects unauthenticated users to /login and
- * non-admins to /feed. This is the authoritative role check (DB-backed),
- * independent of any middleware header.
+ * Require an authenticated ADMIN-OR-ABOVE (admin or superadmin). Redirects
+ * unauthenticated users to /login and members to /feed. Authoritative DB-backed
+ * check, independent of any middleware header.
  */
 export async function requireAdmin(): Promise<SessionProfile> {
   const session = await getSessionProfile();
   if (!session) redirect("/login");
-  if (session.role !== "admin") redirect("/feed");
+  if (session.role !== "admin" && session.role !== "superadmin") {
+    redirect("/feed");
+  }
   return session;
 }
 
 /**
- * For an authenticated user who does NOT yet have a profile (mid-onboarding):
- * returns the bare auth user id/email, or null if not authenticated at all.
- * Used by the onboarding callback to bind a new profile to the auth user.
+ * Require an authenticated SUPERADMIN (the operator). Redirects unauthenticated
+ * users to /login and everyone else to /feed.
  */
-export async function getAuthUserWithoutProfile(): Promise<{
-  userId: string;
-  email: string | null;
-} | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { userId: user.id, email: user.email ?? null };
+export async function requireSuperadmin(): Promise<SessionProfile> {
+  const session = await getSessionProfile();
+  if (!session) redirect("/login");
+  if (session.role !== "superadmin") redirect("/feed");
+  return session;
+}
+
+export function isAdminOrAbove(role: Role): boolean {
+  return role === "admin" || role === "superadmin";
 }

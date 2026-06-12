@@ -3,112 +3,194 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Server-side onboarding/auth helpers.
+ * Server-side provisioning + auth helpers for the operator-provisioned model.
  *
- * Security model (post-review hardening):
- *   - Public signup is DISABLED (config.toml). Accounts are created only here,
- *     server-side, via the security-definer RPCs — after our own validation.
- *   - The onboarding INTENT (create org / redeem invite) is NOT carried in the
- *     magic-link URL, because those params are user-editable and were a
- *     privilege-escalation / waitlist-bypass vector. Instead the intent is
- *     persisted server-side in `pending_onboarding`, keyed by the lowercased
- *     email, and the callback looks it up by the AUTHENTICATED email.
- *   - Links are admin-generated and verified with verifyOtp({token_hash,type}).
- *     We pass the token_hash to /auth/callback ourselves; this is the correct
- *     flow for server-issued magic links (exchangeCodeForSession/PKCE does not
- *     apply because sign-in is initiated server-side, not in the browser).
- *
- * generateLink returns { properties.hashed_token, properties.verification_type }.
- * Supabase ALSO emails the link automatically when SMTP is configured; that
- * emailed link points at Supabase's /verify endpoint which then redirects to our
- * redirectTo. Either way the callback verifies via token_hash.
+ * Model:
+ *   - No public signup. Accounts are created here, server-side, only by an
+ *     authorized actor (superadmin or admin), via the admin API + the
+ *     security-definer flows. This is the single controlled creation path.
+ *   - Magic links are admin-generated and verified by the callback via
+ *     verifyOtp({ token_hash, type }). The email template must deliver token_hash
+ *     (see supabase/config.toml + README).
+ *   - There is NO onboarding intent in the URL; a provisioned user simply logs
+ *     in and lands on their feed (or operator/admin surface by role).
  */
 
 /**
- * Generate (and have Supabase email) a magic link for `email`. The admin API
- * creates the user if missing — it is not bound by enable_signup, so this is our
- * single controlled account-creation path. Does NOT reveal whether the user
- * already existed (enumeration resistance).
+ * Create-or-find the auth user for `email` AND have Supabase email them a magic
+ * link, in a SINGLE admin.generateLink call. generateLink creates the user if it
+ * doesn't exist (admin API is not bound by enable_signup), returns the user in
+ * `data.user`, and — with SMTP configured — triggers the email. This avoids the
+ * unpaginated listUsers() lookup entirely and never mints a throwaway probe user
+ * separately from sending the link.
  *
- * Supabase delivers the email itself when SMTP is configured. The magic-link
- * email template MUST point at `/auth/callback?token_hash={{ .TokenHash }}&type=
- * magiclink` (see supabase/config.toml), so the callback can verify via
- * verifyOtp({ token_hash, type }). The onboarding INTENT is NOT in the link — it
- * lives server-side in `pending_onboarding`, keyed by email.
+ * Returns { userId, link } — `link` is the action_link (useful if we later send
+ * the email ourselves via Resend instead of relying on Supabase SMTP).
  */
-async function generateMagicLink(email: string): Promise<void> {
+async function generateLoginLink(
+  email: string,
+): Promise<{ userId: string; link: string }> {
   const admin = createAdminClient();
-
-  const { error } = await admin.auth.admin.generateLink({
+  const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email,
+  });
+  if (error || !data?.user) {
+    throw new Error("Login-Link konnte nicht erstellt werden.");
+  }
+  return {
+    userId: data.user.id,
+    link: data.properties?.action_link ?? "",
+  };
+}
+
+/**
+ * Plain login for an existing user. Does not reveal whether the account exists
+ * (enumeration resistance): for an unknown email generateLink still creates a
+ * user, but since no profile is attached, the callback bounces them to
+ * /login?error=notprovisioned — they learn nothing about other accounts. We
+ * swallow all errors to keep the response uniform.
+ */
+export async function sendLoginLink(email: string): Promise<void> {
+  try {
+    await generateLoginLink(email);
+  } catch {
+    /* uniform response regardless of outcome */
+  }
+}
+
+export type ProvisionOutcome =
+  | "added" // newly added to this org; link sent
+  | "already_elsewhere"; // the email already belongs to some org — no-op
+
+/**
+ * Provision a person into an org with a role, performed by `actorId`.
+ *
+ * Flow: generateLink creates-or-finds the auth user (and queues the email), then
+ * add_person writes the profile with the actor's authorization re-checked in the
+ * DB. If the email already belongs to ANY org, add_person rejects it and we
+ * return "already_elsewhere" — the CALLER must render the SAME neutral message
+ * for both outcomes so this is not a cross-tenant existence oracle.
+ *
+ * Authorization is enforced in TWO places: the caller checks the actor's role,
+ * and add_person re-checks it (defense in depth).
+ */
+export async function provisionPerson(params: {
+  actorId: string;
+  orgId: string;
+  email: string;
+  role: "admin" | "member";
+  displayName?: string | null;
+}): Promise<ProvisionOutcome> {
+  const admin = createAdminClient();
+
+  // Create-or-find the user and queue the magic-link email in one call.
+  const { userId } = await generateLoginLink(params.email);
+
+  const { error } = await admin.rpc("add_person", {
+    p_actor_id: params.actorId,
+    p_target_user_id: userId,
+    p_target_org_id: params.orgId,
+    p_role: params.role,
+    p_display_name: params.displayName ?? null,
   });
 
   if (error) {
     const msg = error.message?.toLowerCase() ?? "";
-    // For login of a non-existent user we silently no-op (no enumeration). For a
-    // genuinely broken config, surface a generic error.
-    if (msg.includes("not found") || msg.includes("no user")) return;
-    if (!msg.includes("already") && !msg.includes("registered")) {
-      throw new Error("Login-Link konnte nicht gesendet werden.");
+    if (msg.includes("already belongs")) {
+      // Email is provisioned somewhere already. Treat as a benign no-op; the
+      // caller shows the neutral "done" message either way (no enumeration).
+      return "already_elsewhere";
     }
+    // Authorization / other failures are real errors the caller maps.
+    throw new Error(error.message || "Konnte Person nicht hinzufügen.");
   }
+
+  return "added";
 }
 
 /**
- * Org creation: persist the pending intent server-side (keyed by email), then
- * send the magic link. The link contains NO org params — the callback reads the
- * intent from `pending_onboarding` by the authenticated email.
+ * Remove a person from their org, performed by `actorId`. Delegates the
+ * authorization + last-admin guard to remove_person in the DB.
  */
-export async function startOrgCreation(
-  email: string,
-  orgName: string,
-  orgType: string,
+export async function removePerson(
+  actorId: string,
+  targetUserId: string,
 ): Promise<void> {
   const admin = createAdminClient();
-  const { error } = await admin.rpc("set_pending_org", {
-    p_email: email,
+  const { error } = await admin.rpc("remove_person", {
+    p_actor_id: actorId,
+    p_target_user_id: targetUserId,
+  });
+  if (error) throw new Error(error.message || "Konnte Person nicht entfernen.");
+}
+
+/**
+ * Superadmin: create an org. Returns the new org id. The first admin is added
+ * separately via provisionPerson(role:'admin').
+ */
+export async function createOrg(
+  actorId: string,
+  orgName: string,
+  orgType: string,
+): Promise<string> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("create_org", {
+    p_actor_id: actorId,
     p_org_name: orgName,
     p_org_type: orgType,
   });
-  if (error) throw new Error("Konnte Registrierung nicht vorbereiten.");
-  await generateMagicLink(email);
+  if (error) throw new Error(error.message || "Konnte Organisation nicht anlegen.");
+  return data as string;
 }
 
 /**
- * Invite redemption (no approval): persist the pending invite intent server-side
- * keyed by email, then send the magic link. The callback redeems the invite that
- * was bound to THIS email — an attacker cannot swap in another org's code.
+ * Superadmin: delete an org and erase its accounts/data (GDPR erasure, or
+ * rolling back a half-provisioned org). Refuses the operator's own anchor org.
  */
-export async function startInviteRedemption(
-  email: string,
-  code: string,
+export async function deleteOrg(actorId: string, orgId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("delete_org", {
+    p_actor_id: actorId,
+    p_org_id: orgId,
+  });
+  if (error) throw new Error(error.message || "Konnte Organisation nicht löschen.");
+}
+
+/** Superadmin: grant or revoke admin rights for a target user. */
+export async function setAdmin(
+  actorId: string,
+  targetUserId: string,
+  makeAdmin: boolean,
 ): Promise<void> {
   const admin = createAdminClient();
-  const { error } = await admin.rpc("set_pending_invite", {
-    p_email: email,
-    p_code: code,
+  const { error } = await admin.rpc("set_admin", {
+    p_actor_id: actorId,
+    p_target_user_id: targetUserId,
+    p_make_admin: makeAdmin,
   });
-  if (error) throw new Error("Konnte Beitritt nicht vorbereiten.");
-  await generateMagicLink(email);
+  if (error) throw new Error(error.message || "Konnte Rolle nicht ändern.");
 }
 
 /**
- * Approved join: the approved requester gets a magic link. The callback finalizes
- * via redeem_approved_join keyed on the authenticated email (already email-bound;
- * no pending_onboarding row needed). No org params travel in the URL.
+ * Bootstrap: ensure the given user is a superadmin (used at login when the email
+ * is in the SUPERADMIN_EMAILS allowlist). Creates an operator org + profile if
+ * the user has none, or elevates an existing profile. Idempotent.
  */
-export async function sendApprovedJoinLink(email: string): Promise<void> {
-  await generateMagicLink(email);
+export async function ensureSuperadmin(
+  userId: string,
+  email: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("ensure_superadmin", {
+    p_user_id: userId,
+    p_email: email,
+  });
+  if (error) throw new Error("Operator-Bootstrap fehlgeschlagen.");
 }
 
-/**
- * Plain login for existing users. No onboarding intent is set, so the callback
- * finds no pending row and routes the user to their feed. Does not reveal
- * whether the account exists. (The `next` redirect hint is a Phase 4 concern,
- * deliverable once we control the email body via Resend; Supabase's own template
- * delivery does not thread it through.)
- */
-export async function sendLoginLink(email: string): Promise<void> {
-  await generateMagicLink(email);
+/** Flip a freshly-provisioned profile from 'invited' to 'active' on first login. */
+export async function activateProfile(userId: string): Promise<void> {
+  const admin = createAdminClient();
+  await admin.rpc("activate_profile", { p_user_id: userId });
 }

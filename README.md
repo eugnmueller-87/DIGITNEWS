@@ -109,6 +109,32 @@ cp .env.example .env.local
 variables reach the browser; `SUPABASE_SERVICE_ROLE_KEY` is server-only and
 bypasses RLS — treat it as a root credential.
 
+### Email (Resend)
+
+There are **two** email paths:
+
+1. **Magic login links** are sent by **Supabase**. To deliver them via Resend,
+   point Supabase's SMTP at Resend: Supabase → Project Settings → Authentication
+   → **SMTP Settings** → enable custom SMTP with host `smtp.resend.com`, port
+   `465`, user `resend`, password = your Resend API key, sender = an address on
+   your verified domain. (Without custom SMTP, Supabase's built-in email has very
+   low limits and is fine only for early testing.)
+2. **App-owned emails** (QR application verification now; digests later) are sent
+   directly via the **Resend SDK** using `RESEND_API_KEY` + `EMAIL_FROM`.
+
+**Setup:**
+
+1. Create a [Resend](https://resend.com) account.
+2. **Verify a sending domain** (Resend → Domains → add your domain, then add the
+   shown DKIM/SPF/DMARC DNS records). To start without a domain you can use
+   Resend's test sender `onboarding@resend.dev`, but it only delivers to your own
+   account email.
+3. Put the API key in `RESEND_API_KEY` and set `EMAIL_FROM` to an address on the
+   verified domain, e.g. `Aushang <hallo@aushang.app>`.
+
+> If `RESEND_API_KEY` is unset, app emails **no-op** (a warning is logged) — the
+> app still runs, but QR verification links won't be delivered.
+
 ### 4. Run
 
 ```bash

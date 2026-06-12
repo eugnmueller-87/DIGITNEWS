@@ -37,6 +37,22 @@ export const serverEnv = {
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter((e) => e.length > 0),
+
+  /**
+   * Resend API key for app-owned emails (QR verification, later digests). When
+   * unset, the email layer no-ops gracefully (logs a warning) rather than
+   * throwing — so local dev / CI work without it. Magic LOGIN links are sent by
+   * Supabase (configure Supabase SMTP to use Resend); this key is for the emails
+   * WE send directly.
+   */
+  resendApiKey: process.env.RESEND_API_KEY || null,
+
+  /**
+   * The "from" address for app-owned emails, e.g. "Aushang <hallo@aushang.app>".
+   * Must be on a domain verified in Resend. Falls back to a Resend test sender
+   * if unset (only works for sending to the account owner's own address).
+   */
+  emailFrom: process.env.EMAIL_FROM || null,
 } as const;
 
 /** Is this email an allowlisted operator (case-insensitive)? */

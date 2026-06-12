@@ -5,6 +5,8 @@ import { randomBytes, createHash } from "node:crypto";
 import QRCode from "qrcode";
 
 import { provisionPerson } from "@/lib/auth-flows";
+import { sendEmail } from "@/lib/email/client";
+import { applicationVerificationEmail } from "@/lib/email/templates";
 import { publicEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -121,24 +123,22 @@ export async function submitApplication(input: {
 }
 
 /**
- * Email the verification link. In Phase 1 there is no Resend integration yet, so
- * this is a stub that logs nothing sensitive. Wire Resend in a later phase; the
- * link shape is /apply/verify?id=<appId>&token=<plaintext>.
- *
- * IMPORTANT: until email delivery is wired, verification links are NOT actually
- * sent — this flow is structurally complete but needs Resend (or Supabase SMTP
- * via a custom template) to deliver. Documented in README.
+ * Email the verification link via Resend. The link carries the single-use token
+ * (/apply/verify?id=<appId>&token=<plaintext>). If Resend is not configured, the
+ * email layer no-ops (logs a warning) — the application row still exists, but the
+ * parent won't receive the link until RESEND_API_KEY is set. Never logs the URL.
  */
 async function sendVerificationEmail(
-  _email: string,
+  email: string,
   appId: string,
   token: string,
 ): Promise<void> {
   const url = new URL("/apply/verify", publicEnv.siteUrl);
   url.searchParams.set("id", appId);
   url.searchParams.set("token", token);
-  // Phase: Resend send goes here. Intentionally not logging the URL/token.
-  void url;
+
+  const { subject, html, text } = applicationVerificationEmail(url.toString());
+  await sendEmail({ to: email, subject, html, text });
 }
 
 /** PUBLIC verify. Returns true if the token matches an un-expired pending app. */

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { requireSession } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+
 import { Card } from "@/components/ui";
+import { requireSession } from "@/lib/auth";
 import type { PublicPost } from "@/lib/database.types";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Feed" };
 
@@ -30,9 +31,7 @@ export default async function FeedPage() {
     supabase
       .from("posts_public")
       .select("id, title, body, category, content_type, published_at")
-      .or(
-        "content_type.is.null,content_type.in.(info,event_notice)",
-      )
+      .or("content_type.is.null,content_type.in.(info,event_notice)")
       .order("published_at", { ascending: false })
       .limit(50),
   ]);
@@ -88,12 +87,13 @@ export default async function FeedPage() {
             </p>
             {session.role === "admin" || session.role === "superadmin" ? (
               <p className="mt-2 text-sm text-zinc-400">
-                Sobald du einen Aushang fotografierst und freigibst, erscheint er
-                hier. (Foto-Funktion folgt.)
+                Sobald du einen Aushang fotografierst und freigibst, erscheint
+                er hier. (Foto-Funktion folgt.)
               </p>
             ) : (
               <p className="mt-2 text-sm text-zinc-400">
-                Sobald deine Organisation etwas veröffentlicht, siehst du es hier.
+                Sobald deine Organisation etwas veröffentlicht, siehst du es
+                hier.
               </p>
             )}
           </div>

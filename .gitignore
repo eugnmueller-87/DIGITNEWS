@@ -13,6 +13,17 @@
 # testing
 /coverage
 
+# python worker
+worker/.venv/
+worker/**/__pycache__/
+worker/**/*.pyc
+worker/.mypy_cache/
+worker/.ruff_cache/
+worker/.pytest_cache/
+worker/**/*.egg-info/
+worker/build/
+worker/dist/
+
 # next.js
 /.next/
 /out/

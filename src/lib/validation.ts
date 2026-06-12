@@ -6,7 +6,9 @@
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function parseEmail(raw: FormDataEntryValue | null): string {
-  const value = String(raw ?? "").trim().toLowerCase();
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
   if (!EMAIL_RE.test(value) || value.length > 254) {
     throw new Error("Bitte gib eine gültige E-Mail-Adresse ein.");
   }

@@ -1,0 +1,92 @@
+name: CI
+
+# Runs on every PR and on pushes to main. A failing job shows a red check;
+# enable branch protection on `main` (Settings → Branches) to make these
+# checks REQUIRED so a red check blocks merging.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # TypeScript / Next.js app: typecheck, lint, format, build, secret-leak scan.
+  # ---------------------------------------------------------------------------
+  web:
+    name: Web (TypeScript)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # The build imports modules that read public env at module load. These are
+      # CI-only placeholders (NOT real secrets) so the build can run. RLS, not
+      # these values, is what protects data; the real keys live in Vercel.
+      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder-project.supabase.co"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+      SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-role-key"
+      SUPERADMIN_EMAILS: "ci@example.com"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+
+      - name: No client secrets
+        run: npm run check:secrets
+
+  # ---------------------------------------------------------------------------
+  # Python worker: Ruff lint + format, mypy types, pytest.
+  # ---------------------------------------------------------------------------
+  worker:
+    name: Worker (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: mypy
+        run: mypy
+
+      - name: pytest
+        run: pytest -q

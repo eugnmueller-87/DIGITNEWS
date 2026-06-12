@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+
+import { Card } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Card } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Essensplan" };
 

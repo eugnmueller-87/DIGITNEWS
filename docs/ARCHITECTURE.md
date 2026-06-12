@@ -39,12 +39,12 @@ Brief.
 
 There are deliberately three distinct clients, each with a single job:
 
-| Client | File | Key | RLS | Use |
-| --- | --- | --- | --- | --- |
-| Browser | `lib/supabase/client.ts` | anon | governed | client components |
-| Server (user) | `lib/supabase/server.ts` | anon + session cookies | governed | server components, actions, handlers acting AS the user |
-| Admin | `lib/supabase/admin.ts` | **service role** | **bypasses** | ONLY the security-definer onboarding RPCs, after our own checks |
-| Middleware | `lib/supabase/middleware.ts` | anon + cookies | governed | session refresh + `getUser()` in `proxy.ts` |
+| Client        | File                         | Key                    | RLS          | Use                                                             |
+| ------------- | ---------------------------- | ---------------------- | ------------ | --------------------------------------------------------------- |
+| Browser       | `lib/supabase/client.ts`     | anon                   | governed     | client components                                               |
+| Server (user) | `lib/supabase/server.ts`     | anon + session cookies | governed     | server components, actions, handlers acting AS the user         |
+| Admin         | `lib/supabase/admin.ts`      | **service role**       | **bypasses** | ONLY the security-definer onboarding RPCs, after our own checks |
+| Middleware    | `lib/supabase/middleware.ts` | anon + cookies         | governed     | session refresh + `getUser()` in `proxy.ts`                     |
 
 The admin client and the server-only env that holds the service-role key both
 `import "server-only"`, so a build error is raised if either is ever pulled into
@@ -140,7 +140,7 @@ create_org(actor, name, type) ──► orgId
 
 **Admin adds a member (`/admin/mitglieder`):** same `provisionPerson` shape with
 `role:'member'`, scoped to the admin's own org by `add_person`. The added person
-shows as *invited* until their first login flips them to *active*
+shows as _invited_ until their first login flips them to _active_
 (`activate_profile` in the callback).
 
 ## Content classification (migration 0008)
@@ -149,17 +149,17 @@ Photographed notices are classified into a **content type** so they route to the
 right place. The taxonomy lives in `src/lib/content/types.ts`; the LLM extraction
 contract (the Phase 2 target) is `src/lib/content/extraction-schema.ts`.
 
-| `content_type` | Routes to | Calendar? |
-| --- | --- | --- |
-| `meal_plan` | Essensplan section (`/essensplan`) + `post_details`; estimated Nutri-Score (A–E) | No |
-| `reflection` | Rückblick section (`/rueckblick`) + `post_details` (Mon–Fri activities) | No |
-| `health_notice` | Prominent alert at the top of the feed, ordered by `health_severity` | No (unless dated + admin opts in) |
-| `event_notice` | The `events` table + the ICS calendar | **Yes** |
-| `info` | General feed | No |
+| `content_type`  | Routes to                                                                        | Calendar?                         |
+| --------------- | -------------------------------------------------------------------------------- | --------------------------------- |
+| `meal_plan`     | Essensplan section (`/essensplan`) + `post_details`; estimated Nutri-Score (A–E) | No                                |
+| `reflection`    | Rückblick section (`/rueckblick`) + `post_details` (Mon–Fri activities)          | No                                |
+| `health_notice` | Prominent alert at the top of the feed, ordered by `health_severity`             | No (unless dated + admin opts in) |
+| `event_notice`  | The `events` table + the ICS calendar                                            | **Yes**                           |
+| `info`          | General feed                                                                     | No                                |
 
 The "LLM advises, code decides" principle is encoded in **two columns**:
 `content_type_suggested` (the LLM's guess — admin-only, never granted to members)
-and `content_type` (what the admin **confirms** in review — the *only* value
+and `content_type` (what the admin **confirms** in review — the _only_ value
 routing reads). `content_type` is nullable with **no default**: `NULL` means
 "not yet confirmed", deliberately distinct from the `info` fallback, so a wrong
 suggestion can never auto-route or auto-create calendar events.

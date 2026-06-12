@@ -1,0 +1,21 @@
+# Fast local gate — runs on STAGED files only (seconds, not minutes). The full
+# typecheck/build/tests run in CI, not here, so commits stay snappy.
+
+# TypeScript/JS/etc: eslint --fix + prettier on staged files.
+npx lint-staged
+
+# Python worker: if any staged file is under worker/, run Ruff (lint + format)
+# on the worker. Skipped when ruff isn't installed locally (CI enforces it
+# regardless), so contributors without a Python env aren't blocked.
+if git diff --cached --name-only | grep -q '^worker/.*\.py$'; then
+  if command -v ruff >/dev/null 2>&1; then
+    echo "ruff: checking worker/"
+    ruff check worker || exit 1
+    ruff format --check worker || {
+      echo "Run: ruff format worker"
+      exit 1
+    }
+  else
+    echo "ruff not found locally — skipping (CI will enforce)."
+  fi
+fi

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setAdminAction } from "./actions";
+
 import { Alert } from "@/components/ui";
 import type { Role, MembershipStatus } from "@/lib/database.types";
+
+import { setAdminAction } from "./actions";
 
 interface Person {
   id: string;
@@ -30,9 +32,7 @@ export function OrgAdmins({ people }: { people: Person[] }) {
   }
 
   if (people.length === 0) {
-    return (
-      <p className="mt-2 text-xs text-zinc-400">Noch keine Personen.</p>
-    );
+    return <p className="mt-2 text-xs text-zinc-400">Noch keine Personen.</p>;
   }
 
   return (

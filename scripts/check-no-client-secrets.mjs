@@ -23,7 +23,12 @@ const FORBIDDEN = [
   // The actual secret values, pulled from the environment at check time, so a
   // real key value can never slip through even if the var name is obfuscated.
   process.env.SUPABASE_SERVICE_ROLE_KEY,
-].filter((s) => typeof s === "string" && s.length > 0 && s !== "placeholder-service-role-key");
+].filter(
+  (s) =>
+    typeof s === "string" &&
+    s.length > 0 &&
+    s !== "placeholder-service-role-key",
+);
 
 function walk(dir) {
   let files = [];

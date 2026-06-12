@@ -37,7 +37,11 @@ export const SUPERADMIN_ROUTES = {
 } as const;
 
 export function isPublicPath(pathname: string): boolean {
-  if (PUBLIC_ROUTES.exact.includes(pathname as (typeof PUBLIC_ROUTES.exact)[number])) {
+  if (
+    PUBLIC_ROUTES.exact.includes(
+      pathname as (typeof PUBLIC_ROUTES.exact)[number],
+    )
+  ) {
     return true;
   }
   return PUBLIC_ROUTES.prefixes.some((p) => pathname.startsWith(p));

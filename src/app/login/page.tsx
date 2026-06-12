@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { LoginForm } from "./login-form";
+
 import { PageShell, Alert } from "@/components/ui";
 import { brand } from "@/config/brand";
+
+import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Anmelden" };
 

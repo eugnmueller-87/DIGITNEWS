@@ -19,6 +19,7 @@ export const PUBLIC_ROUTES = {
   prefixes: [
     "/auth/", // /auth/callback — magic-link landing
     "/api/ics/", // calendar subscription (token-guarded, not session-guarded)
+    "/apply/", // QR self-apply: /apply/[code] + /apply/verify (token-guarded)
   ],
 } as const;
 

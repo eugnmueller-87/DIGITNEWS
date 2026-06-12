@@ -47,6 +47,19 @@ export function parseOrgType(raw: FormDataEntryValue | null): string {
 }
 
 /**
+ * Join code embedded in a QR (e.g. "jc-<base64url>"). Restrict to a safe charset
+ * and length so a crafted value can't be used for injection in URLs/logs. The
+ * authoritative check is the server-side DB lookup.
+ */
+export function parseJoinCode(raw: string): string {
+  const value = String(raw ?? "").trim();
+  if (!/^[A-Za-z0-9_-]{8,120}$/.test(value)) {
+    throw new Error("Ungültiger Code.");
+  }
+  return value;
+}
+
+/**
  * Parse the role an admin/operator assigns when adding a person. The form may
  * offer 'member' (admins) or 'admin' (superadmins). 'superadmin' is never
  * settable here — it is granted only via ensure_superadmin / set_admin flows.

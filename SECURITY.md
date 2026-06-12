@@ -83,7 +83,37 @@ were fixed in migration `0007` + app code.
 - **CSP is report-only.** It does not block yet; promote to enforcing with a
   script nonce once the Supabase/font inventory is finalized.
 - **Rate limiting** on magic-link / login requests relies on Supabase built-ins
-  for now; an app-level token bucket is a Phase 2+ hardening item.
+  for now; an app-level token bucket is a Phase 2+ hardening item. (The QR apply
+  submit has its own per-code DB rate limit — see below.)
 - **`npm audit`** flags a transitive `postcss` advisory inside Next.js's own
   tree; the "fix" downgrades Next to 9.x and is intentionally not applied (see
   README).
+
+## QR self-apply — public surface (migration 0009)
+
+The QR apply flow (`/apply/[code]`, submit, `/apply/verify`) is the app's first
+**public unauthenticated write surface**. Design properties:
+
+- **No anon RLS.** `join_codes` and `applications` have admin/superadmin policies
+  only. The public submit/verify run exclusively through security-definer RPCs
+  granted to `service_role`; an admin sees only their own org's queue.
+- **Verification token hashed at rest.** 256-bit random token; only its sha256 is
+  stored; single-use (cleared on verify) + 24h expiry. A DB leak yields no usable
+  tokens. The plaintext exists only in the emailed link.
+- **Child data is purpose-limited + purged.** `parent_name` / `child_group` /
+  `child_name` live only on the pending application, are visible only to that
+  org's admin, and are NULLed on approve **and** reject. `purge_stale_applications`
+  clears abandoned rows (pending/verified >14d, decided >30d). The audit log
+  records the application id + action only — never the names. _This is a
+  deliberate, conscious collection of child data for the admission decision; the
+  product otherwise avoids child profiles._
+- **Enumeration / flood resistance.** Join codes are ~144-bit random; submit and
+  verify return neutral messages; per-code rate limit (30 new applications/hour)
+  caps queue/child-data flooding; per-email+code dedupe collapses resubmits.
+- **Admission stays admin-approved** — verification proves email ownership but
+  never grants membership; an admin must approve, which then provisions the
+  member via the existing `provisionPerson` flow.
+
+> **Open dependency:** the verification email is **not delivered yet** — the
+> sender is a stub pending the Resend integration (a later phase). Until then the
+> flow is structurally complete but the link isn't sent. Tracked in the README.

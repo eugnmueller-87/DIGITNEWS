@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { requireSuperadmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+
 import { Card } from "@/components/ui";
+import { requireSuperadmin } from "@/lib/auth";
+import type { Org, Profile } from "@/lib/database.types";
+import { createClient } from "@/lib/supabase/server";
+
 import { CreateOrgForm } from "./create-org-form";
 import { OrgAdmins } from "./org-admins";
-import type { Org, Profile } from "@/lib/database.types";
 
 export const metadata: Metadata = { title: "Operator" };
 
@@ -21,8 +23,13 @@ export default async function OperatorPage() {
   // 'sonstiges' named 'Operator'. We simply list everything and let the operator
   // see it all.
   const [{ data: orgs }, { data: profiles }] = await Promise.all([
-    supabase.from("orgs").select("id, name, slug, org_type, created_at").order("created_at", { ascending: true }),
-    supabase.from("profiles").select("id, org_id, role, membership_status, display_name"),
+    supabase
+      .from("orgs")
+      .select("id, name, slug, org_type, created_at")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("profiles")
+      .select("id, org_id, role, membership_status, display_name"),
   ]);
 
   const orgList = (orgs ?? []) as Pick<

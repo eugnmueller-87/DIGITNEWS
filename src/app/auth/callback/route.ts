@@ -1,9 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
+import { NextResponse, type NextRequest } from "next/server";
+
+import { ensureSuperadmin, activateProfile } from "@/lib/auth-flows";
 import { publicEnv } from "@/lib/env";
 import { isSuperadminEmail } from "@/lib/env.server";
-import { ensureSuperadmin, activateProfile } from "@/lib/auth-flows";
+import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/validation";
 
 /**
@@ -38,7 +39,10 @@ export async function GET(request: NextRequest) {
 
   // (1) Establish session.
   if (tokenHash) {
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    const { error } = await supabase.auth.verifyOtp({
+      type,
+      token_hash: tokenHash,
+    });
     if (error) return to("/login", true);
   } else {
     const code = searchParams.get("code");

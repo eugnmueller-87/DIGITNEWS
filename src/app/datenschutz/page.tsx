@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import { PageShell } from "@/components/ui";
 import { brand } from "@/config/brand";
 

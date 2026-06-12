@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { createOrgWithAdmin, type ActionState } from "./actions";
+
 import { Card, Button, Input, Field, Label, Alert } from "@/components/ui";
 import { ORG_TYPES } from "@/lib/validation";
+
+import { createOrgWithAdmin, type ActionState } from "./actions";
 
 const initial: ActionState = { ok: false, message: null };
 
@@ -71,7 +73,9 @@ export function CreateOrgForm() {
         </Field>
 
         {state.message && (
-          <Alert variant={state.ok ? "success" : "error"}>{state.message}</Alert>
+          <Alert variant={state.ok ? "success" : "error"}>
+            {state.message}
+          </Alert>
         )}
 
         <Button type="submit" disabled={pending}>

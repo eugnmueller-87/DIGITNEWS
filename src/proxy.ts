@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createMiddlewareClient } from "@/lib/supabase/middleware";
+
 import { isPublicPath, isAdminPath, isSuperadminPath } from "@/lib/routes";
+import { createMiddlewareClient } from "@/lib/supabase/middleware";
 
 /**
  * DENY-BY-DEFAULT middleware (Brief §2, §5, §11).

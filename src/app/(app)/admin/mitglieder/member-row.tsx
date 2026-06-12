@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { removePersonAction } from "./actions";
+
 import { Card, Alert } from "@/components/ui";
 import type { Role, MembershipStatus } from "@/lib/database.types";
+
+import { removePersonAction } from "./actions";
 
 const ROLE_LABEL: Record<Role, string> = {
   superadmin: "Operator",

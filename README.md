@@ -11,10 +11,11 @@ admin reviews and confirms, and members get a private feed, a shared calendar, a
 ICS subscription, and an email digest.
 
 > **Status: Phase 1 — walking skeleton.** Repo, Next.js + Supabase wiring, schema
-> + RLS + helper functions, auth/onboarding flows, deny-by-default middleware, and
-> an empty member feed. The capture → OCR → redaction → LLM pipeline (Phase 2+)
-> is **not** built yet. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the
-> full plan.
+>
+> - RLS + helper functions, auth/onboarding flows, deny-by-default middleware, and
+>   an empty member feed. The capture → OCR → redaction → LLM pipeline (Phase 2+)
+>   is **not** built yet. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the
+>   full plan.
 
 The working title is **Aushang**; final naming is TBD. All branding lives in one
 file — [`src/config/brand.ts`](src/config/brand.ts) — so a rename is a one-file
@@ -24,12 +25,12 @@ change.
 
 ## Tech stack
 
-| Layer            | Choice                                              |
-| ---------------- | --------------------------------------------------- |
-| Frontend         | Next.js 16 (App Router), React 19, TypeScript, PWA  |
-| DB / Auth / Storage | Supabase (EU region), RLS on every table         |
-| Auth method      | Supabase Auth, **magic link / email OTP only** (no passwords; no public signup — accounts are provisioned) |
-| Styling          | Tailwind CSS v4                                      |
+| Layer               | Choice                                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Frontend            | Next.js 16 (App Router), React 19, TypeScript, PWA                                                         |
+| DB / Auth / Storage | Supabase (EU region), RLS on every table                                                                   |
+| Auth method         | Supabase Auth, **magic link / email OTP only** (no passwords; no public signup — accounts are provisioned) |
+| Styling             | Tailwind CSS v4                                                                                            |
 
 Future phases add: Python FastAPI OCR/redaction worker (Tesseract/PaddleOCR +
 Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push.
@@ -82,6 +83,7 @@ Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push
    (Do **not** use the default `{{ .ConfirmationURL }}` — that is the PKCE/redirect
    flow, which does not apply to server-issued links and will fail to establish a
    session. See `supabase/config.toml`.)
+
 5. Apply the migrations in order (SQL editor or `supabase db push`):
    - `supabase/migrations/0001_schema.sql`
    - `supabase/migrations/0002_functions.sql`
@@ -134,7 +136,7 @@ There is **no public signup and no self-service join**. Accounts are provisioned
   Can also grant/revoke admin rights across orgs.
 - **Admin** uses **`/admin/mitglieder`** to add/remove **members** in their own
   org (enter an email → that person's account is created and a login link is
-  sent; they show as *invited* until first login). Admins cannot add other admins
+  sent; they show as _invited_ until first login). Admins cannot add other admins
   or touch other orgs.
 - **Member** has read-only access (feed, calendar).
 - **Everyone** logs in at **`/login`** with a magic link.

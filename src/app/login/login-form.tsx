@@ -1,13 +1,18 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestLoginLink, type ActionState } from "./actions";
+
 import { Card, Button, Input, Field, Alert } from "@/components/ui";
+
+import { requestLoginLink, type ActionState } from "./actions";
 
 const initial: ActionState = { ok: false, message: null };
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState(requestLoginLink, initial);
+  const [state, formAction, pending] = useActionState(
+    requestLoginLink,
+    initial,
+  );
 
   return (
     <Card>

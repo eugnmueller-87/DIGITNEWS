@@ -1,0 +1,69 @@
+[project]
+name = "aushang-worker"
+version = "0.1.0"
+description = "Aushang OCR + PII-redaction + extraction worker (Phase 2). Receives a short-TTL signed image URL, runs OCR + local PII redaction (Presidio/spaCy/regex), blurs redacted regions, calls the EU LLM on REDACTED text only, validates the structured output, and calls back."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "pydantic>=2.9",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# Phase 2 heavy deps (OCR/redaction) are added when that work starts:
+#   tesseract/paddleocr, presidio-analyzer, presidio-anonymizer,
+#   spacy + de_core_news_lg, opencv-python, mistralai
+dev = [
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "pytest>=8.3",
+]
+
+# =============================================================================
+# Ruff — lint + format. Strict-but-pragmatic: real bug/complexity rule sets on,
+# noise rules off. Ruff replaces flake8/isort/black for the Python side.
+# =============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes (unused imports/vars, undefined names — real bugs)
+  "I",        # isort (import ordering)
+  "B",        # flake8-bugbear (likely bugs: mutable defaults, etc.)
+  "C4",       # comprehensions
+  "UP",       # pyupgrade (modern syntax)
+  "SIM",      # flake8-simplify (de-spaghetti)
+  "RUF",      # ruff-specific
+  "ASYNC",    # async pitfalls (relevant for the FastAPI worker)
+  "S",        # bandit security (the worker handles images/secrets)
+]
+ignore = [
+  "E501",     # line length handled by the formatter
+  "S101",     # asserts allowed in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]  # asserts + hardcoded test secrets
+
+[tool.ruff.format]
+quote-style = "double"
+
+# =============================================================================
+# mypy — type checking. Non-strict but meaningful (catches the type errors that
+# matter without demanding annotations on every line).
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_untyped_defs = true        # public worker fns must be typed
+ignore_missing_imports = true        # 3rd-party stubs (presidio/cv2) often absent
+files = ["src", "tests"]

@@ -29,8 +29,14 @@ const HHMM_NULLABLE = {
   type: ["string", "null"],
   pattern: "^([01]\\d|2[0-3]):[0-5]\\d$",
 } as const;
-const NUTRI = { type: ["string", "null"], enum: ["A", "B", "C", "D", "E", null] } as const;
-const WEEKDAY = { type: ["string", "null"], enum: ["mon", "tue", "wed", "thu", "fri", null] } as const;
+const NUTRI = {
+  type: ["string", "null"],
+  enum: ["A", "B", "C", "D", "E", null],
+} as const;
+const WEEKDAY = {
+  type: ["string", "null"],
+  enum: ["mon", "tue", "wed", "thu", "fri", null],
+} as const;
 
 const MEAL_PLAN_PAYLOAD = {
   type: "object",
@@ -44,11 +50,22 @@ const MEAL_PLAN_PAYLOAD = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["day", "date", "dishes", "nutri_score", "nutri_rationale", "source_quote"],
+        required: [
+          "day",
+          "date",
+          "dishes",
+          "nutri_score",
+          "nutri_rationale",
+          "source_quote",
+        ],
         properties: {
           day: WEEKDAY,
           date: ISO_DATE_NULLABLE,
-          dishes: { type: "array", minItems: 1, items: { type: "string", maxLength: 200 } },
+          dishes: {
+            type: "array",
+            minItems: 1,
+            items: { type: "string", maxLength: 200 },
+          },
           nutri_score: NUTRI,
           nutri_rationale: { type: ["string", "null"], maxLength: 300 },
           source_quote: { type: "string", maxLength: 500 },
@@ -78,7 +95,10 @@ const REFLECTION_PAYLOAD = {
           day: WEEKDAY,
           date: ISO_DATE_NULLABLE,
           summary: { type: "string", maxLength: 500 },
-          activities: { type: "array", items: { type: "string", maxLength: 200 } },
+          activities: {
+            type: "array",
+            items: { type: "string", maxLength: 200 },
+          },
           source_quote: { type: "string", maxLength: 500 },
         },
       },
@@ -110,7 +130,16 @@ const EVENT_PAYLOAD = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["category", "title", "starts_on", "ends_on", "all_day", "time_start", "time_end", "source_quote"],
+        required: [
+          "category",
+          "title",
+          "starts_on",
+          "ends_on",
+          "all_day",
+          "time_start",
+          "time_end",
+          "source_quote",
+        ],
         properties: {
           category: { enum: ["closure", "event", "deadline"] },
           title: { type: "string", maxLength: 120 },
@@ -137,9 +166,25 @@ const INFO_PAYLOAD = {
 const ENVELOPE_BASE = {
   type: "object",
   additionalProperties: false,
-  required: ["content_type_suggested", "confidence", "title", "summary", "source_quotes", "ambiguous_dates", "payload"],
+  required: [
+    "content_type_suggested",
+    "confidence",
+    "title",
+    "summary",
+    "source_quotes",
+    "ambiguous_dates",
+    "payload",
+  ],
   properties: {
-    content_type_suggested: { enum: ["meal_plan", "reflection", "health_notice", "event_notice", "info"] },
+    content_type_suggested: {
+      enum: [
+        "meal_plan",
+        "reflection",
+        "health_notice",
+        "event_notice",
+        "info",
+      ],
+    },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     title: { type: "string", maxLength: 120 },
     summary: { type: "string", maxLength: 2000 },
@@ -167,10 +212,45 @@ export const EXTRACTION_JSON_SCHEMA = {
   $schema: "http://json-schema.org/draft-07/schema#",
   title: "AushangExtraction",
   oneOf: [
-    { ...ENVELOPE_BASE, properties: { ...ENVELOPE_BASE.properties, content_type_suggested: { const: "meal_plan" }, payload: MEAL_PLAN_PAYLOAD } },
-    { ...ENVELOPE_BASE, properties: { ...ENVELOPE_BASE.properties, content_type_suggested: { const: "reflection" }, payload: REFLECTION_PAYLOAD } },
-    { ...ENVELOPE_BASE, properties: { ...ENVELOPE_BASE.properties, content_type_suggested: { const: "health_notice" }, payload: HEALTH_PAYLOAD } },
-    { ...ENVELOPE_BASE, properties: { ...ENVELOPE_BASE.properties, content_type_suggested: { const: "event_notice" }, payload: EVENT_PAYLOAD } },
-    { ...ENVELOPE_BASE, properties: { ...ENVELOPE_BASE.properties, content_type_suggested: { const: "info" }, payload: INFO_PAYLOAD } },
+    {
+      ...ENVELOPE_BASE,
+      properties: {
+        ...ENVELOPE_BASE.properties,
+        content_type_suggested: { const: "meal_plan" },
+        payload: MEAL_PLAN_PAYLOAD,
+      },
+    },
+    {
+      ...ENVELOPE_BASE,
+      properties: {
+        ...ENVELOPE_BASE.properties,
+        content_type_suggested: { const: "reflection" },
+        payload: REFLECTION_PAYLOAD,
+      },
+    },
+    {
+      ...ENVELOPE_BASE,
+      properties: {
+        ...ENVELOPE_BASE.properties,
+        content_type_suggested: { const: "health_notice" },
+        payload: HEALTH_PAYLOAD,
+      },
+    },
+    {
+      ...ENVELOPE_BASE,
+      properties: {
+        ...ENVELOPE_BASE.properties,
+        content_type_suggested: { const: "event_notice" },
+        payload: EVENT_PAYLOAD,
+      },
+    },
+    {
+      ...ENVELOPE_BASE,
+      properties: {
+        ...ENVELOPE_BASE.properties,
+        content_type_suggested: { const: "info" },
+        payload: INFO_PAYLOAD,
+      },
+    },
   ],
 } as const;

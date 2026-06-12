@@ -113,7 +113,11 @@ export const ROUTING: Record<
 > = {
   meal_plan: { section: true, usesPostDetails: true, createsEvents: false },
   reflection: { section: true, usesPostDetails: true, createsEvents: false },
-  health_notice: { section: true, usesPostDetails: false, createsEvents: false },
+  health_notice: {
+    section: true,
+    usesPostDetails: false,
+    createsEvents: false,
+  },
   event_notice: { section: false, usesPostDetails: false, createsEvents: true },
   info: { section: false, usesPostDetails: false, createsEvents: false },
 };

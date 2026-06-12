@@ -140,7 +140,8 @@ export async function createOrg(
     p_org_name: orgName,
     p_org_type: orgType,
   });
-  if (error) throw new Error(error.message || "Konnte Organisation nicht anlegen.");
+  if (error)
+    throw new Error(error.message || "Konnte Organisation nicht anlegen.");
   return data as string;
 }
 
@@ -154,7 +155,8 @@ export async function deleteOrg(actorId: string, orgId: string): Promise<void> {
     p_actor_id: actorId,
     p_org_id: orgId,
   });
-  if (error) throw new Error(error.message || "Konnte Organisation nicht löschen.");
+  if (error)
+    throw new Error(error.message || "Konnte Organisation nicht löschen.");
 }
 
 /** Superadmin: grant or revoke admin rights for a target user. */

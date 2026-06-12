@@ -1,9 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { requireAdmin } from "@/lib/auth";
-import { parseEmail, parseNonEmpty, parseAssignableRole } from "@/lib/validation";
 import { provisionPerson, removePerson } from "@/lib/auth-flows";
+import {
+  parseEmail,
+  parseNonEmpty,
+  parseAssignableRole,
+} from "@/lib/validation";
 
 export interface ActionState {
   ok: boolean;
@@ -30,7 +35,8 @@ export async function addPerson(
   try {
     email = parseEmail(formData.get("email"));
     const rawName = String(formData.get("displayName") ?? "").trim();
-    displayName = rawName.length > 0 ? parseNonEmpty(rawName, "Name", 80) : null;
+    displayName =
+      rawName.length > 0 ? parseNonEmpty(rawName, "Name", 80) : null;
     // Only superadmins may add admins.
     role = parseAssignableRole(
       formData.get("role"),
@@ -94,7 +100,10 @@ export async function removePersonAction(
       return { ok: false, message: "Dazu bist du nicht berechtigt." };
     }
     if (msg.includes("yourself")) {
-      return { ok: false, message: "Du kannst dich hier nicht selbst entfernen." };
+      return {
+        ok: false,
+        message: "Du kannst dich hier nicht selbst entfernen.",
+      };
     }
     return { ok: false, message: "Konnte die Person nicht entfernen." };
   }

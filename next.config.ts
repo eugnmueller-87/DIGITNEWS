@@ -44,7 +44,8 @@ const securityHeaders = [
   // via <input capture> which does not need Permissions-Policy grant).
   {
     key: "Permissions-Policy",
-    value: "geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()",
+    value:
+      "geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()",
   },
   // Force HTTPS for two years incl. subdomains (only meaningful over TLS).
   {

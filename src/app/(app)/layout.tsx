@@ -1,8 +1,9 @@
 import Link from "next/link";
+
+import { SignOutButton } from "@/components/sign-out-button";
+import { brand } from "@/config/brand";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { brand } from "@/config/brand";
-import { SignOutButton } from "@/components/sign-out-button";
 
 /**
  * Authenticated app shell. requireSession() guarantees a logged-in user WITH a
@@ -36,13 +37,22 @@ export default async function AppLayout({
             </Link>
           </div>
           <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <Link href="/feed" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+            <Link
+              href="/feed"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
               Feed
             </Link>
-            <Link href="/essensplan" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+            <Link
+              href="/essensplan"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
               Essensplan
             </Link>
-            <Link href="/rueckblick" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+            <Link
+              href="/rueckblick"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
               Rückblick
             </Link>
             {isAdmin && (
@@ -65,7 +75,9 @@ export default async function AppLayout({
           </nav>
         </div>
       </header>
-      <div className="mx-auto w-full max-w-2xl flex-1 px-5 py-6">{children}</div>
+      <div className="mx-auto w-full max-w-2xl flex-1 px-5 py-6">
+        {children}
+      </div>
       <footer className="border-t border-zinc-200 px-5 py-4 text-center text-xs text-zinc-400 dark:border-zinc-800">
         {brand.name} — {brand.footerPitch}
       </footer>

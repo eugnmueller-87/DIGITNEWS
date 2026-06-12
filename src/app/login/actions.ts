@@ -1,7 +1,7 @@
 "use server";
 
-import { parseEmail } from "@/lib/validation";
 import { sendLoginLink } from "@/lib/auth-flows";
+import { parseEmail } from "@/lib/validation";
 
 export interface ActionState {
   ok: boolean;

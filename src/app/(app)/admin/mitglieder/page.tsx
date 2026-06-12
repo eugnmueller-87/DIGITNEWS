@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+
 import { requireAdmin } from "@/lib/auth";
+import type { Profile } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
+
 import { AddPersonForm } from "./add-person-form";
 import { MemberRow } from "./member-row";
-import type { Profile } from "@/lib/database.types";
 
 export const metadata: Metadata = { title: "Mitglieder" };
 

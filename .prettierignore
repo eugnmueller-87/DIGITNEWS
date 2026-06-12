@@ -1,0 +1,21 @@
+# Build output & deps
+.next/
+out/
+build/
+node_modules/
+coverage/
+
+# Generated / vendored
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts
+
+# SQL migrations — formatted by hand for review clarity; keep Prettier off them
+supabase/migrations/
+
+# Python worker — formatted by Ruff, not Prettier
+worker/
+
+# Lockfiles & data
+*.lock
+*.ico

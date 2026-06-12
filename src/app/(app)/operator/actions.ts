@@ -1,14 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { requireSuperadmin } from "@/lib/auth";
-import { parseEmail, parseNonEmpty, parseOrgType } from "@/lib/validation";
 import {
   createOrg,
   provisionPerson,
   setAdmin,
   deleteOrg,
 } from "@/lib/auth-flows";
+import { parseEmail, parseNonEmpty, parseOrgType } from "@/lib/validation";
 
 export interface ActionState {
   ok: boolean;
@@ -30,7 +31,11 @@ export async function createOrgWithAdmin(
   let orgName: string, orgType: string, adminEmail: string;
   let adminName: string | null;
   try {
-    orgName = parseNonEmpty(formData.get("orgName"), "Name der Organisation", 120);
+    orgName = parseNonEmpty(
+      formData.get("orgName"),
+      "Name der Organisation",
+      120,
+    );
     orgType = parseOrgType(formData.get("orgType"));
     adminEmail = parseEmail(formData.get("adminEmail"));
     const rawName = String(formData.get("adminName") ?? "").trim();
@@ -76,7 +81,8 @@ export async function createOrgWithAdmin(
   revalidatePath("/operator");
   return {
     ok: true,
-    message: "Organisation angelegt. Die Admin-Person hat einen Login-Link erhalten.",
+    message:
+      "Organisation angelegt. Die Admin-Person hat einen Login-Link erhalten.",
   };
 }
 
@@ -99,5 +105,8 @@ export async function setAdminAction(
     return { ok: false, message: "Konnte die Rolle nicht ändern." };
   }
   revalidatePath("/operator");
-  return { ok: true, message: makeAdmin ? "Admin-Rechte erteilt." : "Admin-Rechte entzogen." };
+  return {
+    ok: true,
+    message: makeAdmin ? "Admin-Rechte erteilt." : "Admin-Rechte entzogen.",
+  };
 }

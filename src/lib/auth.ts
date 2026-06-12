@@ -1,8 +1,9 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+
 import type { Role, MembershipStatus } from "@/lib/database.types";
+import { createClient } from "@/lib/supabase/server";
 
 export type { Role } from "@/lib/database.types";
 

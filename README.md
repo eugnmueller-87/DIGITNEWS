@@ -263,10 +263,46 @@ scripts/
 
 ---
 
+## Capture pipeline (Phase 2)
+
+An admin photographs a notice on `/aufnahme`; the browser compresses it
+(HEIC→JPEG, ≤600 KB, max 1600px) and uploads the **raw** image to the private
+`raw-photos` bucket via a signed URL. The app creates a `processing` post and
+triggers the **worker** (`worker/`) with a short-TTL signed URL. The worker:
+OpenCV deskew → Tesseract OCR (German) → **local PII redaction** (Presidio +
+spaCy + regex, fail-closed) → blur redacted regions → **Mistral** (EU) extraction
+on the **redacted text only** → schema-validate → callback. The callback
+(`/api/worker/callback`, shared-secret-guarded) uploads the redacted image and
+writes the draft. The admin reviews on `/review`: confirm the content type
+(pre-filled to the LLM suggestion), edit, and **publish** — the only path to
+member visibility.
+
+### Deploying the worker
+
+The worker needs a VPS (the ML stack is heavy). It ships with a Dockerfile that
+bakes in Tesseract + the German spaCy model:
+
+```bash
+cd worker
+docker build -t aushang-worker .
+docker run -p 8000:8000 \
+  -e WORKER_SHARED_SECRET="<same as the app>" \
+  -e APP_CALLBACK_URL="https://aushang.app" \
+  -e MISTRAL_API_KEY="<your mistral key>" \
+  aushang-worker
+```
+
+Then set `WORKER_URL` + `WORKER_SHARED_SECRET` in the app's env. The **Mistral
+key lives on the worker**, never in the web app — the app never sees raw PII or
+calls the LLM. Until the worker is deployed, captures upload and create a post
+but stay `processing` (no worker to run).
+
+---
+
 ## Roadmap
 
 - **Phase 1 (done)** — walking skeleton.
-- **Phase 2** — capture flow (compression, multi-shot, offline queue) + FastAPI
+- **Phase 2 (done)** — capture flow + FastAPI
   worker (OCR + Presidio redaction + image blur) + Mistral extraction + schema
   validation.
 - **Phase 3** — review gate UI, redaction chips, event confirmation, publish.

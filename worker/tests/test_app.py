@@ -7,8 +7,9 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-# A test secret so load_settings() doesn't fail at import time.
+# Test config so load_settings() doesn't fail.
 os.environ.setdefault("WORKER_SHARED_SECRET", "test-secret")
+os.environ.setdefault("APP_CALLBACK_URL", "http://localhost:3000")
 
 from aushang_worker.app import app
 
@@ -41,12 +42,22 @@ def test_process_rejects_wrong_secret() -> None:
     assert res.status_code == 401
 
 
-def test_process_accepts_valid_secret() -> None:
+def test_process_accepts_valid_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Stub the background pipeline so the test verifies the ACK contract only —
+    # the real pipeline (network + ML stack) is exercised at deploy time, and its
+    # pure parts (redaction) have their own unit tests.
+    called: dict[str, str] = {}
+
+    def _fake_process_job(req: object, settings: object) -> None:
+        called["post_id"] = req.post_id  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("aushang_worker.app.process_job", _fake_process_job)
     res = client.post(
         "/process", json=_job(), headers={"X-Worker-Secret": "test-secret"}
     )
     assert res.status_code == 200
     assert res.json() == {"accepted": True, "post_id": "p1"}
+    assert called["post_id"] == "p1"
 
 
 @pytest.mark.parametrize("missing", ["post_id", "image_url", "capture_date"])

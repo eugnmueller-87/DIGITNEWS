@@ -53,6 +53,20 @@ export const serverEnv = {
    * if unset (only works for sending to the account owner's own address).
    */
   emailFrom: process.env.EMAIL_FROM || null,
+
+  /**
+   * Base URL of the VPS OCR/redaction worker (e.g. https://worker.aushang.app).
+   * When unset, capture uploads succeed but the post stays 'processing' (no
+   * worker to trigger) — documented in README.
+   */
+  workerUrl: process.env.WORKER_URL || null,
+
+  /**
+   * Shared secret authenticating both directions between app and worker. The app
+   * sends it when triggering /process; the worker sends it back on /api/worker/
+   * callback. Constant-time compared. Required for the callback to be trusted.
+   */
+  workerSharedSecret: process.env.WORKER_SHARED_SECRET || null,
 } as const;
 
 /** Is this email an allowlisted operator (case-insensitive)? */

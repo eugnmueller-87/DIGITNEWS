@@ -57,6 +57,22 @@ export default async function AppLayout({
             </Link>
             {isAdmin && (
               <Link
+                href="/aufnahme"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Aufnahme
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                href="/review"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Prüfen
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
                 href="/admin/mitglieder"
                 className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
               >

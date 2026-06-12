@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import hmac
 
-from fastapi import FastAPI, Header, HTTPException, status
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, status
 
 from .config import Settings, load_settings
 from .models import ProcessAccepted, ProcessRequest
+from .pipeline import process_job
 
 app = FastAPI(title="Aushang Worker", version="0.1.0")
 
@@ -45,11 +46,14 @@ def health() -> dict[str, str]:
 @app.post("/process", response_model=ProcessAccepted)
 def process(
     req: ProcessRequest,
+    background: BackgroundTasks,
     x_worker_secret: str | None = Header(default=None),
 ) -> ProcessAccepted:
-    """Accept a job. Authenticates via the shared secret, then (Phase 2) queues
-    the redaction + extraction pipeline and returns an immediate ack.
+    """Accept a job. Authenticates via the shared secret, enqueues the redaction
+    + extraction pipeline in the background, and returns an immediate ack. The
+    pipeline calls back to the app on completion (or failure).
     """
-    _check_secret(x_worker_secret, _settings().worker_shared_secret)
-    # Phase 2: enqueue the pipeline for req.image_url and call back on completion.
+    settings = _settings()
+    _check_secret(x_worker_secret, settings.worker_shared_secret)
+    background.add_task(process_job, req, settings)
     return ProcessAccepted(post_id=req.post_id)

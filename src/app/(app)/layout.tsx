@@ -35,9 +35,15 @@ export default async function AppLayout({
               {org?.name ?? brand.name}
             </Link>
           </div>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <Link href="/feed" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
               Feed
+            </Link>
+            <Link href="/essensplan" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+              Essensplan
+            </Link>
+            <Link href="/rueckblick" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+              Rückblick
             </Link>
             {isAdmin && (
               <Link

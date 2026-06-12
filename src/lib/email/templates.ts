@@ -65,3 +65,33 @@ export function applicationVerificationEmail(verifyUrl: string): {
     text,
   };
 }
+
+/** Notify a member that their org published something. `feedUrl` → the feed. */
+export function publishNotificationEmail(
+  title: string,
+  feedUrl: string,
+): { subject: string; html: string; text: string } {
+  const heading = "Neuer Aushang";
+  const safe = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Deine Einrichtung hat etwas veröffentlicht:</p>
+    <p style="margin:0 0 20px;font-weight:600;color:#18181b;">${safe}</p>
+    <p style="margin:0 0 20px;">${button(feedUrl, "Im Feed ansehen")}</p>
+    <p style="margin:0;color:#71717a;font-size:12px;">Du erhältst diese E-Mail, weil du Benachrichtigungen aktiviert hast. Du kannst sie in den Einstellungen abstellen.</p>
+  `;
+  const text = [
+    "Neuer Aushang",
+    "",
+    "Deine Einrichtung hat etwas veröffentlicht:",
+    title,
+    "",
+    feedUrl,
+    "",
+    `${brand.name} — ${brand.footerPitch}`,
+  ].join("\n");
+  return {
+    subject: `${brand.name}: Neuer Aushang`,
+    html: layout({ heading, bodyHtml }),
+    text,
+  };
+}

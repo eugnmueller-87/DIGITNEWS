@@ -28,4 +28,10 @@ export const publicEnv = {
     "NEXT_PUBLIC_SITE_URL",
     process.env.NEXT_PUBLIC_SITE_URL,
   ).replace(/\/$/, ""),
+
+  /**
+   * Web Push VAPID PUBLIC key — needed by the browser to subscribe. Public by
+   * design. Empty string when push isn't configured (the UI then hides push).
+   */
+  vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
 } as const;

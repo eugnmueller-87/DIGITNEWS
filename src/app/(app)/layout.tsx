@@ -55,6 +55,12 @@ export default async function AppLayout({
             >
               Rückblick
             </Link>
+            <Link
+              href="/kalender"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              Kalender
+            </Link>
             {isAdmin && (
               <Link
                 href="/aufnahme"
@@ -87,6 +93,12 @@ export default async function AppLayout({
                 Operator
               </Link>
             )}
+            <Link
+              href="/einstellungen"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              Einstellungen
+            </Link>
             <SignOutButton />
           </nav>
         </div>

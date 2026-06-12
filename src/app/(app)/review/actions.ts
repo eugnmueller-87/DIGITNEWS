@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth";
-import type { ContentType } from "@/lib/content/types";
 import { CONTENT_TYPES } from "@/lib/content/types";
+import type { ContentType } from "@/lib/content/types";
+import { sendEmail } from "@/lib/email/client";
+import { publishNotificationEmail } from "@/lib/email/templates";
+import { publicEnv } from "@/lib/env";
+import { pushToOrg } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ReviewActionState {
@@ -65,6 +69,9 @@ export async function publishDraft(
     return { ok: false, message: "Veröffentlichen fehlgeschlagen." };
   }
 
+  // Fire notifications (best-effort; never block/fail the publish).
+  await notifyOrgOnPublish(session.orgId, title).catch(() => {});
+
   revalidatePath("/review");
   revalidatePath("/feed");
   return { ok: true, message: "Veröffentlicht." };
@@ -89,4 +96,43 @@ export async function discardDraft(postId: string): Promise<ReviewActionState> {
   if (error) return { ok: false, message: "Verwerfen fehlgeschlagen." };
   revalidatePath("/review");
   return { ok: true, message: "Verworfen." };
+}
+
+/**
+ * Notify an org's members when a post is published: web push to all subscribers,
+ * and an email to members who opted into the digest. Best-effort; never throws.
+ */
+async function notifyOrgOnPublish(orgId: string, title: string): Promise<void> {
+  const admin = createAdminClient();
+
+  // Web push (fan-out; dead subs pruned inside pushToOrg).
+  await pushToOrg(orgId, {
+    title: "Neuer Aushang",
+    body: title,
+    url: `${publicEnv.siteUrl}/feed`,
+  });
+
+  // Email to opted-in members.
+  const { data: members } = await admin
+    .from("profiles")
+    .select("id, email_digest_opt_in")
+    .eq("org_id", orgId)
+    .eq("email_digest_opt_in", true);
+
+  const ids = (members ?? []).map((m) => m.id);
+  if (ids.length === 0) return;
+
+  // Resolve emails via the auth admin API (profiles don't store email).
+  const { data: list } = await admin.auth.admin.listUsers();
+  const emails = (list?.users ?? [])
+    .filter((u) => ids.includes(u.id) && u.email)
+    .map((u) => u.email as string);
+
+  const { subject, html, text } = publishNotificationEmail(
+    title,
+    `${publicEnv.siteUrl}/feed`,
+  );
+  await Promise.all(
+    emails.map((to) => sendEmail({ to, subject, html, text }).catch(() => {})),
+  );
 }

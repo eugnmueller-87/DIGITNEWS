@@ -15,6 +15,7 @@ export const PUBLIC_ROUTES = {
   exact: [
     "/login",
     "/datenschutz", // Datenschutzerklärung — the one intentionally public legal page
+    "/offline", // PWA offline fallback shell
   ],
   prefixes: [
     "/auth/", // /auth/callback — magic-link landing

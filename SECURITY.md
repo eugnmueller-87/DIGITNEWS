@@ -114,6 +114,7 @@ The QR apply flow (`/apply/[code]`, submit, `/apply/verify`) is the app's first
   never grants membership; an admin must approve, which then provisions the
   member via the existing `provisionPerson` flow.
 
-> **Open dependency:** the verification email is **not delivered yet** — the
-> sender is a stub pending the Resend integration (a later phase). Until then the
-> flow is structurally complete but the link isn't sent. Tracked in the README.
+> **Email delivery:** the verification email is sent via Resend
+> (`src/lib/email/`). When `RESEND_API_KEY` is unset, the send **no-ops** (logged,
+> non-fatal) — the application row still exists but no link is delivered. Set the
+> key + a verified `EMAIL_FROM` domain to enable delivery (see README "Email").

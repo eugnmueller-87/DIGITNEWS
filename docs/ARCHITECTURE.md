@@ -143,11 +143,39 @@ create_org(actor, name, type) ──► orgId
 shows as *invited* until their first login flips them to *active*
 (`activate_profile` in the callback).
 
+## Content classification (migration 0008)
+
+Photographed notices are classified into a **content type** so they route to the
+right place. The taxonomy lives in `src/lib/content/types.ts`; the LLM extraction
+contract (the Phase 2 target) is `src/lib/content/extraction-schema.ts`.
+
+| `content_type` | Routes to | Calendar? |
+| --- | --- | --- |
+| `meal_plan` | Essensplan section (`/essensplan`) + `post_details`; estimated Nutri-Score (A–E) | No |
+| `reflection` | Rückblick section (`/rueckblick`) + `post_details` (Mon–Fri activities) | No |
+| `health_notice` | Prominent alert at the top of the feed, ordered by `health_severity` | No (unless dated + admin opts in) |
+| `event_notice` | The `events` table + the ICS calendar | **Yes** |
+| `info` | General feed | No |
+
+The "LLM advises, code decides" principle is encoded in **two columns**:
+`content_type_suggested` (the LLM's guess — admin-only, never granted to members)
+and `content_type` (what the admin **confirms** in review — the *only* value
+routing reads). `content_type` is nullable with **no default**: `NULL` means
+"not yet confirmed", deliberately distinct from the `info` fallback, so a wrong
+suggestion can never auto-route or auto-create calendar events.
+
+`post_details` is a 1:1 table holding the admin-edited structured payload
+(days/dishes/activities) for `meal_plan`/`reflection`; the raw LLM output stays
+immutable in `posts.extraction`, so edits survive without re-running the LLM.
+**Nutri-Score is always an estimate** (`nutri_is_estimate` hard-defaults true,
+labeled "Schätzung" in the UI, hideable per post) — never presented as official.
+
 ## Data model
 
 See `supabase/migrations/`. Core tables: `orgs`, `profiles` (with `role` ∈
 {superadmin, admin, member} and `membership_status` ∈ {invited, active}),
-`posts`, `events`, `audit_log`, `ics_tokens`. The original self-service
+`posts` (with `content_type` classification — see above), `post_details`,
+`events`, `audit_log`, `ics_tokens`. The original self-service
 `invites` / `join_requests` / `pending_onboarding` tables were **removed** in
 `0005` when the model became operator-provisioned. RLS is `ENABLE`d **and**
 `FORCE`d on every table; `service_role`'s `BYPASSRLS` is the one intentional

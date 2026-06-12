@@ -20,6 +20,17 @@ export type PostCategory = "event" | "deadline" | "call_to_action" | "info";
 export type EventCategory = "closure" | "event" | "deadline";
 export type EventStatus = "pending" | "confirmed" | "cancelled";
 
+// Content classification (migration 0008). See src/lib/content/types.ts for the
+// full payload shapes; these are the column-level types.
+export type ContentType =
+  | "meal_plan"
+  | "reflection"
+  | "health_notice"
+  | "event_notice"
+  | "info";
+export type HealthSeverity = "info" | "advisory" | "urgent";
+export type NutriScore = "A" | "B" | "C" | "D" | "E";
+
 export interface Org {
   id: string;
   name: string;
@@ -46,8 +57,23 @@ export interface PublicPost {
   title: string | null;
   body: string | null;
   category: PostCategory | null;
+  content_type: ContentType | null;
+  health_severity: HealthSeverity | null;
+  nutri_score_hidden: boolean;
   redacted_image_path: string | null;
   extraction: unknown;
   published_at: string | null;
   created_at: string;
+}
+
+/** Admin-edited structured detail for meal_plan / reflection / health posts. */
+export interface PostDetails {
+  post_id: string;
+  org_id: string;
+  content_type: "meal_plan" | "reflection" | "health_notice";
+  payload: unknown; // see src/lib/content/types.ts for per-type shapes
+  nutri_score: NutriScore | null;
+  nutri_is_estimate: boolean;
+  created_at: string;
+  updated_at: string;
 }

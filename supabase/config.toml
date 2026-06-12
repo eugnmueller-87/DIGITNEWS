@@ -1,0 +1,43 @@
+# Supabase local/project config. Mirror the security-critical settings here so
+# they are version-controlled and reviewable. The cloud project's dashboard must
+# match these for Phase 1's guarantees to hold.
+#
+# Brief §5 hard rules: signups happen ONLY through our security-definer flows;
+# the public signup endpoint is disabled.
+
+project_id = "aushang"
+
+[auth]
+# Exact production origin(s) only. Add the prod domain before go-live.
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+# Magic-link / OTP sessions.
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+
+[auth.email]
+# NO PASSWORDS. Magic link / email OTP only (Brief §3, §5).
+enable_signup = false          # <-- public signup OFF. Onboarding is via our flows.
+double_confirm_changes = true
+enable_confirmations = true
+# Magic-link only: we do not use password auth at all.
+secure_password_change = true
+
+# IMPORTANT (security review fix): the magic-link email template MUST deliver a
+# token_hash to our callback, because the app verifies links with
+# verifyOtp({ token_hash, type }) — the correct flow for server-issued links.
+# In the dashboard's "Magic Link" email template, use a link of the form:
+#   {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink
+# (NOT the default {{ .ConfirmationURL }}, which uses the PKCE/redirect flow.)
+# This is a dashboard setting; documented in README "Provision Supabase".
+
+[auth.rate_limit]
+# Tighten magic-link request volume (Brief §5, §11). These are conservative
+# defaults; the app adds its own token-bucket in middleware on top.
+email_sent = 10                # per hour per project (raise cautiously)
+
+[db]
+# Europe region is selected at project creation time in the dashboard
+# (Ireland/Frankfurt) — not expressible here. Documented in README.
+major_version = 15

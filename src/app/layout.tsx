@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import { brand } from "@/config/brand";
 
 const geistSans = Geist({
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
   description: brand.tagline,
   // Belt-and-suspenders with the global X-Robots-Tag header and robots.ts.
   robots: { index: false, follow: false },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: brand.name, statusBarStyle: "default" },
 };
 
 export default function RootLayout({
@@ -36,6 +39,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

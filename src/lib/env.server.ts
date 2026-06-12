@@ -67,6 +67,12 @@ export const serverEnv = {
    * callback. Constant-time compared. Required for the callback to be trusted.
    */
   workerSharedSecret: process.env.WORKER_SHARED_SECRET || null,
+
+  /** Web Push VAPID private key (server-only). Pairs with the public key below. */
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
+
+  /** Contact for VAPID (mailto:). Some push services require it. */
+  vapidSubject: process.env.VAPID_SUBJECT || "mailto:hallo@aushang.app",
 } as const;
 
 /** Is this email an allowlisted operator (case-insensitive)? */

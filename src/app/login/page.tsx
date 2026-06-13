@@ -50,7 +50,13 @@ export default async function LoginPage({
         </div>
       )}
       <LoginForm />
-      <p className="mt-6 text-center text-xs text-zinc-400">
+      <p className="mt-6 text-center text-sm font-semibold text-ink-soft">
+        Neu hier?{" "}
+        <a href="/registrieren" className="underline">
+          Mit Einladungs-Code anmelden
+        </a>
+      </p>
+      <p className="mt-3 text-center text-xs text-zinc-400">
         Zugänge werden von deiner Organisation vergeben. Es gibt keine
         Selbstregistrierung.
       </p>

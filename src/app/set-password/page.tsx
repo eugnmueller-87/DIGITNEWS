@@ -9,12 +9,12 @@ import { SetPasswordForm } from "./set-password-form";
 export const metadata: Metadata = { title: "Passwort festlegen" };
 
 /**
- * Set-password landing. Reached from a one-time invite/recovery link AFTER the
- * /auth/callback established a session from the link's token_hash. We require a
- * valid auth user (the link-issued session) — NOT a full profile — because an
- * invited user sets their password here before their first real login.
+ * Set-password landing. Reached after the user verified their registration code
+ * on /registrieren (verifyOtp established a session). We require a valid auth
+ * user (the code-issued session) — NOT a full profile — because an invited user
+ * sets their password here before their first real login.
  *
- * If there's no session, the link was missing/expired: bounce to /login.
+ * If there's no session, the code wasn't verified: bounce to /registrieren.
  */
 export default async function SetPasswordPage() {
   const supabase = await createClient();
@@ -22,7 +22,7 @@ export default async function SetPasswordPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login?error=auth");
+  if (!user) redirect("/registrieren");
 
   return (
     <PageShell

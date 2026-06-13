@@ -18,7 +18,15 @@ export function ForgotForm() {
   return (
     <Card>
       {state.ok ? (
-        <Alert variant="success">{state.message}</Alert>
+        <div className="space-y-3">
+          <Alert variant="success">{state.message}</Alert>
+          <Link
+            href="/registrieren"
+            className="rounded-wobble-pill font-display flex h-11 w-full items-center justify-center border-[3px] border-ink bg-sunshine px-6 text-base font-semibold text-ink shadow-felt"
+          >
+            Code eingeben
+          </Link>
+        </div>
       ) : (
         <form action={formAction} className="space-y-4">
           <Field label="E-Mail-Adresse" htmlFor="email">

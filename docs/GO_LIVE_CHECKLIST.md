@@ -40,17 +40,34 @@ DB/auth on **Supabase** · email via **Resend**. The bare domain
 - [ ] (optional, push) `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
       `VAPID_SUBJECT=mailto:hallo@kita-connect.cloud`
 
-## 4. Supabase — auth URLs (the magic-link gotcha)
+## 4. Supabase — auth (EMAIL + PASSWORD model)
+
+> The app now uses **email + password**. Accounts are still invite-only (no
+> public signup); invited users set their first password via a one-time link we
+> email through Resend, then sign in with email+password.
 
 - [ ] Authentication → URL Configuration → **Site URL** =
       `https://kita-connect.cloud`
 - [ ] Add to **Redirect Allow List**: `https://kita-connect.cloud/auth/callback`
       (exact match)
-- [ ] Authentication → Email Templates → **Magic Link** link is:
-      `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink`
-      (NOT the default `{{ .ConfirmationURL }}`)
-- [ ] Authentication → Providers → Email: password auth **off**, magic link **on**
-- [ ] Authentication → Settings: "Allow new users to sign up" = **OFF**
+- [ ] Authentication → Providers → **Email**: provider **enabled**, **password
+      sign-in ON** (this is the key toggle for the new model).
+- [ ] Authentication → Settings: **"Allow new users to sign up" = OFF**
+      (invite-only stays enforced).
+- [ ] (Only if you let Supabase send recovery mail directly) Email Templates →
+      **Reset Password** link =
+      `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery`.
+      We send invite/reset mail ourselves via Resend, so this is optional.
+
+### 4b. Set YOUR operator password (first login)
+
+- [ ] Your account (`eugnmueller@googlemail.com`) already exists. Set its
+      password one of two ways: - **In-app:** open the set-password link — easiest is to use
+      **"Passwort vergessen"** on `/login`, which emails you a set-password
+      link (via Resend), → `/set-password`. OR - **Supabase dashboard:** Authentication → Users → your user → set/reset
+      password directly.
+- [ ] Then sign in at `/login` with email + password. `SUPERADMIN_EMAILS`
+      elevates you to operator on that authenticated session.
 
 ## 5. Supabase — migrations applied (if not already)
 

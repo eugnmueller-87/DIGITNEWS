@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
   const type = (searchParams.get("type") ?? "magiclink") as EmailOtpType;
   const next = safeNextPath(searchParams.get("next"));
 
+  // Invite / recovery links land here to ESTABLISH a session, then the user
+  // sets a password at /set-password. (Email+password model: there is no
+  // standing magic-link login; links are only for first-time set / reset.)
+  const isSetPassword = type === "recovery" || type === "invite";
+
   const to = (path: string, errored = false) => {
     const url = new URL(path, publicEnv.siteUrl);
     if (errored) url.searchParams.set("error", "auth");
@@ -66,6 +71,14 @@ export async function GET(request: NextRequest) {
       // Bootstrap failure shouldn't hard-fail a valid login; fall through and
       // let the profile check below decide. (A retry on next login will fix it.)
     }
+  }
+
+  // (3b) Invite / recovery link: the session is now established; send the user
+  // to set their password. They re-authenticate with email+password afterward.
+  // (Profile presence isn't required to set a password; an unprovisioned user
+  // who somehow reaches here just can't log in afterward — no access granted.)
+  if (isSetPassword) {
+    return to("/set-password");
   }
 
   // (4) Does the user have a profile? (Provisioned by operator/admin, or just

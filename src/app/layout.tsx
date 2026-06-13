@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fredoka, Nunito } from "next/font/google";
 
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { brand } from "@/config/brand";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Kita theme fonts: Fredoka (display/headings) + Nunito (body).
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -35,9 +38,12 @@ export default function RootLayout({
   return (
     <html
       lang="de"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <body className="flex min-h-full flex-col text-ink">
+        {/* Decorative drifting clouds (reduced-motion safe). */}
+        <div className="cloud c1" aria-hidden="true" />
+        <div className="cloud c2" aria-hidden="true" />
         {children}
         <ServiceWorkerRegister />
       </body>

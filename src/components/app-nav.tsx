@@ -11,9 +11,8 @@ export interface NavItem {
 }
 
 /**
- * Primary horizontal nav with active-state highlighting. Scrolls horizontally on
- * small screens instead of wrapping, so it never crowds the header. Admin items
- * are passed separated by a divider marker.
+ * Primary nav as wobbly "felt" pills with active-state highlighting. Scrolls
+ * horizontally on small screens. Admin items separated by a divider.
  */
 export function AppNav({
   items,
@@ -23,19 +22,18 @@ export function AppNav({
   adminItems: NavItem[];
 }) {
   const pathname = usePathname();
-
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
-  const link = (item: NavItem) => (
+  const pill = (item: NavItem) => (
     <Link
       key={item.href}
       href={item.href}
       className={clsx(
-        "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        "rounded-wobble-pill font-display shrink-0 border-[3px] border-ink px-4 py-1.5 text-sm font-semibold shadow-felt-sm transition-transform hover:-translate-y-0.5",
         isActive(item.href)
-          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+          ? "bg-sunshine text-ink"
+          : "bg-paper text-ink hover:bg-sunshine/60",
       )}
     >
       {item.label}
@@ -43,15 +41,15 @@ export function AppNav({
   );
 
   return (
-    <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {items.map(link)}
+    <nav className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {items.map(pill)}
       {adminItems.length > 0 && (
         <span
           aria-hidden
-          className="mx-1 h-5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700"
+          className="mx-1 h-6 w-0.5 shrink-0 rounded bg-ink/20"
         />
       )}
-      {adminItems.map(link)}
+      {adminItems.map(pill)}
     </nav>
   );
 }

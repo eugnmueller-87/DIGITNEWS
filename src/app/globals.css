@@ -1,26 +1,169 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Aushang / DIGITNEWS — Kita theme. Design tokens ported from
+   design/digitnews-kita-v2. Warm "felt-craft" aesthetic.
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sky: #bfe3f2;
+  --paper: #fff9ec;
+  --grass: #8fcb6b;
+  --grass-deep: #6fae4e;
+  --sunshine: #ffd45e;
+  --tomato: #ff8370;
+  --berry: #5b9bd5;
+  --wool-mint: #a8e0c5;
+  --wool-lilac: #cbb8e8;
+  --wool-pink: #f7b8c4;
+  --ink: #4a3f35;
+  --ink-soft: #7a6b5c;
+
+  /* Nutri-Score scale */
+  --nutri-a: #038141;
+  --nutri-b: #85bb2f;
+  --nutri-c: #fecb02;
+  --nutri-d: #ee8100;
+  --nutri-e: #e63e11;
+
+  /* Organic "wobble" border radii (hand-drawn feel) */
+  --wobble-a: 255px 25px 225px 25px / 25px 225px 25px 255px;
+  --wobble-b: 25px 225px 25px 255px / 255px 25px 225px 25px;
+  --wobble-pill: 95px 155px 148px 103px / 148px 95px 140px 155px;
+
+  --border-w: 3px;
+  --shadow-felt: 0 6px 0 rgba(74, 63, 53, 0.18);
+  --shadow-felt-sm: 0 4px 0 rgba(74, 63, 53, 0.15);
 }
 
+/* Expose tokens to Tailwind's theme so utilities like bg-paper / text-ink work. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-sky: var(--sky);
+  --color-paper: var(--paper);
+  --color-grass: var(--grass);
+  --color-grass-deep: var(--grass-deep);
+  --color-sunshine: var(--sunshine);
+  --color-tomato: var(--tomato);
+  --color-berry: var(--berry);
+  --color-wool-mint: var(--wool-mint);
+  --color-wool-lilac: var(--wool-lilac);
+  --color-wool-pink: var(--wool-pink);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --font-display: var(--font-fredoka), system-ui, sans-serif;
+  --font-body: var(--font-nunito), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 60% 40% at 80% -5%, #fff3c9 0%, transparent 55%),
+    linear-gradient(180deg, var(--sky) 0%, #d6edf8 70%, #e8f4ea 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Display font helper */
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+/* Wobble radius utilities */
+.rounded-wobble-a {
+  border-radius: var(--wobble-a);
+}
+.rounded-wobble-b {
+  border-radius: var(--wobble-b);
+}
+.rounded-wobble-pill {
+  border-radius: var(--wobble-pill);
+}
+
+/* Felt shadows */
+.shadow-felt {
+  box-shadow: var(--shadow-felt);
+}
+.shadow-felt-sm {
+  box-shadow: var(--shadow-felt-sm);
+}
+
+/* Drifting clouds (decorative) */
+.cloud {
+  position: fixed;
+  z-index: 0;
+  opacity: 0.85;
+  pointer-events: none;
+  width: 150px;
+  height: 48px;
+  background: #fff;
+  border-radius: 100px;
+  filter: drop-shadow(0 4px 0 rgba(74, 63, 53, 0.06));
+}
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+}
+.cloud::before {
+  width: 60px;
+  height: 60px;
+  top: -28px;
+  left: 24px;
+}
+.cloud::after {
+  width: 42px;
+  height: 42px;
+  top: -18px;
+  right: 28px;
+}
+.cloud.c1 {
+  top: 6%;
+  animation: drift 95s linear infinite;
+}
+.cloud.c2 {
+  top: 30%;
+  transform: scale(0.6);
+  animation: drift 140s linear infinite;
+  animation-delay: -60s;
+}
+@keyframes drift {
+  from {
+    left: -200px;
+  }
+  to {
+    left: 110vw;
+  }
+}
+
+@keyframes sunSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud {
+    animation: none !important;
+    left: 8vw;
+  }
+  .cloud.c2 {
+    left: 60vw;
+  }
+  * {
+    animation: none !important;
+  }
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px dashed var(--berry);
+  outline-offset: 3px;
 }

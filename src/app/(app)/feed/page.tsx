@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
-import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { clsx } from "@/lib/clsx";
 import type { PublicPost } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -56,28 +57,42 @@ export default async function FeedPage() {
   return (
     <div className="space-y-4">
       {alertList.length > 0 && (
-        <section className="space-y-2">
+        <section className="mb-2 space-y-3">
           {alertList.map((a) => (
             <div
               key={a.id}
-              className={
-                a.health_severity === "urgent"
-                  ? "rounded-xl border border-red-300 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950/40"
-                  : "rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/40"
-              }
+              className="rounded-wobble-b relative border-[3px] border-ink bg-paper p-5 shadow-felt"
             >
-              <div className="text-sm font-medium">{a.title}</div>
+              {/* Pin dot */}
+              <span
+                aria-hidden
+                className={clsx(
+                  "absolute -top-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rounded-full border-[3px] border-ink",
+                  a.health_severity === "urgent" ? "bg-tomato" : "bg-sunshine",
+                )}
+              />
+              <span
+                className={clsx(
+                  "rounded-full border-2 border-ink px-3 py-0.5 text-xs font-bold",
+                  a.health_severity === "urgent"
+                    ? "bg-tomato text-white"
+                    : "bg-sunshine text-ink",
+                )}
+              >
+                {a.health_severity === "urgent" ? "⚠️ Wichtig" : "ℹ️ Hinweis"}
+              </span>
+              <h3 className="font-display mt-2 text-xl font-semibold text-ink">
+                {a.title}
+              </h3>
               {a.body && (
-                <div className="mt-0.5 text-sm text-zinc-700 dark:text-zinc-300">
-                  {a.body}
-                </div>
+                <p className="mt-1 font-semibold text-ink-soft">{a.body}</p>
               )}
             </div>
           ))}
         </section>
       )}
 
-      <PageHeader title="Aushänge" subtitle="Neuigkeiten deiner Einrichtung." />
+      <PageHeader title="Pinnwand" subtitle="Neuigkeiten deiner Einrichtung." />
 
       {list.length === 0 ? (
         <EmptyState
@@ -89,13 +104,25 @@ export default async function FeedPage() {
           }
         />
       ) : (
-        <div className="space-y-3">
-          {list.map((post) => (
-            <Card key={post.id}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {list.map((post, i) => (
+            <article
+              key={post.id}
+              className={clsx(
+                "relative border-[3px] border-ink bg-paper p-5 shadow-felt",
+                i % 2 === 0 ? "rounded-wobble-a" : "rounded-wobble-b",
+              )}
+            >
+              <span
+                aria-hidden
+                className="absolute -top-2.5 left-1/2 h-4 w-4 -translate-x-1/2 rounded-full border-[3px] border-ink bg-berry"
+              />
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-medium">{post.title}</h2>
+                <h2 className="font-display text-lg font-semibold text-ink">
+                  {post.title}
+                </h2>
                 {post.published_at && (
-                  <time className="shrink-0 text-xs text-zinc-400">
+                  <time className="shrink-0 text-xs font-bold text-ink-soft">
                     {new Date(post.published_at).toLocaleDateString("de-DE", {
                       day: "2-digit",
                       month: "2-digit",
@@ -104,11 +131,11 @@ export default async function FeedPage() {
                 )}
               </div>
               {post.body && (
-                <p className="mt-1 whitespace-pre-line text-sm text-zinc-600 dark:text-zinc-300">
+                <p className="mt-1 whitespace-pre-line font-semibold text-ink-soft">
                   {post.body}
                 </p>
               )}
-            </Card>
+            </article>
           ))}
         </div>
       )}

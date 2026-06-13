@@ -1,5 +1,6 @@
 import { AccountMenu } from "@/components/account-menu";
 import { AppNav, type NavItem } from "@/components/app-nav";
+import { SunLogo } from "@/components/sun-logo";
 import { brand } from "@/config/brand";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -49,16 +50,19 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/85">
-        <div className="mx-auto w-full max-w-2xl px-5">
+    <div className="relative z-[1] flex min-h-full flex-col">
+      <header className="sticky top-0 z-10 border-b-[3px] border-ink bg-paper/90 backdrop-blur">
+        <div className="mx-auto w-full max-w-3xl px-5">
           <div className="flex items-center justify-between gap-3 py-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-xs font-bold text-white dark:bg-white dark:text-zinc-900">
-                {(org?.name ?? brand.name).charAt(0).toUpperCase()}
-              </span>
-              <span className="truncate text-base font-semibold">
-                {org?.name ?? brand.name}
+            <div className="flex min-w-0 items-center gap-3">
+              <SunLogo className="h-11 w-11 shrink-0" />
+              <span className="min-w-0">
+                <span className="font-display block truncate text-lg font-bold leading-tight text-ink">
+                  {org?.name ?? brand.name}
+                </span>
+                <span className="block text-[11px] font-extrabold uppercase tracking-wider text-ink-soft">
+                  Kita-Infos für Eltern
+                </span>
               </span>
             </div>
             <AccountMenu role={session.role} />
@@ -69,12 +73,19 @@ export default async function AppLayout({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6">
         {children}
       </main>
 
-      <footer className="border-t border-zinc-200 px-5 py-4 text-center text-xs text-zinc-400 dark:border-zinc-800">
-        {brand.name} — {brand.footerPitch}
+      <footer className="relative mt-10 border-t-[3px] border-ink bg-gradient-to-b from-grass to-grass-deep px-5 py-6 text-white">
+        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
+          <span className="font-display text-lg font-bold">
+            {brand.name} <span aria-hidden>🌼</span>
+          </span>
+          <span className="text-sm font-semibold opacity-90">
+            {brand.footerPitch}
+          </span>
+        </div>
       </footer>
     </div>
   );

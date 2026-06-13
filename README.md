@@ -112,16 +112,10 @@ bypasses RLS — treat it as a root credential.
 
 ### Email (Resend)
 
-There are **two** email paths:
-
-1. **Magic login links** are sent by **Supabase**. To deliver them via Resend,
-   point Supabase's SMTP at Resend: Supabase → Project Settings → Authentication
-   → **SMTP Settings** → enable custom SMTP with host `smtp.resend.com`, port
-   `465`, user `resend`, password = your Resend API key, sender = an address on
-   your verified domain. (Without custom SMTP, Supabase's built-in email has very
-   low limits and is fine only for early testing.)
-2. **App-owned emails** (QR application verification now; digests later) are sent
-   directly via the **Resend SDK** using `RESEND_API_KEY` + `EMAIL_FROM`.
+All app-owned email — the one-time **set-password / invite** links, password
+resets, QR verification, and digests — is sent directly via the **Resend SDK**
+using `RESEND_API_KEY` + `EMAIL_FROM`. (Supabase's own SMTP is only relevant if
+you let Supabase send any auth mail directly; the app does not rely on it.)
 
 **Setup:**
 
@@ -131,10 +125,11 @@ There are **two** email paths:
    Resend's test sender `onboarding@resend.dev`, but it only delivers to your own
    account email.
 3. Put the API key in `RESEND_API_KEY` and set `EMAIL_FROM` to an address on the
-   verified domain, e.g. `Aushang <hallo@aushang.app>`.
+   verified domain, e.g. `Aushang <hallo@kita-connect.cloud>`.
 
 > If `RESEND_API_KEY` is unset, app emails **no-op** (a warning is logged) — the
-> app still runs, but QR verification links won't be delivered.
+> app still runs, but invite / reset links won't be delivered, so nobody new can
+> set a password. This is the #1 thing to get right for onboarding.
 
 ### 4. Run
 

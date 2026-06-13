@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { Card, Alert } from "@/components/ui";
+import { Card, Alert, MiniButton } from "@/components/ui";
 import type { Role, MembershipStatus } from "@/lib/database.types";
 
 import { removePersonAction } from "./actions";
@@ -66,57 +66,50 @@ export function MemberRow({
     <Card className="p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm">
+          <div className="truncate text-sm font-semibold text-ink">
             {displayName ?? "—"}
-            {isSelf && <span className="ml-2 text-xs text-zinc-400">(du)</span>}
+            {isSelf && <span className="ml-2 text-xs text-ink-soft">(du)</span>}
           </div>
           {status === "invited" && (
-            <div className="text-xs text-amber-600 dark:text-amber-400">
+            <div className="text-xs font-semibold text-tomato">
               eingeladen – noch nicht angemeldet
             </div>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+          <span className="rounded-full border-2 border-ink bg-sunshine/50 px-2.5 py-0.5 text-xs font-bold text-ink">
             {ROLE_LABEL[role]}
           </span>
           {canRemove &&
             (confirming ? (
-              <span className="flex gap-1">
-                <button
-                  type="button"
+              <span className="flex gap-1.5">
+                <MiniButton
+                  tone="danger"
                   disabled={pending}
                   onClick={() => run(() => removePersonAction(id))}
-                  className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
                   {pending ? "…" : "Entfernen"}
-                </button>
-                <button
-                  type="button"
+                </MiniButton>
+                <MiniButton
                   disabled={pending}
                   onClick={() => setConfirming(false)}
-                  className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs dark:border-zinc-700"
                 >
                   Abbrechen
-                </button>
+                </MiniButton>
               </span>
             ) : (
-              <button
-                type="button"
-                onClick={() => setConfirming(true)}
-                className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              >
+              <MiniButton onClick={() => setConfirming(true)}>
                 Entfernen
-              </button>
+              </MiniButton>
             ))}
         </div>
       </div>
 
       {showManage && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t-2 border-ink/10 pt-3">
           {/* Group assignment */}
           {groups.length > 0 && (
-            <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft">
               Gruppe:
               <select
                 defaultValue={groupId ?? ""}
@@ -124,7 +117,7 @@ export function MemberRow({
                 onChange={(e) =>
                   run(() => assignGroupAction(id, e.target.value))
                 }
-                className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+                className="h-11 rounded-2xl border-[3px] border-ink bg-white px-3 text-sm font-semibold text-ink outline-none focus:bg-sky/20 disabled:opacity-50"
               >
                 <option value="">—</option>
                 {groups.map((g) => (
@@ -138,23 +131,19 @@ export function MemberRow({
 
           {/* Role promote/demote */}
           {role === "member" ? (
-            <button
-              type="button"
+            <MiniButton
               disabled={pending}
               onClick={() => run(() => setMemberRoleAction(id, true))}
-              className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs disabled:opacity-50 dark:border-zinc-700"
             >
               → Admin
-            </button>
+            </MiniButton>
           ) : (
-            <button
-              type="button"
+            <MiniButton
               disabled={pending}
               onClick={() => run(() => setMemberRoleAction(id, false))}
-              className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs disabled:opacity-50 dark:border-zinc-700"
             >
               → Mitglied
-            </button>
+            </MiniButton>
           )}
         </div>
       )}

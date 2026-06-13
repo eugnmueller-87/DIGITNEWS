@@ -111,6 +111,36 @@ export function Button({
   );
 }
 
+/**
+ * A compact secondary action button for dense admin rows (promote, remove,
+ * approve, copy …). Felt-themed and always ≥44px tall so it's a comfortable
+ * thumb target on a phone. `tone` picks the fill; `danger` is for destructive
+ * confirmations.
+ */
+export function MiniButton({
+  tone = "neutral",
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  tone?: "neutral" | "primary" | "danger";
+}) {
+  const tones = {
+    neutral: "bg-paper text-ink",
+    primary: "bg-sunshine text-ink",
+    danger: "bg-tomato text-white",
+  } as const;
+  return (
+    <button
+      {...props}
+      className={clsx(
+        "font-display inline-flex h-11 min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-3.5 text-sm font-semibold shadow-felt-sm transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50",
+        tones[tone],
+        className,
+      )}
+    />
+  );
+}
+
 export function Input({
   className,
   ...props

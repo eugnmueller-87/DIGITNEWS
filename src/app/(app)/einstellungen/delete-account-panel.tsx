@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { Card, Alert } from "@/components/ui";
+import { Card, Alert, MiniButton } from "@/components/ui";
 import type { Role } from "@/lib/database.types";
 
 import { deleteOwnAccount } from "./actions";
@@ -25,10 +25,10 @@ export function DeleteAccountPanel({
   if (role === "superadmin") {
     return (
       <Card>
-        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <h2 className="font-display text-base font-semibold text-ink">
           Konto löschen
         </h2>
-        <p className="mt-1 text-xs text-zinc-400">
+        <p className="mt-1 text-sm font-semibold text-ink-soft">
           Operator-Konten können hier nicht gelöscht werden.
         </p>
       </Card>
@@ -48,11 +48,11 @@ export function DeleteAccountPanel({
   }
 
   return (
-    <Card className="border-red-200 dark:border-red-900/60">
-      <h2 className="text-sm font-medium text-red-700 dark:text-red-400">
+    <Card className="border-tomato">
+      <h2 className="font-display text-base font-semibold text-tomato">
         Konto löschen
       </h2>
-      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="mt-1 text-sm font-semibold text-ink-soft">
         Dein Konto und deine persönlichen Daten werden dauerhaft gelöscht. Dies
         kann nicht rückgängig gemacht werden.
         {warnLastAdmin &&
@@ -68,31 +68,17 @@ export function DeleteAccountPanel({
       <div className="mt-3">
         {confirming ? (
           <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={remove}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            >
+            <MiniButton tone="danger" disabled={pending} onClick={remove}>
               {pending ? "Wird gelöscht …" : "Endgültig löschen"}
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setConfirming(false)}
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-700"
-            >
+            </MiniButton>
+            <MiniButton disabled={pending} onClick={() => setConfirming(false)}>
               Abbrechen
-            </button>
+            </MiniButton>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
-          >
+          <MiniButton onClick={() => setConfirming(true)}>
             Konto löschen
-          </button>
+          </MiniButton>
         )}
       </div>
     </Card>

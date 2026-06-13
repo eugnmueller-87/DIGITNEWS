@@ -46,7 +46,7 @@ export function AccountMenu({ role }: { role: string }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-2xl border-[3px] border-ink bg-paper py-1 shadow-felt"
+          className="absolute right-0 z-20 mt-2 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border-[3px] border-ink bg-paper py-1 shadow-felt"
         >
           <div className="px-3 py-2 text-xs font-bold text-ink-soft">
             Angemeldet als {ROLE_LABEL[role] ?? "Nutzer"}

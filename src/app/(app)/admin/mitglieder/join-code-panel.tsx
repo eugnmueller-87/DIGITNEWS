@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { Card, Button, Alert } from "@/components/ui";
+import { Card, Button, Alert, MiniButton } from "@/components/ui";
 
 import { createJoinCodeAction } from "./qr-actions";
 
@@ -50,10 +50,10 @@ export function JoinCodePanel({
 
   return (
     <Card>
-      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <h2 className="font-display text-base font-semibold text-ink">
         QR-Zugang
       </h2>
-      <p className="mt-1 text-xs text-zinc-400">
+      <p className="mt-1 text-sm font-semibold text-ink-soft">
         Häng diesen QR-Code am Aushang aus. Eltern scannen ihn, beantragen
         Zugang, und du gibst sie hier frei.
       </p>
@@ -72,15 +72,11 @@ export function JoinCodePanel({
                 readOnly
                 value={url}
                 onFocus={(e) => e.currentTarget.select()}
-                className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-zinc-50 px-3 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300"
+                className="h-11 min-w-0 flex-1 rounded-2xl border-[3px] border-ink bg-white px-3 text-sm font-semibold text-ink-soft"
               />
-              <button
-                type="button"
-                onClick={copy}
-                className="shrink-0 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              >
+              <MiniButton tone={copied ? "primary" : "neutral"} onClick={copy}>
                 {copied ? "Kopiert ✓" : "Link kopieren"}
-              </button>
+              </MiniButton>
             </div>
           )}
         </div>

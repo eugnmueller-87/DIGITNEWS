@@ -68,7 +68,9 @@ export function ReviewCard({
           <img
             src={imageUrl}
             alt="Ausschnitt des Aushangs (maskiert)"
-            className="max-h-80 w-full rounded-xl border border-zinc-200 object-contain dark:border-zinc-800"
+            /* On phones the form is what the admin acts on, so put the photo
+               LAST (order-2 in the single-column stack); side-by-side at md+. */
+            className="order-2 max-h-72 w-full rounded-2xl border-[3px] border-ink bg-white object-contain sm:max-h-80 md:order-none"
           />
         )}
 
@@ -81,7 +83,7 @@ export function ReviewCard({
               id={`ct-${id}`}
               name="contentType"
               defaultValue={suggested ?? "info"}
-              className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              className="h-11 w-full rounded-2xl border-[3px] border-ink bg-white px-4 text-base font-semibold text-ink outline-none focus:bg-sky/20"
             >
               {CONTENT_TYPES.map((ct) => (
                 <option key={ct} value={ct}>
@@ -109,8 +111,8 @@ export function ReviewCard({
               name="body"
               defaultValue={body ?? ""}
               maxLength={4000}
-              rows={6}
-              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              rows={5}
+              className="w-full rounded-2xl border-[3px] border-ink bg-white px-4 py-2.5 text-base font-semibold text-ink outline-none focus:bg-sky/20"
             />
           </div>
 
@@ -127,7 +129,7 @@ export function ReviewCard({
               type="button"
               onClick={discard}
               disabled={publishing || discarding}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 px-5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="font-display inline-flex h-11 shrink-0 items-center justify-center rounded-2xl border-[3px] border-ink bg-paper px-5 text-base font-semibold text-ink-soft transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:opacity-50"
             >
               {discarding ? "…" : "Verwerfen"}
             </button>

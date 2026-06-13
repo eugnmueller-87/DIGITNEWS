@@ -82,18 +82,18 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
               type="button"
               aria-label="Vorheriger Monat"
               onClick={() => setCursor(prevMonth)}
-              className="rounded-full border-[3px] border-ink bg-paper px-2.5 py-0.5"
+              className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-ink bg-paper text-lg leading-none shadow-felt-sm active:translate-y-0.5"
             >
               ‹
             </button>
-            <span className="min-w-32 text-center font-semibold">
+            <span className="min-w-28 text-center font-semibold sm:min-w-32">
               {MONTHS[cursor.m]} {cursor.y}
             </span>
             <button
               type="button"
               aria-label="Nächster Monat"
               onClick={() => setCursor(nextMonth)}
-              className="rounded-full border-[3px] border-ink bg-paper px-2.5 py-0.5"
+              className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-ink bg-paper text-lg leading-none shadow-felt-sm active:translate-y-0.5"
             >
               ›
             </button>
@@ -103,7 +103,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
 
       {view === "month" ? (
         <Card className="p-3">
-          <div className="grid grid-cols-7 gap-px text-center text-xs text-zinc-400">
+          <div className="grid grid-cols-7 gap-px text-center text-xs font-bold text-ink-soft">
             {WEEKDAYS.map((w) => (
               <div key={w} className="py-1">
                 {w}
@@ -117,16 +117,18 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
               return (
                 <div
                   key={i}
-                  className="min-h-16 rounded-lg p-1 text-left text-xs"
+                  className="min-h-16 rounded-lg p-0.5 text-left text-[11px] sm:p-1 sm:text-xs"
                 >
                   {d && (
                     <>
-                      <div className="text-zinc-400">{d}</div>
+                      <div className="font-display font-semibold text-ink">
+                        {d}
+                      </div>
                       <div className="mt-0.5 space-y-0.5">
                         {dayEvents.slice(0, 3).map((e) => (
                           <div
                             key={e.id}
-                            className="flex items-center gap-1 truncate"
+                            className="flex items-center gap-1 truncate text-ink-soft"
                             title={e.title}
                           >
                             <span

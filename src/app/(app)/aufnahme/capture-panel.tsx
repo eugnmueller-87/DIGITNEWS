@@ -179,15 +179,13 @@ export function CapturePanel() {
         <ul className="mt-4 space-y-1.5 text-sm">
           {shots.map((shot, i) => (
             <li key={shot.id} className="flex items-center justify-between">
-              <span className="text-zinc-600 dark:text-zinc-300">
-                Foto {i + 1}
-              </span>
-              <span className="text-xs text-zinc-400">
+              <span className="font-semibold text-ink">Foto {i + 1}</span>
+              <span className="text-xs font-semibold text-ink-soft">
                 {shot.state === "uploading" && "lädt hoch …"}
                 {shot.state === "processing" && "wird ausgelesen …"}
                 {shot.state === "queued" && "in Bearbeitung ✓"}
                 {shot.state === "failed" && (
-                  <span className="text-red-500">fehlgeschlagen</span>
+                  <span className="text-tomato">fehlgeschlagen</span>
                 )}
               </span>
             </li>

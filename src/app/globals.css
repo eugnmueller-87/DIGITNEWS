@@ -57,6 +57,14 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Avoid the iOS "tap highlight" grey flash on buttons/links. */
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent the whole page from rubber-band scrolling in standalone (the inner
+     scroll containers still scroll normally). */
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--font-body), system-ui, sans-serif;
   color: var(--ink);
@@ -64,7 +72,32 @@ body {
     radial-gradient(ellipse 60% 40% at 80% -5%, #fff3c9 0%, transparent 55%),
     linear-gradient(180deg, var(--sky) 0%, #d6edf8 70%, #e8f4ea 100%);
   background-attachment: fixed;
+  /* 100dvh tracks the *dynamic* viewport so the layout doesn't jump when iOS
+     Safari's URL bar shows/hides; min-height keeps the gradient full-bleed. */
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ---- Safe-area helpers (resolve to 0 off-device; need viewport-fit=cover) ----
+   Used by the app shell so the sticky header clears the notch and the footer /
+   bottom nav clear the home indicator in an installed standalone PWA.
+
+   pt/pb-safe ADD the inset on top of any existing vertical padding (the
+   elements they sit on have none of their own, so a plain add is correct).
+
+   px-content keeps a comfortable 1.25rem gutter AND guarantees at least the
+   landscape-notch inset, via max() — so it never double-pads in portrait
+   (inset = 0 → 1.25rem) yet still clears a side notch in landscape. Use it
+   INSTEAD of px-5 on full-bleed shell elements. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.px-content {
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
 }
 
 /* Display font helper */
@@ -144,6 +177,31 @@ body {
 @keyframes sunSpin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Loading skeleton shimmer (used by <Skeleton>). Reduced-motion safe via the
+   block below, which disables all animations. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 

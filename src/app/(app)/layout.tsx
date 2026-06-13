@@ -1,5 +1,6 @@
 import { AccountMenu } from "@/components/account-menu";
 import { AppNav, type NavItem } from "@/components/app-nav";
+import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { SunLogo } from "@/components/sun-logo";
 import { brand } from "@/config/brand";
 import { requireSession } from "@/lib/auth";
@@ -49,10 +50,27 @@ export default async function AppLayout({
     adminNav.push({ href: "/operator", label: "Operator" });
   }
 
+  // Phone bottom bar: the daily destinations only (max 5 so they stay
+  // thumb-sized). Admins swap two member tabs for their workflow tabs
+  // (Aufnahme + Prüfen); the top pill nav remains the complete list.
+  const bottomNav: BottomNavItem[] = isAdmin
+    ? [
+        { href: "/feed", label: "Feed", icon: "feed" },
+        { href: "/kalender", label: "Kalender", icon: "calendar" },
+        { href: "/aufnahme", label: "Aufnahme", icon: "capture" },
+        { href: "/review", label: "Prüfen", icon: "review" },
+      ]
+    : [
+        { href: "/feed", label: "Feed", icon: "feed" },
+        { href: "/essensplan", label: "Essen", icon: "meal" },
+        { href: "/rueckblick", label: "Rückblick", icon: "review" },
+        { href: "/kalender", label: "Kalender", icon: "calendar" },
+      ];
+
   return (
     <div className="relative z-[1] flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 border-b-[3px] border-ink bg-paper/90 backdrop-blur">
-        <div className="mx-auto w-full max-w-3xl px-5">
+      <header className="pt-safe sticky top-0 z-10 border-b-[3px] border-ink bg-paper/90 backdrop-blur">
+        <div className="px-content mx-auto w-full max-w-3xl">
           <div className="flex items-center justify-between gap-3 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <SunLogo className="h-11 w-11 shrink-0" />
@@ -73,11 +91,11 @@ export default async function AppLayout({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6">
+      <main className="px-content mx-auto w-full max-w-3xl flex-1 py-6">
         {children}
       </main>
 
-      <footer className="relative mt-10 border-t-[3px] border-ink bg-gradient-to-b from-grass to-grass-deep px-5 py-6 text-white">
+      <footer className="pb-safe px-content relative mt-10 border-t-[3px] border-ink bg-gradient-to-b from-grass to-grass-deep py-6 text-white">
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
           <span className="font-display text-lg font-bold">
             {brand.name} <span aria-hidden>🌼</span>
@@ -87,6 +105,16 @@ export default async function AppLayout({
           </span>
         </div>
       </footer>
+
+      {/* Reserve space on phones so the fixed bottom bar never covers the
+          footer. ~64px bar + the home-indicator inset. Zero on >=sm. */}
+      <div
+        aria-hidden
+        className="pb-safe h-16 sm:hidden"
+        style={{ contain: "strict" }}
+      />
+
+      <BottomNav items={bottomNav} />
     </div>
   );
 }

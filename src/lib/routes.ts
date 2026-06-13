@@ -39,6 +39,18 @@ export const SUPERADMIN_ROUTES = {
   prefixes: ["/operator"],
 } as const;
 
+/**
+ * Stable public legal paths, for store-listing forms and footers. These are a
+ * subset of PUBLIC_ROUTES.exact (reachable without auth). The absolute URL is
+ * `${publicEnv.siteUrl}${LEGAL_PATHS.privacy}` — the store console wants a fully
+ * qualified https URL. Keep the PATH here (single source); compose the origin at
+ * the call site so it follows the deployment env.
+ */
+export const LEGAL_PATHS = {
+  /** Datenschutzerklärung — the privacy policy URL stores require. */
+  privacy: "/datenschutz",
+} as const;
+
 export function isPublicPath(pathname: string): boolean {
   if (
     PUBLIC_ROUTES.exact.includes(

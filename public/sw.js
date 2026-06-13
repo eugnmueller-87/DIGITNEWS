@@ -3,7 +3,7 @@
  * navigations and static assets. Auth-gated pages still hit the network first so
  * a logged-out user never sees stale private content from the cache. */
 
-const CACHE = "aushang-v1";
+const CACHE = "aushang-v2";
 const SHELL = ["/feed", "/offline"];
 
 self.addEventListener("install", (event) => {

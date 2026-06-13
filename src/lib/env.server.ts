@@ -72,7 +72,7 @@ export const serverEnv = {
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
 
   /** Contact for VAPID (mailto:). Some push services require it. */
-  vapidSubject: process.env.VAPID_SUBJECT || "mailto:hallo@aushang.app",
+  vapidSubject: process.env.VAPID_SUBJECT || "mailto:hallo@kita-connect.cloud",
 } as const;
 
 /** Is this email an allowlisted operator (case-insensitive)? */

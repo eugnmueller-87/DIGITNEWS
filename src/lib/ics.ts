@@ -3,6 +3,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import { brand } from "@/config/brand";
+import { buildVCalendar, type IcsEvent } from "@/lib/ics-format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** Per-user ICS calendar subscription: token mgmt + VCALENDAR generation. */
@@ -42,27 +43,6 @@ export async function getActiveIcsToken(
   return data?.token ?? null;
 }
 
-interface IcsEvent {
-  id: string;
-  title: string;
-  category: "closure" | "event" | "deadline";
-  starts_on: string;
-  ends_on: string | null;
-  all_day: boolean;
-  time_start: string | null;
-  time_end: string | null;
-  status: "pending" | "confirmed" | "cancelled";
-  ics_sequence: number;
-}
-
-function icsEscape(s: string): string {
-  return s.replace(/[\\;,]/g, (m) => "\\" + m).replace(/\n/g, "\\n");
-}
-
-function ymd(iso: string): string {
-  return iso.replace(/-/g, "");
-}
-
 /** Build a VCALENDAR body for an org's events resolved from a token. */
 export async function buildIcsForToken(token: string): Promise<string | null> {
   const admin = createAdminClient();
@@ -81,50 +61,9 @@ export async function buildIcsForToken(token: string): Promise<string | null> {
     .limit(1000);
 
   const events = (data ?? []) as IcsEvent[];
-  const lines: string[] = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    `PRODID:-//${brand.name}//Kalender//DE`,
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    `X-WR-CALNAME:${icsEscape(brand.name)}`,
-  ];
-
-  // A fixed DTSTAMP avoids per-request churn; we don't have a request clock here
-  // that we want to leak, and SEQUENCE drives client updates instead.
-  const stamp = "20260101T000000Z";
-
-  for (const e of events) {
-    lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${e.id}@${brand.productionHost}`);
-    lines.push(`DTSTAMP:${stamp}`);
-    lines.push(`SEQUENCE:${e.ics_sequence}`);
-    lines.push(`SUMMARY:${icsEscape(e.title)}`);
-    lines.push(
-      `STATUS:${e.status === "cancelled" ? "CANCELLED" : "CONFIRMED"}`,
-    );
-
-    if (e.all_day || !e.time_start) {
-      // All-day: DTEND is exclusive, so add one day to the end.
-      const end = e.ends_on ?? e.starts_on;
-      const endDate = new Date(end + "T00:00:00Z");
-      endDate.setUTCDate(endDate.getUTCDate() + 1);
-      const endIso = endDate.toISOString().slice(0, 10);
-      lines.push(`DTSTART;VALUE=DATE:${ymd(e.starts_on)}`);
-      lines.push(`DTEND;VALUE=DATE:${ymd(endIso)}`);
-    } else {
-      const day = e.starts_on;
-      const start = `${ymd(day)}T${e.time_start.replace(":", "")}00`;
-      const endTime = e.time_end ?? e.time_start;
-      const endDay = e.ends_on ?? day;
-      const end = `${ymd(endDay)}T${endTime.replace(":", "")}00`;
-      lines.push(`DTSTART:${start}`);
-      lines.push(`DTEND:${end}`);
-    }
-    lines.push("END:VEVENT");
-  }
-
-  lines.push("END:VCALENDAR");
-  // ICS lines should be CRLF-terminated.
-  return lines.join("\r\n") + "\r\n";
+  return buildVCalendar(events, {
+    prodId: `-//${brand.name}//Kalender//DE`,
+    calName: brand.name,
+    uidHost: brand.productionHost,
+  });
 }

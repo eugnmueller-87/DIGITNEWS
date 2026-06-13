@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { EmptyState, PageHeader } from "@/components/ui";
+import { Alert, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
-import type { PublicPost } from "@/lib/database.types";
+import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Feed" };
@@ -19,16 +19,19 @@ export default async function FeedPage() {
   const session = await requireSession();
   const supabase = await createClient();
 
-  // Health alerts surface at the TOP, ordered by severity. Meal plans and
-  // reflections live in their own sections (not the feed), so we exclude them
-  // here; the feed shows general info, calls to action, and event announcements.
-  const [{ data: alerts }, { data: posts }] = await Promise.all([
+  // Health alerts surface at the TOP, most severe first. health_severity is a
+  // text+CHECK column (not a real enum), so a DB ORDER BY on it would sort
+  // ALPHABETICALLY — wrong, and worse, the row cap could drop a still-relevant
+  // urgent alert in favour of newer-but-milder ones. So we fetch newest-first
+  // with a generous cap and impose the correct order in buildFeedView (unit-
+  // tested). Meal plans/reflections live in their own sections (excluded here).
+  const [alertResult, postResult] = await Promise.all([
     supabase
       .from("posts_public")
       .select("id, title, body, health_severity, published_at")
       .eq("content_type", "health_notice")
       .order("published_at", { ascending: false })
-      .limit(10),
+      .limit(50),
     supabase
       .from("posts_public")
       .select("id, title, body, category, content_type, published_at")
@@ -37,25 +40,25 @@ export default async function FeedPage() {
       .limit(50),
   ]);
 
-  const alertList = (alerts ?? []) as Pick<
-    PublicPost,
-    "id" | "title" | "body" | "health_severity" | "published_at"
-  >[];
-  const list = (posts ?? []) as Pick<
-    PublicPost,
-    "id" | "title" | "body" | "category" | "published_at"
-  >[];
-
-  // Sort alerts urgent → advisory → info.
-  const sev = { urgent: 0, advisory: 1, info: 2 } as const;
-  alertList.sort(
-    (a, b) =>
-      (sev[a.health_severity ?? "info"] ?? 3) -
-      (sev[b.health_severity ?? "info"] ?? 3),
+  // A query error must NOT silently render as an empty feed (that would hide an
+  // outage behind "nothing posted yet"). buildFeedView surfaces it explicitly.
+  const {
+    alerts: alertList,
+    posts: list,
+    loadFailed,
+  } = buildFeedView(
+    { data: alertResult.data as FeedAlert[] | null, error: alertResult.error },
+    { data: postResult.data as FeedPost[] | null, error: postResult.error },
   );
 
   return (
     <div className="space-y-4">
+      {loadFailed && (
+        <Alert variant="error">
+          Die Pinnwand konnte gerade nicht geladen werden. Bitte lade die Seite
+          neu.
+        </Alert>
+      )}
       {alertList.length > 0 && (
         <section className="mb-2 space-y-3">
           {alertList.map((a) => (
@@ -95,14 +98,19 @@ export default async function FeedPage() {
       <PageHeader title="Pinnwand" subtitle="Neuigkeiten deiner Einrichtung." />
 
       {list.length === 0 ? (
-        <EmptyState
-          title="Noch keine Aushänge."
-          hint={
-            session.role === "admin" || session.role === "superadmin"
-              ? "Fotografiere einen Aushang unter „Aufnahme“ und gib ihn unter „Prüfen“ frei — dann erscheint er hier."
-              : "Sobald deine Einrichtung etwas veröffentlicht, siehst du es hier."
-          }
-        />
+        // Suppress "nothing posted yet" during a load failure — the error Alert
+        // above already explains the empty screen; claiming nothing was posted
+        // would be misleading.
+        loadFailed ? null : (
+          <EmptyState
+            title="Noch keine Aushänge."
+            hint={
+              session.role === "admin" || session.role === "superadmin"
+                ? "Fotografiere einen Aushang unter „Aufnahme“ und gib ihn unter „Prüfen“ frei — dann erscheint er hier."
+                : "Sobald deine Einrichtung etwas veröffentlicht, siehst du es hier."
+            }
+          />
+        )
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {list.map((post, i) => (

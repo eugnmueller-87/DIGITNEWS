@@ -14,8 +14,9 @@
 export const PUBLIC_ROUTES = {
   exact: [
     "/login",
-    "/set-password", // invite/recovery landing — needs a link-issued session, not a profile
-    "/passwort-vergessen", // request a password-reset link
+    "/registrieren", // enter email + OTP code to start (no link to scan)
+    "/set-password", // post-code landing — needs a code-issued session, not a profile
+    "/passwort-vergessen", // request a registration/reset code
     "/datenschutz", // Datenschutzerklärung — the one intentionally public legal page
     "/offline", // PWA offline fallback shell
   ],

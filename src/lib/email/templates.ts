@@ -67,34 +67,36 @@ export function applicationVerificationEmail(verifyUrl: string): {
 }
 
 /**
- * Invite / password-setup email. `setUrl` is the one-time link that establishes
- * a session and lands the user on /set-password. Used both for first-time invite
- * onboarding and for "forgot password".
+ * Registration / password-reset CODE email. Shows a 6-digit code the user types
+ * on /registrieren (no clickable link — so email scanners can't consume it).
+ * Used for first-time invite onboarding and for "forgot password".
  */
-export function setPasswordEmail(setUrl: string): {
+export function registrationCodeEmail(code: string): {
   subject: string;
   html: string;
   text: string;
 } {
-  const heading = "Lege dein Passwort fest";
+  const safe = code.replace(/[^0-9A-Za-z]/g, "");
+  const heading = "Dein Anmelde-Code";
   const bodyHtml = `
-    <p style="margin:0 0 16px;">Dein Zugang zu ${brand.name} wurde eingerichtet. Lege jetzt dein Passwort fest, um dich anzumelden.</p>
-    <p style="margin:0 0 20px;">${button(setUrl, "Passwort festlegen")}</p>
-    <p style="margin:0;color:#71717a;font-size:12px;">Der Link ist nur kurze Zeit gültig und kann nur einmal verwendet werden. Wenn du das nicht warst, kannst du diese E-Mail ignorieren.</p>
+    <p style="margin:0 0 16px;">Dein Zugang zu ${brand.name} wurde eingerichtet. Gib diesen Code auf der Anmeldeseite ein, um dein Passwort festzulegen:</p>
+    <p style="margin:0 0 20px;font-size:30px;font-weight:700;letter-spacing:6px;color:#18181b;font-family:monospace;">${safe}</p>
+    <p style="margin:0;color:#71717a;font-size:12px;">Der Code ist nur kurze Zeit gültig und kann nur einmal verwendet werden. Wenn du das nicht warst, kannst du diese E-Mail ignorieren.</p>
   `;
   const text = [
-    "Lege dein Passwort fest",
+    "Dein Anmelde-Code",
     "",
-    `Dein Zugang zu ${brand.name} wurde eingerichtet. Lege dein Passwort über diesen Link fest:`,
-    setUrl,
+    `Dein Zugang zu ${brand.name} wurde eingerichtet. Gib diesen Code auf der Anmeldeseite ein, um dein Passwort festzulegen:`,
     "",
-    "Der Link ist nur kurze Zeit gültig und einmalig verwendbar. Wenn du das nicht warst, ignoriere diese E-Mail.",
+    safe,
+    "",
+    "Der Code ist nur kurze Zeit gültig und einmalig verwendbar. Wenn du das nicht warst, ignoriere diese E-Mail.",
     "",
     `${brand.name} — ${brand.footerPitch}`,
   ].join("\n");
 
   return {
-    subject: `${brand.name}: Passwort festlegen`,
+    subject: `${brand.name}: Dein Anmelde-Code`,
     html: layout({ heading, bodyHtml }),
     text,
   };

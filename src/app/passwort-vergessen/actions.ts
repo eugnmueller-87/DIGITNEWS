@@ -1,6 +1,6 @@
 "use server";
 
-import { sendPasswordSetupLink } from "@/lib/auth-flows";
+import { sendRegistrationCode } from "@/lib/auth-flows";
 import { parseEmail } from "@/lib/validation";
 
 export interface ForgotState {
@@ -9,9 +9,10 @@ export interface ForgotState {
 }
 
 /**
- * Request a password-reset link. Enumeration-resistant: always returns the same
- * neutral success message regardless of whether the account exists. The link is
- * sent via Resend (our domain) and lands on /set-password.
+ * Request a registration / reset CODE. Enumeration-resistant: always returns the
+ * same neutral success message regardless of whether the account exists. A
+ * 6-digit code is sent via Resend (our domain); the user enters it on
+ * /registrieren.
  */
 export async function requestPasswordReset(
   _prev: ForgotState,
@@ -24,11 +25,11 @@ export async function requestPasswordReset(
     return { ok: false, message: (e as Error).message };
   }
 
-  await sendPasswordSetupLink(email);
+  await sendRegistrationCode(email);
 
   return {
     ok: true,
     message:
-      "Wenn ein Konto mit dieser E-Mail existiert, haben wir dir einen Link zum Festlegen eines neuen Passworts geschickt.",
+      "Wenn ein Konto mit dieser E-Mail existiert, haben wir dir einen Code geschickt. Gib ihn auf der Seite „Anmelden mit Code“ ein.",
   };
 }

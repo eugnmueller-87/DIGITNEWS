@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Card } from "@/components/ui";
+import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import type { PublicPost } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -77,38 +77,40 @@ export default async function FeedPage() {
         </section>
       )}
 
-      <h1 className="text-xl font-semibold">Aushänge</h1>
+      <PageHeader title="Aushänge" subtitle="Neuigkeiten deiner Einrichtung." />
 
       {list.length === 0 ? (
-        <Card>
-          <div className="py-8 text-center">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Noch keine Aushänge.
-            </p>
-            {session.role === "admin" || session.role === "superadmin" ? (
-              <p className="mt-2 text-sm text-zinc-400">
-                Sobald du einen Aushang fotografierst und freigibst, erscheint
-                er hier. (Foto-Funktion folgt.)
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-zinc-400">
-                Sobald deine Organisation etwas veröffentlicht, siehst du es
-                hier.
-              </p>
-            )}
-          </div>
-        </Card>
+        <EmptyState
+          title="Noch keine Aushänge."
+          hint={
+            session.role === "admin" || session.role === "superadmin"
+              ? "Fotografiere einen Aushang unter „Aufnahme“ und gib ihn unter „Prüfen“ frei — dann erscheint er hier."
+              : "Sobald deine Einrichtung etwas veröffentlicht, siehst du es hier."
+          }
+        />
       ) : (
-        list.map((post) => (
-          <Card key={post.id}>
-            <h2 className="font-medium">{post.title}</h2>
-            {post.body && (
-              <p className="mt-1 whitespace-pre-line text-sm text-zinc-600 dark:text-zinc-300">
-                {post.body}
-              </p>
-            )}
-          </Card>
-        ))
+        <div className="space-y-3">
+          {list.map((post) => (
+            <Card key={post.id}>
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-medium">{post.title}</h2>
+                {post.published_at && (
+                  <time className="shrink-0 text-xs text-zinc-400">
+                    {new Date(post.published_at).toLocaleDateString("de-DE", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    })}
+                  </time>
+                )}
+              </div>
+              {post.body && (
+                <p className="mt-1 whitespace-pre-line text-sm text-zinc-600 dark:text-zinc-300">
+                  {post.body}
+                </p>
+              )}
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

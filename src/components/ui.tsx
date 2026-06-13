@@ -1,6 +1,45 @@
 import { clsx } from "@/lib/clsx";
 
-/** Minimal, dependency-light UI primitives for the Phase 1 skeleton. */
+/** Minimal, dependency-light UI primitives. */
+
+/** A page heading + optional subtitle, used at the top of each (app) page. */
+export function PageHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-5 flex items-start justify-between gap-3">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        {subtitle && (
+          <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+/** A centered empty-state inside a card. */
+export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <Card className="border-dashed">
+      <div className="flex flex-col items-center gap-1 py-10 text-center">
+        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+          {title}
+        </p>
+        {hint && <p className="max-w-xs text-xs text-zinc-400">{hint}</p>}
+      </div>
+    </Card>
+  );
+}
 
 export function Card({
   children,

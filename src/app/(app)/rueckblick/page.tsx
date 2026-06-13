@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Card } from "@/components/ui";
+import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,26 +26,22 @@ export default async function RueckblickPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Rückblick</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Was die Kinder unter der Woche gemacht haben.
-        </p>
-      </div>
+      <PageHeader
+        title="Rückblick"
+        subtitle="Was die Kinder unter der Woche gemacht haben."
+      />
 
       {list.length === 0 ? (
-        <Card>
-          <div className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Noch kein Rückblick veröffentlicht.
-          </div>
-        </Card>
+        <EmptyState title="Noch kein Rückblick veröffentlicht." />
       ) : (
-        list.map((p) => (
-          <Card key={p.id}>
-            <h2 className="font-medium">{p.title}</h2>
-            {/* Phase 3 renders the Mon–Fri activity list from post_details. */}
-          </Card>
-        ))
+        <div className="space-y-3">
+          {list.map((p) => (
+            <Card key={p.id}>
+              <h2 className="font-medium">{p.title}</h2>
+              {/* Phase 3 renders the Mon–Fri activity list from post_details. */}
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

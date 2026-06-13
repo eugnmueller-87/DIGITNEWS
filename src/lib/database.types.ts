@@ -45,7 +45,15 @@ export interface Profile {
   role: Role;
   membership_status: MembershipStatus;
   display_name: string | null;
+  group_id: string | null;
   email_digest_opt_in: boolean;
+  created_at: string;
+}
+
+export interface Group {
+  id: string;
+  org_id: string;
+  name: string;
   created_at: string;
 }
 

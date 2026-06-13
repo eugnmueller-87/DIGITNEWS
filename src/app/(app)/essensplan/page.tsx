@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Card } from "@/components/ui";
+import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,27 +28,20 @@ export default async function EssensplanPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Essensplan</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Was die Kinder essen.
-        </p>
-      </div>
+      <PageHeader title="Essensplan" subtitle="Was die Kinder essen." />
 
       {list.length === 0 ? (
-        <Card>
-          <div className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Noch kein Essensplan veröffentlicht.
-          </div>
-        </Card>
+        <EmptyState title="Noch kein Essensplan veröffentlicht." />
       ) : (
-        list.map((p) => (
-          <Card key={p.id}>
-            <h2 className="font-medium">{p.title}</h2>
-            {/* Phase 3 renders the day/dish grid + estimated Nutri-Score from
-                post_details here, with a "Schätzung" label. */}
-          </Card>
-        ))
+        <div className="space-y-3">
+          {list.map((p) => (
+            <Card key={p.id}>
+              <h2 className="font-medium">{p.title}</h2>
+              {/* Phase 3 renders the day/dish grid + estimated Nutri-Score from
+                  post_details here, with a "Schätzung" label. */}
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -6,8 +6,9 @@ photograph → OCR → redact → extract → draft pipeline works end to end.
 ## What you need first
 
 - A **Hostinger VPS** (not shared hosting) with SSH access — KVM plan, Ubuntu.
-- A **Mistral API key** — sign up at https://console.mistral.ai → API Keys →
-  create one (EU-hosted; receives only redacted text).
+- An **Anthropic API key** — create one at https://console.anthropic.com → API
+  Keys (this is billed pay-as-you-go, separate from any Claude subscription; it
+  receives only redacted text, never raw images/PII).
 - The **shared secret** (already generated — keep it secret, used in 2 places):
   `WORKER_SHARED_SECRET` = _(the value from the chat)_
 
@@ -54,7 +55,7 @@ docker run -d --name aushang-worker --restart unless-stopped \
   -p 8000:8000 \
   -e WORKER_SHARED_SECRET="PASTE_THE_SHARED_SECRET" \
   -e APP_CALLBACK_URL="https://kita-connect.cloud" \
-  -e MISTRAL_API_KEY="PASTE_YOUR_MISTRAL_KEY" \
+  -e ANTHROPIC_API_KEY="PASTE_YOUR_ANTHROPIC_KEY" \
   aushang-worker
 ```
 
@@ -102,7 +103,7 @@ Then **redeploy** the Vercel app so it picks up the vars.
 
 1. Log in as admin → `/aufnahme` → photograph (or upload) a German notice.
 2. The app uploads it, creates a `processing` post, and triggers the worker.
-3. Within ~10–30s the worker OCRs → redacts → calls Mistral → posts back a draft.
+3. Within ~10–30s the worker OCRs → redacts → calls the Claude API → posts back a draft.
 4. Go to `/review` → the draft should appear, classified, redacted, ready to
    confirm + publish.
 

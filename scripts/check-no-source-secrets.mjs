@@ -38,12 +38,12 @@ const PATTERNS = [
   },
   // Resend API key.
   { name: "Resend API key", re: /\bre_[A-Za-z0-9]{20,}\b/g },
-  // OpenAI-style / Mistral keys sometimes use sk- prefix.
-  { name: "sk- style API key", re: /\bsk-[A-Za-z0-9]{20,}\b/g },
-  // Mistral keys (32+ url-safe chars assigned to a MISTRAL var).
+  // sk- prefix covers Anthropic (sk-ant-...) and OpenAI-style keys.
+  { name: "sk- style API key", re: /\bsk-[A-Za-z0-9-]{20,}\b/g },
+  // Anthropic / LLM key assigned to an *_API_KEY var (24+ url-safe chars).
   {
-    name: "Mistral API key assignment",
-    re: /MISTRAL_API_KEY\s*[:=]\s*["']?[A-Za-z0-9_-]{24,}["']?/g,
+    name: "LLM API key assignment",
+    re: /(?:ANTHROPIC|MISTRAL)_API_KEY\s*[:=]\s*["']?[A-Za-z0-9_-]{24,}["']?/g,
   },
   // Postgres/Supabase connection string with embedded password.
   {
@@ -68,7 +68,7 @@ const ALLOW = new Set([
   "onboarding@resend.dev",
   // Placeholders in the worker deploy guide — instructions, not real values.
   "PASTE_THE_SHARED_SECRET",
-  "PASTE_YOUR_MISTRAL_KEY",
+  "PASTE_YOUR_ANTHROPIC_KEY",
 ]);
 
 function tracked() {

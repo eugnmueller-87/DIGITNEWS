@@ -2,16 +2,16 @@
 # One-shot worker deploy for a fresh Ubuntu VPS. Run AS ROOT on the box:
 #
 #   curl -fsSL https://raw.githubusercontent.com/eugnmueller-87/DIGITNEWS/main/worker/deploy.sh | \
-#     WORKER_SHARED_SECRET="..." MISTRAL_API_KEY="..." APP_CALLBACK_URL="https://kita-connect.cloud" bash
+#     WORKER_SHARED_SECRET="..." ANTHROPIC_API_KEY="..." APP_CALLBACK_URL="https://kita-connect.cloud" bash
 #
-# Or clone the repo and run: WORKER_SHARED_SECRET=... MISTRAL_API_KEY=... bash worker/deploy.sh
+# Or clone the repo and run: WORKER_SHARED_SECRET=... ANTHROPIC_API_KEY=... bash worker/deploy.sh
 #
 # Installs Docker, builds the worker image, and (re)starts the container.
 # Idempotent: re-run it to update (it pulls latest + rebuilds + replaces).
 set -euo pipefail
 
 : "${WORKER_SHARED_SECRET:?set WORKER_SHARED_SECRET}"
-: "${MISTRAL_API_KEY:?set MISTRAL_API_KEY}"
+: "${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY}"
 APP_CALLBACK_URL="${APP_CALLBACK_URL:-https://kita-connect.cloud}"
 REPO="${REPO:-https://github.com/eugnmueller-87/DIGITNEWS.git}"
 
@@ -36,7 +36,7 @@ docker run -d --name aushang-worker --restart unless-stopped \
   -p 8000:8000 \
   -e WORKER_SHARED_SECRET="$WORKER_SHARED_SECRET" \
   -e APP_CALLBACK_URL="$APP_CALLBACK_URL" \
-  -e MISTRAL_API_KEY="$MISTRAL_API_KEY" \
+  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
   aushang-worker
 
 echo "==> Waiting for health"

@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 
+import { PageHeader } from "@/components/ui";
 import { joinCodeQrSvg, applyUrl } from "@/lib/applications";
 import { requireAdmin } from "@/lib/auth";
-import type { Profile } from "@/lib/database.types";
+import type { Group, Profile } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 import { AddPersonForm } from "./add-person-form";
 import { ApplicationRow } from "./application-row";
+import { GroupsPanel } from "./groups-panel";
 import { JoinCodePanel } from "./join-code-panel";
 import { MemberRow } from "./member-row";
 
@@ -21,11 +23,13 @@ export default async function MitgliederPage() {
   const session = await requireAdmin();
   const supabase = await createClient();
 
-  const [{ data: members }, { data: codes }, { data: apps }] =
+  const [{ data: members }, { data: codes }, { data: apps }, { data: grps }] =
     await Promise.all([
       supabase
         .from("profiles")
-        .select("id, role, membership_status, display_name, created_at")
+        .select(
+          "id, role, membership_status, display_name, group_id, created_at",
+        )
         .eq("org_id", session.orgId)
         .order("created_at", { ascending: true }),
       // The org's active (non-revoked) join code, if any.
@@ -46,12 +50,24 @@ export default async function MitgliederPage() {
         .eq("org_id", session.orgId)
         .in("status", ["verified", "pending"])
         .order("created_at", { ascending: true }),
+      supabase
+        .from("groups")
+        .select("id, name")
+        .eq("org_id", session.orgId)
+        .order("name", { ascending: true }),
     ]);
 
   const memberList = (members ?? []) as Pick<
     Profile,
-    "id" | "role" | "membership_status" | "display_name" | "created_at"
+    | "id"
+    | "role"
+    | "membership_status"
+    | "display_name"
+    | "group_id"
+    | "created_at"
   >[];
+
+  const groups = (grps ?? []) as Pick<Group, "id" | "name">[];
 
   const code = (codes ?? [])[0] as
     | { code: string; label: string | null }
@@ -76,14 +92,14 @@ export default async function MitgliederPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Mitglieder</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Füge Personen per E-Mail hinzu. Sie bekommen einen Login-Link.
-        </p>
-      </div>
+      <PageHeader
+        title="Mitglieder"
+        subtitle="Personen hinzufügen, Gruppen verwalten, Rollen vergeben."
+      />
 
       <AddPersonForm canAddAdmins={canAddAdmins} />
+
+      <GroupsPanel groups={groups} />
 
       {/* QR self-apply: code + QR for parents to scan, and the approval queue. */}
       <JoinCodePanel hasCode={!!code} qrSvg={qrSvg} url={codeUrl} />
@@ -132,7 +148,9 @@ export default async function MitgliederPage() {
               role={m.role}
               status={m.membership_status}
               displayName={m.display_name}
+              groupId={m.group_id}
               isSelf={m.id === session.userId}
+              groups={groups}
               // An org admin can remove members; a superadmin can also remove
               // admins. Never offer removal of the current user or a superadmin.
               canRemove={
@@ -140,6 +158,9 @@ export default async function MitgliederPage() {
                 m.role !== "superadmin" &&
                 (m.role === "member" || session.role === "superadmin")
               }
+              // Admins/superadmins can manage (role + group) anyone in-org except
+              // superadmins and themselves (enforced in the row + DB).
+              canManage={m.id !== session.userId && m.role !== "superadmin"}
             />
           ))}
         </div>

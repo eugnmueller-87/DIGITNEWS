@@ -62,6 +62,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# MCP server config — holds a Supabase access token (root credential). NEVER
+# commit. Use .mcp.json.example as the tracked template instead.
+.mcp.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

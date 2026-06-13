@@ -12,9 +12,10 @@ redacted locally before any external call, fail-closed.**
 
 ## 1. Architecture facts the forms depend on
 
-- **Auth:** magic link / email OTP only. No passwords. No public signup —
-  accounts are operator/admin **provisioned**. We store the user's **email**
-  (in Supabase Auth) and a **profile** (org, role, display name, digest opt-in).
+- **Auth:** email + password, invite-only. No public signup — accounts are
+  operator/admin **provisioned**; the first password is set via a one-time
+  emailed code. We store the user's **email** (in Supabase Auth, password hashed
+  by Supabase) and a **profile** (org, role, display name, digest opt-in).
 - **Content source:** the org's own physical notice board. An admin photographs
   it. We process **only what the org already published** publicly on that board.
 - **Raw photo path:** the browser compresses the photo and uploads it to a

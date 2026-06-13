@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Aushang favicon — a friendly felt-style flower in the Kita brand palette
+    (sunshine petals #ffd45e, berry center #5b9bd5, ink outline #4a3f35). Drawn
+    on the viewBox center so it reads cleanly at 16px tab size. Next.js App
+    Router serves src/app/icon.svg as the favicon automatically.
+  -->
+  <g stroke="#4a3f35" stroke-width="1.6" stroke-linejoin="round">
+    <!-- five petals around the center -->
+    <ellipse cx="16" cy="6.5" rx="4" ry="5.2" fill="#ffd45e" />
+    <ellipse cx="25" cy="13" rx="4" ry="5.2" fill="#ffd45e" transform="rotate(72 25 13)" />
+    <ellipse cx="21.5" cy="24" rx="4" ry="5.2" fill="#ffd45e" transform="rotate(144 21.5 24)" />
+    <ellipse cx="10.5" cy="24" rx="4" ry="5.2" fill="#ffd45e" transform="rotate(216 10.5 24)" />
+    <ellipse cx="7" cy="13" rx="4" ry="5.2" fill="#ffd45e" transform="rotate(288 7 13)" />
+    <!-- center -->
+    <circle cx="16" cy="16" r="5" fill="#5b9bd5" />
+  </g>
+</svg>

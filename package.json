@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:secrets": "node scripts/check-no-client-secrets.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run check:secrets",
+    "check:source-secrets": "node scripts/check-no-source-secrets.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run build && npm run check:secrets && npm run check:source-secrets",
     "prepare": "husky"
   },
   "lint-staged": {

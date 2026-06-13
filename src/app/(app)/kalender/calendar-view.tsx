@@ -3,6 +3,15 @@
 import { useMemo, useState } from "react";
 
 import { Card } from "@/components/ui";
+import {
+  anchorMonth,
+  covers,
+  isoOf,
+  monthGrid,
+  nextMonth,
+  prevMonth,
+  sortByStart,
+} from "@/lib/calendar";
 
 import type { CalEvent } from "./page";
 
@@ -35,41 +44,17 @@ const MONTHS = [
   "Dezember",
 ];
 
-/** Does an event span a given YYYY-MM-DD day? */
-function covers(ev: CalEvent, iso: string): boolean {
-  const end = ev.ends_on ?? ev.starts_on;
-  return ev.starts_on <= iso && iso <= end;
-}
-
-function isoOf(y: number, m: number, d: number): string {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-
 export function CalendarView({ events }: { events: CalEvent[] }) {
   const [view, setView] = useState<View>("month");
-  // Anchor the month on the first upcoming event, else today's month-ish.
-  const firstStart = events[0]?.starts_on;
-  const initial = firstStart ? new Date(firstStart) : null;
-  const [cursor, setCursor] = useState(() => ({
-    y: initial ? initial.getFullYear() : 2026,
-    m: initial ? initial.getMonth() : 0,
-  }));
-
-  const grid = useMemo(() => {
-    const first = new Date(cursor.y, cursor.m, 1);
-    const startWeekday = (first.getDay() + 6) % 7; // Mon=0
-    const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
-    const cells: (number | null)[] = [];
-    for (let i = 0; i < startWeekday; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-    while (cells.length % 7 !== 0) cells.push(null);
-    return cells;
-  }, [cursor]);
-
-  const upcoming = useMemo(
-    () => [...events].sort((a, b) => a.starts_on.localeCompare(b.starts_on)),
-    [events],
+  // Anchor the month on the first event's month (parsed from the ISO STRING so
+  // it never shifts across the UTC boundary), else a sensible default.
+  const [cursor, setCursor] = useState(() =>
+    anchorMonth(events[0]?.starts_on, { y: 2026, m: 0 }),
   );
+
+  const grid = useMemo(() => monthGrid(cursor), [cursor]);
+
+  const upcoming = useMemo(() => sortByStart(events), [events]);
 
   return (
     <div className="space-y-3">
@@ -96,11 +81,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
             <button
               type="button"
               aria-label="Vorheriger Monat"
-              onClick={() =>
-                setCursor((c) =>
-                  c.m === 0 ? { y: c.y - 1, m: 11 } : { y: c.y, m: c.m - 1 },
-                )
-              }
+              onClick={() => setCursor(prevMonth)}
               className="rounded-full border-[3px] border-ink bg-paper px-2.5 py-0.5"
             >
               ‹
@@ -111,11 +92,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
             <button
               type="button"
               aria-label="Nächster Monat"
-              onClick={() =>
-                setCursor((c) =>
-                  c.m === 11 ? { y: c.y + 1, m: 0 } : { y: c.y, m: c.m + 1 },
-                )
-              }
+              onClick={() => setCursor(nextMonth)}
               className="rounded-full border-[3px] border-ink bg-paper px-2.5 py-0.5"
             >
               ›

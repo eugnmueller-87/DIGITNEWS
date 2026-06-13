@@ -4,7 +4,7 @@ import imageCompression from "browser-image-compression";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { Card, Button, Alert } from "@/components/ui";
+import { Card, Alert } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 import { getUploadTarget, finalizeCapture } from "./actions";
@@ -104,12 +104,24 @@ export function CapturePanel() {
         onChange={(e) => void handleFiles(e.target.files)}
       />
 
-      <Button
+      <button
+        type="button"
         onClick={() => inputRef.current?.click()}
         disabled={status === "working"}
+        className="flex w-full flex-col items-center gap-1 rounded-3xl border-[3px] border-dashed border-ink-soft bg-sky/25 px-6 py-8 text-center transition-colors hover:bg-sky/50 disabled:opacity-60"
       >
-        {status === "working" ? "Wird verarbeitet …" : "Aushang fotografieren"}
-      </Button>
+        <span className="text-4xl leading-none" aria-hidden>
+          📷
+        </span>
+        <span className="font-display text-xl font-semibold text-ink">
+          {status === "working"
+            ? "Wird verarbeitet …"
+            : "Foto vom Aushang aufnehmen"}
+        </span>
+        <span className="text-sm font-semibold text-ink-soft">
+          Tippen zum Fotografieren · auch schräg oder unscharf ist okay
+        </span>
+      </button>
 
       {shots.length > 0 && (
         <ul className="mt-4 space-y-1.5 text-sm">

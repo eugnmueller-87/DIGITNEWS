@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIGITNEWS — Kita Bergfalke</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DIGITNEWS — KITA THEME v2 · Design tokens
+   ============================================================ */
+:root {
+  --sky:        #BFE3F2;
+  --paper:      #FFF9EC;
+  --grass:      #8FCB6B;
+  --grass-deep: #6FAE4E;
+  --sunshine:   #FFD45E;
+  --tomato:     #FF8370;
+  --berry:      #5B9BD5;
+  --wool-mint:  #A8E0C5;
+  --wool-lilac: #CBB8E8;
+  --wool-pink:  #F7B8C4;
+  --ink:        #4A3F35;
+  --ink-soft:   #7A6B5C;
+
+  /* Nutri-Score scale */
+  --nutri-a: #038141; --nutri-b: #85BB2F; --nutri-c: #FECB02;
+  --nutri-d: #EE8100; --nutri-e: #E63E11;
+
+  --font-display: 'Fredoka', sans-serif;
+  --font-body:    'Nunito', sans-serif;
+
+  --wobble-a: 255px 25px 225px 25px / 25px 225px 25px 255px;
+  --wobble-b: 25px 225px 25px 255px / 255px 25px 225px 25px;
+  --wobble-pill: 95px 155px 148px 103px / 148px 95px 140px 155px;
+
+  --border-w: 3px;
+  --shadow-felt: 0 6px 0 rgba(74,63,53,.18);
+  --shadow-felt-sm: 0 4px 0 rgba(74,63,53,.15);
+
+  --space-1: 8px; --space-2: 16px; --space-3: 24px; --space-4: 36px; --space-5: 56px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family:var(--font-body); color:var(--ink); font-size:17px; line-height:1.55;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% -5%, #FFF3C9 0%, transparent 55%),
+    linear-gradient(180deg, var(--sky) 0%, #D6EDF8 70%, #E8F4EA 100%);
+  min-height:100vh; overflow-x:hidden;
+}
+
+.cloud {
+  position:fixed; z-index:0; opacity:.85; pointer-events:none;
+  width:150px; height:48px; background:#fff; border-radius:100px;
+  filter:drop-shadow(0 4px 0 rgba(74,63,53,.06));
+}
+.cloud::before, .cloud::after { content:''; position:absolute; background:#fff; border-radius:50%; }
+.cloud::before { width:60px; height:60px; top:-28px; left:24px; }
+.cloud::after  { width:42px; height:42px; top:-18px; right:28px; }
+.cloud.c1 { top:8%; animation:drift 95s linear infinite; }
+.cloud.c2 { top:32%; transform:scale(.6); animation:drift 140s linear infinite; animation-delay:-60s; }
+@keyframes drift { from { left:-200px; } to { left:110vw; } }
+@media (prefers-reduced-motion: reduce) {
+  .cloud { animation:none !important; left:10vw; } .cloud.c2 { left:65vw; }
+  * { transition:none !important; animation:none !important; }
+}
+
+.page { position:relative; z-index:1; max-width:1080px; margin:0 auto; padding:var(--space-3) var(--space-3) 0; }
+
+/* ================= HEADER ================= */
+header { display:flex; align-items:center; gap:var(--space-3); flex-wrap:wrap; padding:var(--space-2) 0 var(--space-3); }
+.logo { display:flex; align-items:center; gap:14px; text-decoration:none; color:var(--ink); }
+.logo-sun { width:58px; height:58px; flex-shrink:0; animation:sunSpin 40s linear infinite; }
+@keyframes sunSpin { to { transform:rotate(360deg); } }
+.logo-word { font-family:var(--font-display); font-weight:700; font-size:34px; letter-spacing:.5px; line-height:1; }
+.logo-word .digit { color:var(--berry); } .logo-word .news { color:var(--tomato); }
+.logo-tag { display:block; font-weight:800; font-size:12px; color:var(--ink-soft); letter-spacing:1.5px; text-transform:uppercase; }
+
+nav.main { display:flex; gap:10px; flex-wrap:wrap; margin-left:auto; }
+.nav-pill {
+  font-family:var(--font-display); font-weight:600; font-size:15px; text-decoration:none; color:var(--ink);
+  background:var(--paper); border:var(--border-w) solid var(--ink); border-radius:var(--wobble-pill);
+  padding:8px 16px; box-shadow:var(--shadow-felt-sm); cursor:pointer;
+  transition:transform .12s ease, background .12s ease;
+}
+.nav-pill:hover, .nav-pill:focus-visible { transform:translateY(-3px) rotate(-1.5deg); background:var(--sunshine); }
+
+/* ================= GROUP BANNER ================= */
+.group-banner {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:var(--paper); border:var(--border-w) solid var(--ink); border-radius:var(--wobble-pill);
+  box-shadow:var(--shadow-felt-sm); padding:10px 22px; margin-bottom:var(--space-4); font-weight:700;
+}
+.group-banner .emoji { font-size:26px; }
+.group-banner .who { font-family:var(--font-display); font-weight:600; font-size:19px; }
+.group-banner .week { margin-left:auto; color:var(--ink-soft); font-size:14px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+
+/* ================= SECTION TITLES ================= */
+.section-title {
+  font-family:var(--font-display); font-weight:700; font-size:28px;
+  margin-bottom:var(--space-1); display:flex; align-items:center; gap:12px; scroll-margin-top:20px;
+}
+.section-sub { color:var(--ink-soft); font-weight:600; margin-bottom:var(--space-3); }
+.section-title::after {
+  content:''; flex:1; height:4px; border-radius:4px;
+  background:repeating-linear-gradient(90deg, var(--ink) 0 14px, transparent 14px 26px); opacity:.25;
+}
+
+/* ================= SMART UPLOAD ================= */
+.smart-upload {
+  background:var(--paper); border:var(--border-w) solid var(--ink); border-radius:var(--wobble-a);
+  box-shadow:var(--shadow-felt); padding:var(--space-4); margin-bottom:var(--space-5);
+  position:relative; transform:rotate(-.3deg);
+}
+.smart-upload::before {
+  content:''; position:absolute; top:-16px; left:50%; transform:translateX(-50%) rotate(-2deg);
+  width:130px; height:30px; background:var(--berry); opacity:.85; border-radius:4px;
+}
+.smart-upload h2 { font-family:var(--font-display); font-weight:700; font-size:clamp(24px,4vw,32px); margin-bottom:8px; }
+.smart-upload .hint { color:var(--ink-soft); font-weight:600; margin-bottom:var(--space-2); }
+.type-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:var(--space-3); }
+.chip {
+  font-family:var(--font-display); font-weight:600; font-size:13px;
+  border:2px solid var(--ink); border-radius:50px; padding:4px 13px;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.chip.t-reflexion { background:var(--wool-mint); }
+.chip.t-speiseplan { background:var(--sunshine); }
+.chip.t-termin { background:var(--wool-lilac); }
+.chip.t-aushang { background:var(--wool-pink); }
+.chip.detected { transform:scale(1.12) rotate(-2deg); box-shadow:var(--shadow-felt-sm); }
+
+.dropzone {
+  border:3px dashed var(--ink-soft); border-radius:28px;
+  padding:var(--space-4) var(--space-3); cursor:pointer; background:rgba(191,227,242,.25);
+  display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;
+  transition:background .15s ease, transform .15s ease;
+}
+.dropzone:hover, .dropzone:focus-visible { background:rgba(191,227,242,.55); transform:scale(1.005); }
+.dropzone .cam { font-size:40px; line-height:1; margin-bottom:4px; }
+.dropzone strong { font-family:var(--font-display); font-size:20px; font-weight:600; }
+.dropzone span { color:var(--ink-soft); font-weight:600; font-size:14px; }
+.dropzone input { display:none; }
+
+.digitizing { display:none; text-align:center; padding:var(--space-3); font-family:var(--font-display); font-size:19px; font-weight:600; }
+.digitizing .spinner {
+  width:46px; height:46px; margin:0 auto 14px; border-radius:50%;
+  border:5px solid var(--sky); border-top-color:var(--berry); animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.digitizing .step { color:var(--ink-soft); font-family:var(--font-body); font-weight:700; font-size:14px; margin-top:6px; }
+
+.upload-result { display:none; }
+.upload-result .result-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:var(--space-2); }
+.badge {
+  font-family:var(--font-display); font-weight:600; font-size:13px;
+  border:2px solid var(--ink); border-radius:50px; padding:3px 12px; display:inline-block;
+}
+.badge.ok { background:var(--wool-mint); }
+.upload-result .preview {
+  background:#fff; border:var(--border-w) solid var(--ink); border-radius:var(--wobble-b);
+  padding:var(--space-3); font-weight:600; box-shadow:var(--shadow-felt-sm); margin-bottom:var(--space-2);
+}
+.upload-result .preview h4 { font-family:var(--font-display); font-weight:600; font-size:19px; margin-bottom:8px; }
+.upload-result .preview p { color:var(--ink-soft); font-size:15px; }
+.panel-actions { display:flex; gap:12px; flex-wrap:wrap; }
+
+.btn {
+  display:inline-block; cursor:pointer; text-decoration:none; border:var(--border-w) solid var(--ink);
+  font-family:var(--font-display); font-weight:600; font-size:16px; color:var(--ink);
+  background:var(--sunshine); border-radius:var(--wobble-pill); padding:10px 24px;
+  box-shadow:var(--shadow-felt); transition:transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover, .btn:focus-visible { transform:translateY(-3px) rotate(-1deg); }
+.btn:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(74,63,53,.18); }
+.btn.secondary { background:var(--paper); }
+.btn.blue { background:var(--berry); color:#fff; }
+
+/* ================= WEEK STRIP ================= */
+.week { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:var(--space-3); }
+@media (max-width:760px) { .week { grid-template-columns:repeat(5,minmax(105px,1fr)); overflow-x:auto; padding-bottom:8px; } }
+.day {
+  font-family:var(--font-display); cursor:pointer; text-align:center;
+  background:var(--paper); border:var(--border-w) solid var(--ink);
+  box-shadow:var(--shadow-felt-sm); padding:14px 8px 12px; position:relative;
+  transition:transform .13s ease, background .13s ease;
+}
+.day:nth-child(odd)  { border-radius:var(--wobble-a); transform:rotate(.7deg); }
+.day:nth-child(even) { border-radius:var(--wobble-b); transform:rotate(-.7deg); }
+.day:hover, .day:focus-visible { transform:translateY(-4px) rotate(0deg); }
+.day.selected { background:var(--sunshine); transform:translateY(-4px) rotate(0deg); }
+.day .abbr { font-weight:700; font-size:22px; display:block; }
+.day .date { font-family:var(--font-body); font-weight:800; font-size:13px; color:var(--ink-soft); }
+.day .state { font-size:20px; display:block; margin-top:6px; }
+.day.done::after {
+  content:'✓'; position:absolute; top:-10px; right:-6px;
+  width:26px; height:26px; line-height:22px; font-size:15px; font-weight:700;
+  background:var(--grass); color:#fff; border:3px solid var(--ink); border-radius:50%;
+}
+
+.reflection {
+  background:var(--paper); border:var(--border-w) solid var(--ink); border-radius:var(--wobble-b);
+  padding:var(--space-3); font-weight:600; box-shadow:var(--shadow-felt); margin-bottom:var(--space-5);
+}
+.reflection h4 { font-family:var(--font-display); font-weight:600; font-size:21px; margin-bottom:10px; }
+.reflection ul { list-style:none; }
+.reflection li { padding:7px 0 7px 34px; position:relative; border-bottom:2px dotted rgba(74,63,53,.15); }
+.reflection li:last-child { border-bottom:none; }
+.reflection li::before { content:'🖍️'; position:absolute; left:0; }
+.reflection .empty { color:var(--ink-soft); }
+
+/* ================= SPEISEPLAN ================= */
+.mealplan {
+  background:var(--paper); border:var(--border-w) solid var(--ink); border-radius:var(--wobble-a);
+  box-shadow:var(--shadow-felt); padding:var(--space-3); margin-bottom:var(--space-2);
+  overflow-x:auto;
+}
+.mealplan table { width:100%; border-collapse:collapse; min-width:560px; }
+.mealplan th {
+  font-family:var(--font-display); font-weight:600; font-size:16px; text-align:left;
+  padding:10px 12px; border-bottom:3px solid var(--ink);
+}
+.mealplan td { padding:12px; font-weight:600; font-size:15px; border-bottom:2px dotted rgba(74,63,53,.18); vertical-align:middle; }
+.mealplan tr:last-child td { border-bottom:none; }
+.mealplan .dish { font-weight:700; }
+.mealplan .side { color:var(--ink-soft); font-size:13px; display:block; }
+
+.nutri {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:50%;
+  font-family:var(--font-display); font-weight:700; font-size:17px; color:#fff;
+  border:3px solid var(--ink);
+}
+.nutri.a { background:var(--nutri-a); } .nutri.b { background:var(--nutri-b); }
+.nutri.c { background:var(--nutri-c); color:var(--ink); }
+.nutri.d { background:var(--nutri-d); } .nutri.e { background:var(--nutri-e); }
+
+.mealplan-footer { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:var(--space-5); font-weight:700; }
+.mealplan-footer .week-score {
+  display:inline-flex; align-items:center; gap:10px;
+  background:var(--paper); border:var(--border-w) solid var(--ink); border-radius:var(--wobble-pill);
+  box-shadow:var(--shadow-felt-sm); padding:8px 18px;
+}
+.mealplan-footer .note { color:var(--ink-soft); font-size:13px; font-weight:700; }
+
+/* ================= PINNWAND ================= */
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:var(--space-3); margin-bottom:var(--space-5); }
+.notice {
+  background:var(--paper); border:var(--border-w) solid var(--ink);
+  box-shadow:var(--shadow-felt); padding:var(--space-3);
+  display:flex; flex-direction:column; gap:12px; position:relative;
+  transition:transform .15s ease;
+}
+.notice:nth-child(odd)  { border-radius:var(--wobble-a); transform:rotate(.5deg); }
+.notice:nth-child(even) { border-radius:var(--wobble-b); transform:rotate(-.6deg); }
+.notice:hover { transform:rotate(0) translateY(-5px); }
+.notice::before {
+  content:''; position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+  width:18px; height:18px; border-radius:50%; background:var(--tomato); border:3px solid var(--ink);
+}
+.notice.pin-blue::before { background:var(--berry); }
+.notice.pin-yellow::before { background:var(--sunshine); }
+.notice .badge.alert { background:var(--tomato); color:#fff; animation:wiggle 2.4s ease-in-out infinite; }
+.notice .badge.info { background:var(--sunshine); }
+@keyframes wiggle { 0%,88%,100% { transform:rotate(0); } 90% { transform:rotate(-3deg); } 94% { transform:rotate(3deg); } }
+.notice h3 { font-family:var(--font-display); font-weight:600; font-size:21px; line-height:1.25; }
+.notice p { color:var(--ink-soft); font-weight:600; font-size:15px; flex:1; }
+.notice .meta { font-size:13px; font-weight:800; color:var(--ink-soft); }
+
+/* ================= KALENDER ================= */
+.calendar-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:var(--space-3); }
+.events { display:flex; flex-direction:column; gap:14px; margin-bottom:var(--space-5); }
+.event {
+  display:flex; align-items:center; gap:var(--space-3);
+  background:var(--paper); border:var(--border-w) solid var(--ink);
+  box-shadow:var(--shadow-felt-sm); padding:14px var(--space-3);
+}
+.event:nth-child(odd)  { border-radius:var(--wobble-b); transform:rotate(-.25deg); }
+.event:nth-child(even) { border-radius:var(--wobble-a); transform:rotate(.25deg); }
+.event .date-block {
+  flex-shrink:0; width:64px; text-align:center;
+  background:#fff; border:3px solid var(--ink); border-radius:14px; padding:6px 4px;
+  font-family:var(--font-display);
+}
+.event .date-block .d { font-weight:700; font-size:22px; line-height:1; display:block; }
+.event .date-block .m { font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--tomato); }
+.event.closure .date-block .m { color:var(--berry); }
+.event .info { flex:1; min-width:0; }
+.event .info h3 { font-family:var(--font-display); font-weight:600; font-size:19px; }
+.event .info p { color:var(--ink-soft); font-weight:600; font-size:14px; }
+.event .ics-btn {
+  flex-shrink:0; cursor:pointer; font-family:var(--font-display); font-weight:600; font-size:13px;
+  background:var(--paper); border:2px solid var(--ink); border-radius:50px; padding:6px 14px;
+  transition:transform .12s ease, background .12s ease;
+}
+.event .ics-btn:hover { background:var(--sunshine); transform:rotate(-2deg) scale(1.05); }
+.event .tag {
+  font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+  border-radius:50px; padding:2px 10px; border:2px solid var(--ink); display:inline-block; margin-bottom:4px;
+}
+.event.closure .tag { background:var(--berry); color:#fff; }
+.event.festivity .tag { background:var(--wool-pink); }
+
+/* ================= FOOTER ================= */
+footer {
+  position:relative; margin-top:var(--space-4);
+  background:linear-gradient(180deg, var(--grass) 0%, var(--grass-deep) 100%);
+  border-top:var(--border-w) solid var(--ink);
+  padding:var(--space-5) var(--space-3) var(--space-3); color:#fff;
+}
+footer::before {
+  content:''; position:absolute; top:-22px; left:0; right:0; height:22px;
+  background:radial-gradient(circle at 10px 22px, var(--grass) 11px, transparent 12px) 0 0 / 24px 22px repeat-x;
+  filter:drop-shadow(0 -3px 0 var(--ink));
+}
+.footer-inner { max-width:1080px; margin:0 auto; display:flex; flex-wrap:wrap; gap:var(--space-3); align-items:center; justify-content:space-between; }
+.footer-inner .word { font-family:var(--font-display); font-weight:700; font-size:22px; }
+.footer-inner nav a { color:#fff; font-weight:700; text-decoration:none; margin-left:18px; font-size:15px; }
+.footer-inner nav a:hover { text-decoration:underline wavy; text-underline-offset:4px; }
+
+a:focus-visible, button:focus-visible, .day:focus-visible, .dropzone:focus-visible { outline:3px dashed var(--berry); outline-offset:3px; }
+
+@media (max-width:640px) {
+  nav.main { margin-left:0; }
+  .logo-word { font-size:27px; }
+  .group-banner .week { margin-left:0; width:100%; }
+  .event { flex-wrap:wrap; }
+}
+</style>
+</head>
+<body>
+
+<div class="cloud c1"></div>
+<div class="cloud c2"></div>
+
+<div class="page">
+
+  <!-- ================= HEADER ================= -->
+  <header>
+    <a class="logo" href="#" aria-label="DIGITNEWS Startseite">
+      <svg class="logo-sun" viewBox="0 0 100 100" aria-hidden="true">
+        <g stroke="#4A3F35" stroke-width="4" stroke-linecap="round">
+          <line x1="50" y1="2" x2="50" y2="16"/><line x1="50" y1="84" x2="50" y2="98"/>
+          <line x1="2" y1="50" x2="16" y2="50"/><line x1="84" y1="50" x2="98" y2="50"/>
+          <line x1="16" y1="16" x2="26" y2="26"/><line x1="74" y1="74" x2="84" y2="84"/>
+          <line x1="84" y1="16" x2="74" y2="26"/><line x1="26" y1="74" x2="16" y2="84"/>
+        </g>
+        <circle cx="50" cy="50" r="28" fill="#FFD45E" stroke="#4A3F35" stroke-width="4"/>
+        <circle cx="42" cy="46" r="3.5" fill="#4A3F35"/><circle cx="58" cy="46" r="3.5" fill="#4A3F35"/>
+        <path d="M41 57 Q50 65 59 57" fill="none" stroke="#4A3F35" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      <span>
+        <span class="logo-word"><span class="digit">DIGIT</span><span class="news">NEWS</span></span>
+        <span class="logo-tag">Kita-Infos für Eltern</span>
+      </span>
+    </a>
+    <nav class="main" aria-label="Hauptnavigation">
+      <a class="nav-pill" href="#woche">Woche</a>
+      <a class="nav-pill" href="#speiseplan">Speiseplan</a>
+      <a class="nav-pill" href="#pinnwand">Pinnwand</a>
+      <a class="nav-pill" href="#kalender">Kalender</a>
+    </nav>
+  </header>
+
+  <!-- ================= GROUP BANNER ================= -->
+  <div class="group-banner">
+    <span class="emoji" aria-hidden="true">🐣</span>
+    <span class="who">Kinderkrippe · Kita Bergfalke</span>
+    <span class="week">Woche 8.–12. Juni</span>
+  </div>
+
+  <!-- ================= SMART UPLOAD ================= -->
+  <section class="smart-upload" aria-live="polite">
+    <h2>Zettel fotografieren — wir sortieren ihn ein</h2>
+    <p class="hint">Egal was an der Tür hängt: Die App erkennt automatisch, was es ist, und legt es im richtigen Bereich ab.</p>
+    <div class="type-chips" id="type-chips">
+      <span class="chip t-reflexion" data-type="reflexion">🖍️ Tagesrückblick</span>
+      <span class="chip t-speiseplan" data-type="speiseplan">🍽️ Speiseplan</span>
+      <span class="chip t-termin" data-type="termin">📅 Termin / Schließtag</span>
+      <span class="chip t-aushang" data-type="aushang">📌 Aushang</span>
+    </div>
+
+    <label class="dropzone" id="dropzone" tabindex="0">
+      <span class="cam" aria-hidden="true">📷</span>
+      <strong>Foto vom Aushang hochladen</strong>
+      <span>Tippen oder Datei hierher ziehen · auch schräg oder unscharf ist okay</span>
+      <input type="file" accept="image/*" id="file-input">
+    </label>
+
+    <div class="digitizing" id="digitizing">
+      <div class="spinner" aria-hidden="true"></div>
+      <span id="digitizing-text">Zettel wird gelesen …</span>
+      <div class="step" id="digitizing-step">Texterkennung läuft</div>
+    </div>
+
+    <div class="upload-result" id="upload-result">
+      <div class="result-head">
+        <span class="badge ok" id="detected-badge">✓ Erkannt: Speiseplan</span>
+      </div>
+      <div class="preview" id="result-preview"></div>
+      <div class="panel-actions">
+        <button class="btn" type="button" id="accept-btn">Passt, übernehmen</button>
+        <button class="btn secondary" type="button" id="reclassify-btn">Falsch erkannt? Typ ändern</button>
+        <button class="btn secondary" type="button" id="retry-btn">Anderes Foto</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= WOCHENRÜCKBLICK ================= -->
+  <h2 class="section-title" id="woche">Was wir diese Woche gemacht haben</h2>
+  <p class="section-sub">Tag antippen für den Rückblick. Fehlt einer? Einfach oben den Zettel fotografieren.</p>
+
+  <div class="week" role="tablist" aria-label="Wochentage">
+    <button class="day done" role="tab" data-day="Montag, 8. Juni" data-key="mo"><span class="abbr">Mo</span><span class="date">8.6.</span><span class="state" aria-hidden="true">📄</span></button>
+    <button class="day done" role="tab" data-day="Dienstag, 9. Juni" data-key="di"><span class="abbr">Di</span><span class="date">9.6.</span><span class="state" aria-hidden="true">📄</span></button>
+    <button class="day done" role="tab" data-day="Mittwoch, 10. Juni" data-key="mi"><span class="abbr">Mi</span><span class="date">10.6.</span><span class="state" aria-hidden="true">📄</span></button>
+    <button class="day done" role="tab" data-day="Donnerstag, 11. Juni" data-key="do"><span class="abbr">Do</span><span class="date">11.6.</span><span class="state" aria-hidden="true">📄</span></button>
+    <button class="day selected" role="tab" data-day="Freitag, 12. Juni" data-key="fr" aria-selected="true"><span class="abbr">Fr</span><span class="date">12.6.</span><span class="state" aria-hidden="true">📷</span></button>
+  </div>
+
+  <div class="reflection" id="reflection-panel">
+    <h4 id="reflection-title">Freitag, 12. Juni</h4>
+    <ul id="reflection-list"><li class="empty">Noch kein Rückblick für heute — Zettel oben fotografieren, dann erscheint er hier.</li></ul>
+  </div>
+
+  <!-- ================= SPEISEPLAN ================= -->
+  <h2 class="section-title" id="speiseplan">Speiseplan</h2>
+  <p class="section-sub">Was die Kinder diese Woche essen — mit Nutri-Score, automatisch aus dem fotografierten Plan berechnet.</p>
+
+  <div class="mealplan">
+    <table>
+      <thead><tr><th>Tag</th><th>Mittagessen</th><th>Nachtisch</th><th>Nutri-Score</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Mo</strong></td><td><span class="dish">Kartoffelsuppe</span><span class="side">mit Vollkornbrot</span></td><td>Apfelschnitze</td><td><span class="nutri a" title="Nutri-Score A">A</span></td></tr>
+        <tr><td><strong>Di</strong></td><td><span class="dish">Gemüsereis mit Hähnchen</span><span class="side">Gurkensalat</span></td><td>Naturjoghurt mit Beeren</td><td><span class="nutri a" title="Nutri-Score A">A</span></td></tr>
+        <tr><td><strong>Mi</strong></td><td><span class="dish">Nudeln mit Tomatensoße</span><span class="side">geriebener Käse</span></td><td>Banane</td><td><span class="nutri b" title="Nutri-Score B">B</span></td></tr>
+        <tr><td><strong>Do</strong></td><td><span class="dish">Fischstäbchen mit Kartoffelpüree</span><span class="side">Erbsen &amp; Möhren</span></td><td>Quarkspeise</td><td><span class="nutri c" title="Nutri-Score C">C</span></td></tr>
+        <tr><td><strong>Fr</strong></td><td><span class="dish">Milchreis</span><span class="side">mit Apfelmus und Zimt</span></td><td>—</td><td><span class="nutri c" title="Nutri-Score C">C</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="mealplan-footer">
+    <span class="week-score">Wochenschnitt: <span class="nutri b" title="Nutri-Score B">B</span></span>
+    <span class="note">Schätzung auf Basis des Aushangs — ohne Gewähr, ersetzt keine Nährwertangaben der Küche.</span>
+  </div>
+
+  <!-- ================= PINNWAND ================= -->
+  <h2 class="section-title" id="pinnwand">Pinnwand</h2>
+  <p class="section-sub">News, die alle betreffen — Läuse, Krankheiten und Co.</p>
+
+  <div class="grid" id="notice-grid">
+    <article class="notice">
+      <span class="badge alert">⚠️ Wichtig</span>
+      <h3>Läuse in der großen Gruppe</h3>
+      <p>Bitte kontrolliert die Köpfe eurer Kinder übers Wochenende. Betroffene Kinder bitte erst nach Behandlung wieder bringen.</p>
+      <div class="meta">Heute, 8:15 Uhr</div>
+    </article>
+    <article class="notice pin-yellow">
+      <span class="badge alert">🤒 Krankheiten</span>
+      <h3>Hand-Mund-Fuß geht um</h3>
+      <p>Aktuell zwei Fälle in der Kinderkrippe. Bei Bläschen oder Fieber bitte zu Hause bleiben und in der Kita Bescheid geben.</p>
+      <div class="meta">Mittwoch</div>
+    </article>
+    <article class="notice pin-blue">
+      <span class="badge info">ℹ️ Info</span>
+      <h3>Bitte Wechselkleidung auffüllen</h3>
+      <p>Die Matschsaison hat Spuren hinterlassen. Bitte prüft die Fächer und bringt frische Wechselsachen mit.</p>
+      <div class="meta">Letzte Woche</div>
+    </article>
+  </div>
+
+  <!-- ================= KALENDER ================= -->
+  <h2 class="section-title" id="kalender">Kalender</h2>
+  <div class="calendar-head">
+    <p class="section-sub" style="margin:0; flex:1; min-width:240px;">Schließtage und Feste — einmal abonnieren, Updates landen automatisch auf Handy und Rechner.</p>
+    <button class="btn blue" type="button" id="subscribe-btn">📲 Kalender abonnieren</button>
+  </div>
+
+  <div class="events" id="events">
+    <div class="event closure" data-title="Kita geschlossen (Brückentag)" data-date="20260615" data-desc="Die Kita Bergfalke bleibt geschlossen.">
+      <div class="date-block"><span class="d">15</span><span class="m">Juni</span></div>
+      <div class="info">
+        <span class="tag">Schließtag</span>
+        <h3>Kita geschlossen — Brückentag</h3>
+        <p>Ganztägig · Kita Bergfalke</p>
+      </div>
+      <button class="ics-btn" type="button">+ Mein Kalender</button>
+    </div>
+    <div class="event festivity" data-title="Sommerfest Kita Bergfalke" data-date="20260626" data-time="150000" data-desc="Ab 15 Uhr im Garten. Kuchen- und Obstspenden willkommen.">
+      <div class="date-block"><span class="d">26</span><span class="m">Juni</span></div>
+      <div class="info">
+        <span class="tag">Fest</span>
+        <h3>Sommerfest 🎉</h3>
+        <p>Ab 15:00 Uhr im Garten · Kuchen &amp; Obst willkommen</p>
+      </div>
+      <button class="ics-btn" type="button">+ Mein Kalender</button>
+    </div>
+    <div class="event closure" data-title="Sommerschließzeit Kita Bergfalke" data-date="20260720" data-end="20260808" data-desc="Die Kita ist vom 20. Juli bis 7. August geschlossen.">
+      <div class="date-block"><span class="d">20.7.</span><span class="m">–7.8.</span></div>
+      <div class="info">
+        <span class="tag">Schließzeit</span>
+        <h3>Sommerschließzeit</h3>
+        <p>20. Juli – 7. August · bitte Betreuung planen</p>
+      </div>
+      <button class="ics-btn" type="button">+ Mein Kalender</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="footer-inner">
+    <div><span class="word">DIGITNEWS</span><span aria-hidden="true"> 🌼 🌷</span></div>
+    <nav aria-label="Footer">
+      <a href="#" title="Zweite Gruppe folgt nach dem Pilot">Große Gruppe (bald)</a>
+      <a href="#">Benachrichtigungen</a>
+      <a href="#">Datenschutz</a>
+      <a href="#">Impressum</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   DEMO LOGIC — in production these are Claude Vision calls:
+   photo → { type, structured_payload } → routed to section
+   ============================================================ */
+
+// ---------- sample data ----------
+const reflections = {
+  mo: ['Morgenkreis: Wir haben über das Wochenende erzählt','Turnen in der Bewegungshalle — Krabbeln und Balancieren','Obstpause mit Erdbeeren aus dem Kita-Garten','Vorlesezeit: „Die kleine Raupe Nimmersatt"'],
+  di: ['Wir haben Salzteig geknetet und Formen gedrückt','Spaziergang zum Wochenmarkt — Gemüse angeschaut','Mittagessen: Gemüsereis','Freispiel im Garten'],
+  mi: ['Musiktag: Trommeln und Rasseln ausprobiert','Planschen mit Wasser und Bechern','Geburtstagsfeier — Emma ist 2 geworden! 🎂','Bitte Gummistiefel mitbringen'],
+  do: ['Ausflug zur kleinen Wiese am Park','Käfer und Schnecken beobachtet','Picknick draußen','Alle waren sehr müde und glücklich'],
+  fr: null
+};
+
+const dayNames = { mo:'Montag, 8. Juni', di:'Dienstag, 9. Juni', mi:'Mittwoch, 10. Juni', do:'Donnerstag, 11. Juni', fr:'Freitag, 12. Juni' };
+
+// classification demo results, cycled per upload
+const demoResults = [
+  { type:'reflexion', label:'Tagesrückblick · Freitag', html:'<h4>Unser Tag in der Kinderkrippe — Freitag</h4><p>🖍️ Schmetterlinge aus Klorollen gebastelt · Spielplatz am Park · Nudeln mit Tomatensoße · Bitte Sonnencreme &amp; Käppi mitgeben</p>', target:'#woche' },
+  { type:'speiseplan', label:'Speiseplan · nächste Woche', html:'<h4>Speiseplan 15.–19. Juni erkannt</h4><p>🍽️ 5 Gerichte gelesen, Nutri-Score berechnet (Wochenschnitt: B). Wird im Bereich Speiseplan abgelegt.</p>', target:'#speiseplan' },
+  { type:'termin', label:'Termin · Fotograf kommt', html:'<h4>Neuer Termin erkannt: Kita-Fotograf am 3. Juli</h4><p>📅 Wird in den Kalender eingetragen — Abonnenten bekommen das Update automatisch.</p>', target:'#kalender' },
+  { type:'aushang', label:'Aushang · Bitte Sonnenhüte', html:'<h4>Aushang erkannt: Sonnenhüte mitbringen</h4><p>📌 Landet auf der Pinnwand und alle Eltern der Gruppe werden benachrichtigt.</p>', target:'#pinnwand' }
+];
+let demoIndex = 0;
+let currentResult = null;
+
+// ---------- elements ----------
+const $ = id => document.getElementById(id);
+const dropzone = $('dropzone'), digitizing = $('digitizing'), uploadResult = $('upload-result');
+const fileInput = $('file-input');
+
+function showState(s) {
+  dropzone.style.display = s === 'upload' ? 'flex' : 'none';
+  digitizing.style.display = s === 'digitizing' ? 'block' : 'none';
+  uploadResult.style.display = s === 'done' ? 'block' : 'none';
+}
+
+// ---------- week strip ----------
+document.querySelectorAll('.day').forEach(d => {
+  d.addEventListener('click', () => {
+    document.querySelectorAll('.day').forEach(x => { x.classList.remove('selected'); x.removeAttribute('aria-selected'); });
+    d.classList.add('selected'); d.setAttribute('aria-selected','true');
+    const key = d.dataset.key;
+    $('reflection-title').textContent = dayNames[key];
+    const list = $('reflection-list');
+    if (reflections[key]) {
+      list.innerHTML = reflections[key].map(t => `<li>${t}</li>`).join('');
+    } else {
+      list.innerHTML = '<li class="empty">Noch kein Rückblick für diesen Tag — Zettel oben fotografieren, dann erscheint er hier.</li>';
+    }
+  });
+});
+
+// ---------- smart upload simulation ----------
+const steps = ['Texterkennung läuft','Typ wird bestimmt','Inhalt wird strukturiert'];
+fileInput.addEventListener('change', () => {
+  if (!fileInput.files.length) return;
+  showState('digitizing');
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('detected'));
+  let i = 0;
+  $('digitizing-step').textContent = steps[0];
+  const stepTimer = setInterval(() => { i = (i+1) % steps.length; $('digitizing-step').textContent = steps[i]; }, 650);
+
+  setTimeout(() => {
+    clearInterval(stepTimer);
+    currentResult = demoResults[demoIndex % demoResults.length];
+    demoIndex++;
+    $('detected-badge').textContent = '✓ Erkannt: ' + currentResult.label;
+    $('result-preview').innerHTML = currentResult.html;
+    document.querySelector(`.chip[data-type="${currentResult.type}"]`).classList.add('detected');
+    showState('done');
+  }, 2100);
+});
+
+$('accept-btn').addEventListener('click', () => {
+  if (currentResult) {
+    // demo side-effect: a reflexion upload fills Friday
+    if (currentResult.type === 'reflexion') {
+      reflections.fr = ['Schmetterlinge aus Klorollen gebastelt','Ausflug zum Spielplatz am Park','Mittagessen: Nudeln mit Tomatensoße, danach Ruhezeit','Bitte Sonnencreme und Käppi mitgeben'];
+      const fr = document.querySelector('.day[data-key="fr"]');
+      fr.classList.add('done'); fr.querySelector('.state').textContent = '📄';
+      if (fr.classList.contains('selected')) fr.click();
+    }
+    document.querySelector(currentResult.target).scrollIntoView({ behavior:'smooth' });
+  }
+  fileInput.value = '';
+  setTimeout(() => showState('upload'), 600);
+});
+$('retry-btn').addEventListener('click', () => { fileInput.value=''; showState('upload'); });
+$('reclassify-btn').addEventListener('click', () => {
+  // demo: cycle to next type
+  currentResult = demoResults[demoIndex % demoResults.length]; demoIndex++;
+  $('detected-badge').textContent = '✓ Geändert zu: ' + currentResult.label;
+  $('result-preview').innerHTML = currentResult.html;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('detected'));
+  document.querySelector(`.chip[data-type="${currentResult.type}"]`).classList.add('detected');
+});
+
+// drag & drop
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.background='rgba(191,227,242,.7)'; });
+dropzone.addEventListener('dragleave', () => { dropzone.style.background=''; });
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.style.background='';
+  if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }
+});
+
+// ---------- ICS export (works for real) ----------
+function pad(n){ return String(n).padStart(2,'0'); }
+function makeICS(events) {
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//DIGITNEWS//Kita Bergfalke//DE','CALSCALE:GREGORIAN','X-WR-CALNAME:Kita Bergfalke — Kinderkrippe'];
+  events.forEach((ev,i) => {
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:digitnews-' + ev.date + '-' + i + '@bergfalke');
+    lines.push('DTSTAMP:' + new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z');
+    if (ev.time) {
+      lines.push('DTSTART;TZID=Europe/Berlin:' + ev.date + 'T' + ev.time);
+    } else {
+      lines.push('DTSTART;VALUE=DATE:' + ev.date);
+      lines.push('DTEND;VALUE=DATE:' + (ev.end || ev.date));
+    }
+    lines.push('SUMMARY:' + ev.title);
+    if (ev.desc) lines.push('DESCRIPTION:' + ev.desc);
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function downloadICS(filename, content) {
+  const blob = new Blob([content], { type:'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function eventData(el) {
+  return { title: el.dataset.title, date: el.dataset.date, end: el.dataset.end, time: el.dataset.time, desc: el.dataset.desc };
+}
+document.querySelectorAll('.event .ics-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ev = eventData(btn.closest('.event'));
+    downloadICS(ev.title.replace(/\s+/g,'-').toLowerCase() + '.ics', makeICS([ev]));
+  });
+});
+$('subscribe-btn').addEventListener('click', () => {
+  // demo: download full calendar; in production this is a webcal:// subscription URL
+  const all = [...document.querySelectorAll('.event')].map(eventData);
+  downloadICS('kita-bergfalke-kinderkrippe.ics', makeICS(all));
+});
+</script>
+</body>
+</html>

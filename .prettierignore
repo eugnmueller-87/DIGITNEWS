@@ -19,3 +19,6 @@ worker/
 # Lockfiles & data
 *.lock
 *.ico
+
+# Reference design files (not app code)
+design/

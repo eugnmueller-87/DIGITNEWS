@@ -29,10 +29,10 @@ export const brand = {
    * Production domain (no scheme). Used for redirect allowlisting, canonical
    * URLs, and ICS PRODID. Override per-environment via NEXT_PUBLIC_SITE_URL.
    */
-  productionHost: "aushang.app",
+  productionHost: "app.kita-connect.cloud",
 
   /** Support / contact address surfaced in legal pages and email footers. */
-  supportEmail: "hallo@aushang.app",
+  supportEmail: "hallo@kita-connect.cloud",
 } as const;
 
 export type Brand = typeof brand;

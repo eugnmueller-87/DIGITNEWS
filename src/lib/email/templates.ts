@@ -66,6 +66,40 @@ export function applicationVerificationEmail(verifyUrl: string): {
   };
 }
 
+/**
+ * Invite / password-setup email. `setUrl` is the one-time link that establishes
+ * a session and lands the user on /set-password. Used both for first-time invite
+ * onboarding and for "forgot password".
+ */
+export function setPasswordEmail(setUrl: string): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const heading = "Lege dein Passwort fest";
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">Dein Zugang zu ${brand.name} wurde eingerichtet. Lege jetzt dein Passwort fest, um dich anzumelden.</p>
+    <p style="margin:0 0 20px;">${button(setUrl, "Passwort festlegen")}</p>
+    <p style="margin:0;color:#71717a;font-size:12px;">Der Link ist nur kurze Zeit gültig und kann nur einmal verwendet werden. Wenn du das nicht warst, kannst du diese E-Mail ignorieren.</p>
+  `;
+  const text = [
+    "Lege dein Passwort fest",
+    "",
+    `Dein Zugang zu ${brand.name} wurde eingerichtet. Lege dein Passwort über diesen Link fest:`,
+    setUrl,
+    "",
+    "Der Link ist nur kurze Zeit gültig und einmalig verwendbar. Wenn du das nicht warst, ignoriere diese E-Mail.",
+    "",
+    `${brand.name} — ${brand.footerPitch}`,
+  ].join("\n");
+
+  return {
+    subject: `${brand.name}: Passwort festlegen`,
+    html: layout({ heading, bodyHtml }),
+    text,
+  };
+}
+
 /** Notify a member that their org published something. `feedUrl` → the feed. */
 export function publishNotificationEmail(
   title: string,

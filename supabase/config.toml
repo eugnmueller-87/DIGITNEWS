@@ -17,20 +17,26 @@ enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 
 [auth.email]
-# NO PASSWORDS. Magic link / email OTP only (Brief §3, §5).
+# EMAIL + PASSWORD. Public signup stays OFF — accounts are created ONLY by the
+# operator/admin invite flow (Brief §5). A provisioned user sets their first
+# password via a one-time "recovery" link we email through Resend; thereafter
+# they sign in with email+password (signInWithPassword).
 enable_signup = false          # <-- public signup OFF. Onboarding is via our flows.
 double_confirm_changes = true
 enable_confirmations = true
-# Magic-link only: we do not use password auth at all.
 secure_password_change = true
+# Minimum password length is also enforced server-side in /set-password.
+# In the dashboard: enable the Email provider's PASSWORD auth (Authentication →
+# Providers → Email → "Enable Email provider" with password sign-in on), keep
+# "Allow new users to sign up" OFF.
 
-# IMPORTANT (security review fix): the magic-link email template MUST deliver a
-# token_hash to our callback, because the app verifies links with
-# verifyOtp({ token_hash, type }) — the correct flow for server-issued links.
-# In the dashboard's "Magic Link" email template, use a link of the form:
-#   {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink
-# (NOT the default {{ .ConfirmationURL }}, which uses the PKCE/redirect flow.)
-# This is a dashboard setting; documented in README "Provision Supabase".
+# IMPORTANT: the "Reset Password" / "Recovery" email template MUST deliver a
+# token_hash to our callback with type=recovery, because the app verifies links
+# with verifyOtp({ token_hash, type }). In the dashboard's recovery template use:
+#   {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery
+# (We send invite/reset emails ourselves via Resend, so the redirect target is
+# set in code via generateLink options.redirectTo; this template note applies if
+# you ever let Supabase send recovery mail directly.)
 
 [auth.rate_limit]
 # Tighten magic-link request volume (Brief §5, §11). These are conservative

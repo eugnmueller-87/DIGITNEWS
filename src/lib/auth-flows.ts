@@ -1,5 +1,8 @@
 import "server-only";
 
+import { sendEmail } from "@/lib/email/client";
+import { setPasswordEmail } from "@/lib/email/templates";
+import { publicEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -17,26 +20,28 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 /**
- * Create-or-find the auth user for `email` AND have Supabase email them a magic
- * link, in a SINGLE admin.generateLink call. generateLink creates the user if it
- * doesn't exist (admin API is not bound by enable_signup), returns the user in
- * `data.user`, and — with SMTP configured — triggers the email. This avoids the
- * unpaginated listUsers() lookup entirely and never mints a throwaway probe user
- * separately from sending the link.
+ * Create-or-find the auth user for `email` and generate a one-time SET-PASSWORD
+ * link (Supabase "recovery" type), pointed at OUR callback with type=recovery so
+ * it lands on /set-password. generateLink creates the user if absent (admin API
+ * is not bound by enable_signup) and returns the action_link WITHOUT sending an
+ * email — we send it ourselves via Resend (our verified domain), so delivery
+ * never depends on Supabase's built-in SMTP / rate limits.
  *
- * Returns { userId, link } — `link` is the action_link (useful if we later send
- * the email ourselves via Resend instead of relying on Supabase SMTP).
+ * Returns { userId, link }. `link` already embeds token_hash + type; we only
+ * override the redirect target to our callback.
  */
-async function generateLoginLink(
+async function generateSetPasswordLink(
   email: string,
 ): Promise<{ userId: string; link: string }> {
   const admin = createAdminClient();
+  const redirectTo = `${publicEnv.siteUrl}/auth/callback?type=recovery`;
   const { data, error } = await admin.auth.admin.generateLink({
-    type: "magiclink",
+    type: "recovery",
     email,
+    options: { redirectTo },
   });
   if (error || !data?.user) {
-    throw new Error("Login-Link konnte nicht erstellt werden.");
+    throw new Error("Einladungs-Link konnte nicht erstellt werden.");
   }
   return {
     userId: data.user.id,
@@ -45,15 +50,18 @@ async function generateLoginLink(
 }
 
 /**
- * Plain login for an existing user. Does not reveal whether the account exists
- * (enumeration resistance): for an unknown email generateLink still creates a
- * user, but since no profile is attached, the callback bounces them to
- * /login?error=notprovisioned — they learn nothing about other accounts. We
- * swallow all errors to keep the response uniform.
+ * Send a "set your password" email (invite onboarding OR forgot-password) for an
+ * existing account, via Resend. Enumeration-resistant: for an unknown email we
+ * still run the same path and swallow all errors, so the caller's response is
+ * uniform and reveals nothing about which emails exist.
  */
-export async function sendLoginLink(email: string): Promise<void> {
+export async function sendPasswordSetupLink(email: string): Promise<void> {
   try {
-    await generateLoginLink(email);
+    const { link } = await generateSetPasswordLink(email);
+    if (link) {
+      const { subject, html, text } = setPasswordEmail(link);
+      await sendEmail({ to: email, subject, html, text });
+    }
   } catch {
     /* uniform response regardless of outcome */
   }
@@ -84,8 +92,8 @@ export async function provisionPerson(params: {
 }): Promise<ProvisionOutcome> {
   const admin = createAdminClient();
 
-  // Create-or-find the user and queue the magic-link email in one call.
-  const { userId } = await generateLoginLink(params.email);
+  // Create-or-find the auth user (no email sent yet).
+  const { userId } = await generateSetPasswordLink(params.email);
 
   const { error } = await admin.rpc("add_person", {
     p_actor_id: params.actorId,
@@ -105,6 +113,11 @@ export async function provisionPerson(params: {
     // Authorization / other failures are real errors the caller maps.
     throw new Error(error.message || "Konnte Person nicht hinzufügen.");
   }
+
+  // Now that the profile exists, send the one-time "set your password" invite.
+  // Best-effort: a delivery hiccup shouldn't roll back a successful provision —
+  // the admin can re-send (re-add) or the user can use "Passwort vergessen".
+  await sendPasswordSetupLink(params.email);
 
   return "added";
 }

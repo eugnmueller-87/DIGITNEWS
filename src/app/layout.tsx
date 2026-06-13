@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 
 import "./globals.css";
@@ -28,6 +28,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: brand.name, statusBarStyle: "default" },
+};
+
+/**
+ * Viewport + theme. `viewport-fit=cover` is REQUIRED for the CSS
+ * env(safe-area-inset-*) values to resolve to non-zero on notched iPhones —
+ * without it the app shell would draw under the notch / home indicator in an
+ * installed standalone PWA. themeColor matches the paper-toned sticky header so
+ * the mobile status bar tints to the app instead of a mismatched dark bar.
+ */
+export const viewport: Viewport = {
+  themeColor: "#fff9ec", // --paper
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

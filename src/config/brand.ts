@@ -29,7 +29,7 @@ export const brand = {
    * Production domain (no scheme). Used for redirect allowlisting, canonical
    * URLs, and ICS PRODID. Override per-environment via NEXT_PUBLIC_SITE_URL.
    */
-  productionHost: "app.kita-connect.cloud",
+  productionHost: "kita-connect.cloud",
 
   /** Support / contact address surfaced in legal pages and email footers. */
   supportEmail: "hallo@kita-connect.cloud",

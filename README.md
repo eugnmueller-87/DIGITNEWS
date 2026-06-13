@@ -10,12 +10,13 @@ photo locally, extracts structured content and dates via an EU-hosted LLM, the
 admin reviews and confirms, and members get a private feed, a shared calendar, an
 ICS subscription, and an email digest.
 
-> **Status: Phase 1 — walking skeleton.** Repo, Next.js + Supabase wiring, schema
->
-> - RLS + helper functions, auth/onboarding flows, deny-by-default middleware, and
->   an empty member feed. The capture → OCR → redaction → LLM pipeline (Phase 2+)
->   is **not** built yet. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the
->   full plan.
+> **Status: deployed.** Phases 1–5 are built — schema + RLS, auth, the capture →
+> OCR → redaction → LLM → review → publish pipeline, calendar/ICS, email, web
+> push, PWA, and GDPR/deletion flows. The web app runs on Vercel at
+> **[kita-connect.cloud](https://kita-connect.cloud)**; the OCR/redaction worker
+> (`worker/`) deploys separately on a VPS. See
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
+> [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md).
 
 The working title is **Aushang**; final naming is TBD. All branding lives in one
 file — [`src/config/brand.ts`](src/config/brand.ts) — so a rename is a one-file
@@ -25,15 +26,15 @@ change.
 
 ## Tech stack
 
-| Layer               | Choice                                                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Frontend            | Next.js 16 (App Router), React 19, TypeScript, PWA                                                         |
-| DB / Auth / Storage | Supabase (EU region), RLS on every table                                                                   |
-| Auth method         | Supabase Auth, **magic link / email OTP only** (no passwords; no public signup — accounts are provisioned) |
-| Styling             | Tailwind CSS v4                                                                                            |
+| Layer               | Choice                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend            | Next.js 16 (App Router), React 19, TypeScript, PWA                                                                                     |
+| DB / Auth / Storage | Supabase (EU region), RLS on every table                                                                                               |
+| Auth method         | Supabase Auth, **email + password** — invite-only (no public signup; accounts are provisioned, first password set via a one-time link) |
+| Styling             | Tailwind CSS v4                                                                                                                        |
 
-Future phases add: Python FastAPI OCR/redaction worker (Tesseract/PaddleOCR +
-Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push.
+Plus a Python FastAPI OCR/redaction worker (Tesseract + Microsoft Presidio +
+spaCy), Mistral (EU) LLM extraction, Resend email, and Web Push — see `worker/`.
 
 ---
 
@@ -66,23 +67,21 @@ Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push
 ### 2. Provision Supabase
 
 1. Create a new Supabase project (EU region).
-2. In **Authentication → Providers → Email**: disable password auth, enable
-   magic link / OTP. In **Authentication → Settings**: set **"Allow new users to
-   sign up" = OFF** (matches `supabase/config.toml: enable_signup = false`).
+2. In **Authentication → Providers → Email**: enable the Email provider with
+   **password sign-in ON**. In **Authentication → Settings**: set **"Allow new
+   users to sign up" = OFF** (matches `supabase/config.toml: enable_signup =
+false`) — accounts are invite-only.
 3. In **Authentication → URL Configuration**: set the Site URL and add
    `http://localhost:3000/auth/callback` (and your prod equivalent) to the
    **Redirect Allow List** — exact matches only.
-4. **Magic-link email template** (Authentication → Email Templates → Magic Link):
-   the link MUST deliver a `token_hash` to our callback, because the app verifies
-   links with `verifyOtp({ token_hash, type })`. Set the link to:
-
-   ```
-   {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink
-   ```
-
-   (Do **not** use the default `{{ .ConfirmationURL }}` — that is the PKCE/redirect
-   flow, which does not apply to server-issued links and will fail to establish a
-   session. See `supabase/config.toml`.)
+4. **Invite / password-reset links.** The app sends a one-time "set your
+   password" link itself via Resend (so onboarding doesn't depend on Supabase
+   SMTP). It is verified by the callback with `verifyOtp({ token_hash, type })`
+   and the redirect target is set in code (`generateLink` `options.redirectTo` →
+   `/auth/callback?type=recovery`). If you instead let Supabase send recovery
+   mail directly, set its template link to
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery`
+   (not the default `{{ .ConfirmationURL }}`). See `supabase/config.toml`.
 
 5. Apply the migrations in order (SQL editor or `supabase db push`):
    - `supabase/migrations/0001_schema.sql`
@@ -91,7 +90,9 @@ Microsoft Presidio + spaCy), Mistral (EU) LLM extraction, Resend email, Web Push
    - `supabase/migrations/0004_security_hardening.sql`
    - `supabase/migrations/0005_operator_model.sql` (three-role model)
    - `supabase/migrations/0006_rls_three_roles.sql` (superadmin RLS)
-6. Configure SMTP (or Supabase's built-in email) so magic links are delivered.
+6. Set `RESEND_API_KEY` + `EMAIL_FROM` (on a Resend-verified domain) so invite /
+   password-reset emails are delivered. (Optionally also point Supabase's own
+   SMTP at Resend for any mail Supabase sends directly.)
 
 > The `gen_random_uuid` / `gen_random_bytes` functions require the `pgcrypto`
 > extension, which Supabase enables by default in the `extensions` schema. Verify
@@ -111,16 +112,10 @@ bypasses RLS — treat it as a root credential.
 
 ### Email (Resend)
 
-There are **two** email paths:
-
-1. **Magic login links** are sent by **Supabase**. To deliver them via Resend,
-   point Supabase's SMTP at Resend: Supabase → Project Settings → Authentication
-   → **SMTP Settings** → enable custom SMTP with host `smtp.resend.com`, port
-   `465`, user `resend`, password = your Resend API key, sender = an address on
-   your verified domain. (Without custom SMTP, Supabase's built-in email has very
-   low limits and is fine only for early testing.)
-2. **App-owned emails** (QR application verification now; digests later) are sent
-   directly via the **Resend SDK** using `RESEND_API_KEY` + `EMAIL_FROM`.
+All app-owned email — the one-time **set-password / invite** links, password
+resets, QR verification, and digests — is sent directly via the **Resend SDK**
+using `RESEND_API_KEY` + `EMAIL_FROM`. (Supabase's own SMTP is only relevant if
+you let Supabase send any auth mail directly; the app does not rely on it.)
 
 **Setup:**
 
@@ -130,10 +125,11 @@ There are **two** email paths:
    Resend's test sender `onboarding@resend.dev`, but it only delivers to your own
    account email.
 3. Put the API key in `RESEND_API_KEY` and set `EMAIL_FROM` to an address on the
-   verified domain, e.g. `Aushang <hallo@aushang.app>`.
+   verified domain, e.g. `Aushang <hallo@kita-connect.cloud>`.
 
 > If `RESEND_API_KEY` is unset, app emails **no-op** (a warning is logged) — the
-> app still runs, but QR verification links won't be delivered.
+> app still runs, but invite / reset links won't be delivered, so nobody new can
+> set a password. This is the #1 thing to get right for onboarding.
 
 ### 4. Run
 
@@ -145,11 +141,12 @@ npm run dev      # http://localhost:3000
 ### 5. Verify (run before every push)
 
 ```bash
-npm run verify   # typecheck + lint + build + client-secret scan
+npm run verify   # typecheck + lint + format + build + client- & source-secret scans
 ```
 
 `npm run check:secrets` greps the built client bundle and **fails** if a server
-secret ever leaks into it (Brief §11).
+secret ever leaks into it (Brief §11); `check:source-secrets` does the same for
+tracked source and also runs in the pre-commit hook.
 
 ---
 
@@ -161,11 +158,12 @@ There is **no public signup and no self-service join**. Accounts are provisioned
   and uses **`/operator`** to create orgs and add each org's first **admin**.
   Can also grant/revoke admin rights across orgs.
 - **Admin** uses **`/admin/mitglieder`** to add/remove **members** in their own
-  org (enter an email → that person's account is created and a login link is
-  sent; they show as _invited_ until first login). Admins cannot add other admins
-  or touch other orgs.
+  org (enter an email → that person's account is created and a one-time "set your
+  password" email is sent; they show as _invited_ until first login). Admins
+  cannot add other admins or touch other orgs.
 - **Member** has read-only access (feed, calendar).
-- **Everyone** logs in at **`/login`** with a magic link.
+- **Everyone** logs in at **`/login`** with email + password (first password set
+  via the invite link, resettable at `/passwort-vergessen`).
 
 ### Bootstrapping the first superadmin
 

@@ -66,6 +66,9 @@ const PATTERNS = [
 const ALLOW = new Set([
   // Resend's PUBLIC shared test sender — not our key, documented by Resend.
   "onboarding@resend.dev",
+  // Placeholders in the worker deploy guide — instructions, not real values.
+  "PASTE_THE_SHARED_SECRET",
+  "PASTE_YOUR_MISTRAL_KEY",
 ]);
 
 function tracked() {

@@ -31,6 +31,38 @@ export function PageHeader({
   );
 }
 
+/**
+ * A loading placeholder block. Used by route-level loading.tsx files so a slow
+ * server query shows an instant skeleton instead of a frozen/blank screen.
+ * Decorative only (aria-hidden); the shimmer is disabled under
+ * prefers-reduced-motion via the global rule in globals.css.
+ */
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={clsx("skeleton rounded-2xl bg-ink/10", className)}
+    />
+  );
+}
+
+/** A skeleton shaped like a feed/section card (border + felt shadow). */
+export function SkeletonCard({ lines = 2 }: { lines?: number }) {
+  return (
+    <div className="rounded-wobble-a border-[3px] border-ink/15 bg-paper/70 p-5 shadow-felt-sm">
+      <Skeleton className="h-5 w-2/3" />
+      <div className="mt-3 space-y-2">
+        {Array.from({ length: lines }).map((_, i) => (
+          <Skeleton
+            key={i}
+            className={i === lines - 1 ? "h-3 w-1/2" : "h-3 w-full"}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** A centered empty-state inside a dashed card. */
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (

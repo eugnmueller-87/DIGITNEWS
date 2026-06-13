@@ -59,6 +59,9 @@ jobs:
       - name: No client secrets
         run: npm run check:secrets
 
+      - name: No secrets in source (public repo guard)
+        run: npm run check:source-secrets
+
   # ---------------------------------------------------------------------------
   # Python worker: Ruff lint + format, mypy types, pytest.
   # ---------------------------------------------------------------------------

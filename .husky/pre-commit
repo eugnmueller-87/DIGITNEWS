@@ -1,6 +1,10 @@
 # Fast local gate — runs on STAGED files only (seconds, not minutes). The full
 # typecheck/build/tests run in CI, not here, so commits stay snappy.
 
+# Public-repo guard: block a commit that would leak a real secret value into
+# source. Scans tracked files (fast); the same check runs in CI as a backstop.
+node scripts/check-no-source-secrets.mjs || exit 1
+
 # TypeScript/JS/etc: eslint --fix + prettier on staged files.
 npx lint-staged
 

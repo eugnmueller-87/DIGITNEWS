@@ -25,5 +25,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Required env at runtime: WORKER_SHARED_SECRET, APP_CALLBACK_URL, MISTRAL_API_KEY
+# Required env at runtime: WORKER_SHARED_SECRET, APP_CALLBACK_URL, ANTHROPIC_API_KEY
 CMD ["uvicorn", "aushang_worker.app:app", "--host", "0.0.0.0", "--port", "8000"]

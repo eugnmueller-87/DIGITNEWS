@@ -21,9 +21,9 @@ class Settings:
     # https://aushang.app). The callback writes the draft via the service role.
     app_callback_url: str
 
-    # EU LLM (Mistral) API key. Receives REDACTED text only. Optional until the
-    # extraction step is wired.
-    mistral_api_key: str | None = None
+    # Claude API (Anthropic) key. Receives REDACTED text only — never raw images
+    # or raw PII. Optional until the extraction step is wired.
+    anthropic_api_key: str | None = None
 
 
 def load_settings() -> Settings:
@@ -38,5 +38,5 @@ def load_settings() -> Settings:
     return Settings(
         worker_shared_secret=secret,
         app_callback_url=callback,
-        mistral_api_key=os.environ.get("MISTRAL_API_KEY") or None,
+        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
     )

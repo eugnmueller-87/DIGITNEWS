@@ -12,9 +12,10 @@ redacted locally before any external call, fail-closed.**
 
 ## 1. Architecture facts the forms depend on
 
-- **Auth:** magic link / email OTP only. No passwords. No public signup —
-  accounts are operator/admin **provisioned**. We store the user's **email**
-  (in Supabase Auth) and a **profile** (org, role, display name, digest opt-in).
+- **Auth:** email + password, invite-only. No public signup — accounts are
+  operator/admin **provisioned**; the first password is set via a one-time
+  emailed code. We store the user's **email** (in Supabase Auth, password hashed
+  by Supabase) and a **profile** (org, role, display name, digest opt-in).
 - **Content source:** the org's own physical notice board. An admin photographs
   it. We process **only what the org already published** publicly on that board.
 - **Raw photo path:** the browser compresses the photo and uploads it to a
@@ -25,9 +26,14 @@ redacted locally before any external call, fail-closed.**
   **Presidio + spaCy + regex** PII detection, **blurs** the redacted image
   regions, and only the **redacted text** is sent onward. If redaction fails,
   the job fails — nothing is published.
-- **LLM:** **Mistral (EU)** receives the **redacted text only** (never the raw
-  image, never raw PII). It _advises_ a structure; deterministic code + an admin
-  confirm before anything is published.
+- **LLM:** the **Claude API (Anthropic)** receives the **redacted text only**
+  (never the raw image, never raw PII). It _advises_ a structure; deterministic
+  code + an admin confirm before anything is published. ⚠️ **Data residency:**
+  Anthropic's API is **US-hosted** (no EU endpoint at time of writing) — so
+  unlike the rest of the stack, this one external call leaves the EU. It carries
+  only locally-redacted text (PII already masked to `[NAME_1]`-style
+  placeholders), never raw images or raw PII. If strict EU residency is required,
+  swap the worker's extraction module back to an EU LLM — no other change.
 - **RLS + column REVOKE:** every table is org-scoped by Row Level Security. The
   PII columns (`ocr_text_raw`, `ocr_text_redacted`, `redactions`,
   `source_image_path`) are **column-level REVOKE'd** from `authenticated`, so no
@@ -36,15 +42,16 @@ redacted locally before any external call, fail-closed.**
 
 ## 2. Sub-processors / external calls (the only places data leaves our app)
 
-| Service          | Region  | What it receives                                                                      | Why                                             |
-| ---------------- | ------- | ------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| **Supabase**     | EU      | Email, profile, org data, posts, events, raw+redacted images (private buckets)        | DB, auth, storage                               |
-| **Mistral**      | EU      | **Redacted OCR text only** — no images, no raw PII                                    | Structure extraction (advisory)                 |
-| **Resend**       | (email) | Recipient email + message body (app-owned emails: QR verification now, digests later) | Transactional email                             |
-| Worker (our VPS) | EU      | Short-TTL signed URL to the raw image                                                 | OCR + local redaction (ours, not a third party) |
+| Service                    | Region  | What it receives                                                                      | Why                                             |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Supabase**               | EU      | Email, profile, org data, posts, events, raw+redacted images (private buckets)        | DB, auth, storage                               |
+| **Anthropic (Claude API)** | **US**  | **Redacted OCR text only** — no images, no raw PII                                    | Structure extraction (advisory)                 |
+| **Resend**                 | (email) | Recipient email + message body (app-owned emails: QR verification now, digests later) | Transactional email                             |
+| Worker (our VPS)           | EU      | Short-TTL signed URL to the raw image                                                 | OCR + local redaction (ours, not a third party) |
 
-> The **Mistral key lives on the worker, never in the web app** — the app never
-> sees raw PII or calls the LLM directly.
+> The **Anthropic key lives on the worker, never in the web app** — the app
+> never sees raw PII or calls the LLM directly. Anthropic is the one US-based
+> sub-processor; it receives redacted text only (see §1).
 
 ## 3. Apple App Privacy ("Nutrition Label")
 

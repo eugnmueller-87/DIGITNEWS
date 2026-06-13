@@ -67,7 +67,7 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
 
         # 6. LLM extraction on REDACTED text only.
         envelope = extract(
-            api_key=settings.mistral_api_key or "",
+            api_key=settings.anthropic_api_key or "",
             redacted_text=red.redacted_text,
             org_type=req.org_type,
             capture_date=req.capture_date,

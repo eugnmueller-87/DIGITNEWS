@@ -5,10 +5,9 @@ client**: OCR, **local PII redaction**, image blur, and the EU LLM extraction
 call (on redacted text only). It runs on a VPS (Docker), separate from the
 Next.js app.
 
-> **Status: skeleton.** Only the API shell + shared-secret auth + the job
-> contract exist so the quality gates (Ruff, mypy, pytest) have a real target.
-> The pipeline itself (OpenCV → OCR → Presidio/spaCy/regex redaction → blur →
-> Mistral → schema-validate → callback) is built in Phase 2.
+> **Status: built.** The full pipeline (OpenCV → OCR → Presidio/spaCy/regex
+> redaction → blur → Claude API extraction → schema-validate → callback) is
+> implemented and tested. Deploy it on a VPS — see `DEPLOY_HOSTINGER.md`.
 
 ## Pipeline (Phase 2 target)
 
@@ -18,7 +17,7 @@ photo (private bucket, short-TTL signed URL)
   → OCR (Tesseract deu / PaddleOCR) → text + word boxes
   → PII detection LOCAL (Presidio + spaCy de_core_news_lg + regex), FAIL-CLOSED
   → gaussian blur of redacted regions → redacted_image
-  → EU LLM (Mistral) on REDACTED TEXT ONLY → structured JSON
+  → Claude API (Anthropic) on REDACTED TEXT ONLY → structured JSON
   → validate vs the shared extraction schema (invalid → manual path)
   → callback to the Next.js app (service role) with draft + events
 ```

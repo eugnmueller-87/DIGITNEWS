@@ -35,41 +35,108 @@ CONTENT_TYPES = [
     "info",
 ]
 
-# JSON Schema the API constrains the response to (output_config.format). Mirrors
-# the ExtractionEnvelope below.
+# JSON Schema the API constrains the response to (output_config.format).
 #
-# Anthropic's structured-output (strict JSON schema) mode requires EVERY object
-# to set `additionalProperties: false` — an open `{"type":"object",
-# "additionalProperties": true}` is rejected with a 400. The per-type payload is
-# free-form and is validated downstream in the review gate, so we return it here
-# as a JSON STRING the model fills with a JSON object, then parse it ourselves
-# (see `extract`). This keeps the schema strict-mode-valid while preserving the
-# open payload contract.
-# A single calendar event. Strict-mode-valid (additionalProperties:false, every
-# field required — nullable via type unions). Mirrors EventNoticeItem in
-# src/lib/content/types.ts; publish_post inserts these into the events table.
-_EVENT_SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "properties": {
+# Strict structured-output mode requires EVERY object to set
+# additionalProperties:false and list EVERY property as required (optionality is
+# expressed via nullable type unions), and it does NOT support oneOf
+# discriminated unions. So instead of branching the payload by content_type, the
+# schema carries ALL FIVE typed sub-payloads as nullable siblings under
+# `details`; the model fills the ONE matching content_type_suggested and sets
+# the rest to null. `extract()` then collapses the non-null branch into
+# `payload` (the shape the app + DB read). The five shapes mirror
+# src/lib/content/extraction-schema.ts.
+
+# --- reusable field schemas ---
+# NOTE: strict mode rejects an `enum` that mixes a value list with null + a
+# union type, so nullable fields use type+description only (the prompt + the
+# downstream review gate constrain the actual values).
+_DAY = {"type": ["string", "null"], "description": "mon|tue|wed|thu|fri oder null"}
+_ISO = {"type": ["string", "null"], "description": "ISO Datum JJJJ-MM-TT oder null"}
+_NUTRI = {"type": ["string", "null"], "description": "A|B|C|D|E oder null (Schätzung)"}
+_HHMM = {"type": ["string", "null"], "description": "HH:MM oder null"}
+_STR = {"type": ["string", "null"]}
+
+
+def _obj(props: dict, required: list[str] | None = None) -> dict:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": props,
+        "required": required if required is not None else list(props.keys()),
+    }
+
+
+_MEAL = _obj(
+    {
+        "week_of": _ISO,
+        "days": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "day": _DAY,
+                    "date": _ISO,
+                    "dishes": {"type": "array", "items": {"type": "string"}},
+                    "nutri_score": _NUTRI,
+                    "nutri_rationale": _STR,
+                }
+            ),
+        },
+        "nutri_score_week": _NUTRI,
+    }
+)
+_REFLECTION = _obj(
+    {
+        "week_of": _ISO,
+        "days": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "day": _DAY,
+                    "date": _ISO,
+                    "summary": {"type": "string"},
+                    "activities": {"type": "array", "items": {"type": "string"}},
+                }
+            ),
+        },
+    }
+)
+_HEALTH = _obj(
+    {
+        "topic": {"type": "string"},
+        "severity": {"type": "string", "enum": ["info", "advisory", "urgent"]},
+        "action_required": _STR,
+        "date": _ISO,
+        "ends_on": _ISO,
+    }
+)
+_EVENT_ITEM = _obj(
+    {
         "category": {"type": "string", "enum": ["closure", "event", "deadline"]},
         "title": {"type": "string"},
         "starts_on": {"type": "string", "description": "ISO Datum JJJJ-MM-TT"},
-        "ends_on": {"type": ["string", "null"], "description": "ISO oder null"},
+        "ends_on": _ISO,
         "all_day": {"type": "boolean"},
-        "time_start": {"type": ["string", "null"], "description": "HH:MM oder null"},
-        "time_end": {"type": ["string", "null"], "description": "HH:MM oder null"},
-    },
-    "required": [
-        "category",
-        "title",
-        "starts_on",
-        "ends_on",
-        "all_day",
-        "time_start",
-        "time_end",
-    ],
-}
+        "time_start": _HHMM,
+        "time_end": _HHMM,
+    }
+)
+_EVENTS = _obj({"events": {"type": "array", "items": _EVENT_ITEM}})
+_INFO = _obj({"notes": _STR})
+
+# The five typed payloads as siblings (strict mode rejects oneOf/nullable
+# objects, so each is a plain object). The model fills the one matching
+# content_type with real data and leaves the others' fields null/empty;
+# extract() reads only the matching branch.
+_DETAILS = _obj(
+    {
+        "meal_plan": _MEAL,
+        "reflection": _REFLECTION,
+        "health_notice": _HEALTH,
+        "event_notice": _EVENTS,
+        "info": _INFO,
+    }
+)
 
 _OUTPUT_SCHEMA = {
     "type": "object",
@@ -79,26 +146,14 @@ _OUTPUT_SCHEMA = {
         "confidence": {"type": "number"},
         "title": {"type": "string"},
         "summary": {"type": "string"},
-        # Calendar events — REQUIRED to be filled for event_notice (every concrete
-        # date/Schließtag/Frist), otherwise an empty array. Drives /kalender + ICS.
-        "events": {"type": "array", "items": _EVENT_SCHEMA},
-        # Other type-specific detail as a JSON-object STRING (strict mode forbids
-        # an open object); parsed server-side. Events live in `events`, not here.
-        "payload_json": {
-            "type": "string",
-            "description": (
-                "Typ-spezifische Detaildaten als JSON-OBJEKT-String "
-                '(z.B. "{}" wenn keine). Wird serverseitig geparst.'
-            ),
-        },
+        "details": _DETAILS,
     },
     "required": [
         "content_type_suggested",
         "confidence",
         "title",
         "summary",
-        "events",
-        "payload_json",
+        "details",
     ],
 }
 
@@ -128,18 +183,23 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
         "(Wochenrückblick), health_notice (Krankheit/Hinweis), event_notice "
         "(Termine/Schließtage), info (Sonstiges). Löse relative Daten gegen das "
         f"Aufnahmedatum {capture_date} auf (Zeitzone Europe/Berlin); bei "
-        "Unsicherheit Datum null lassen, niemals erfinden. Felder: "
-        "content_type_suggested, confidence (0-1), title, summary, events, "
-        'payload_json (typ-spezifische Details als JSON-Objekt-String, z.B. "{}"). '
-        "WICHTIG für den Kalender: 'events' ist eine Liste. Wenn der Aushang "
-        "konkrete Termine, Schließtage oder Fristen nennt (content_type "
-        "event_notice, aber auch sonst), lege für JEDES Datum einen Eintrag an: "
-        "category ('closure'=Schließtag, 'event'=Termin/Fest, 'deadline'=Frist), "
-        "title (kurz), starts_on (JJJJ-MM-TT), ends_on (oder null), all_day "
-        "(true wenn keine Uhrzeit), time_start/time_end (HH:MM oder null). "
-        "Mehrtägige Schließungen entweder als ein Eintrag mit ends_on ODER als "
-        "einzelne Tageseinträge. Gibt es keine Termine, ist events eine leere "
-        "Liste []."
+        "Unsicherheit Datum null lassen, niemals erfinden.\n"
+        "Felder: content_type_suggested, confidence (0-1), title, summary, "
+        "details. In 'details' füllst du GENAU das Unterobjekt aus, das zum "
+        "content_type passt; alle anderen Unterobjekte setzt du auf null:\n"
+        "• meal_plan → { week_of, days:[{day(mon..fri|null), date, "
+        "dishes:[Gericht,…], nutri_score(A-E|null, SCHÄTZUNG), nutri_rationale}], "
+        "nutri_score_week }\n"
+        "• reflection → { week_of, days:[{day, date, summary, activities:[…]}] }\n"
+        "• health_notice → { topic, severity(info|advisory|urgent), "
+        "action_required, date, ends_on }\n"
+        "• event_notice → { events:[{category('closure'=Schließtag, 'event'="
+        "Termin/Fest, 'deadline'=Frist), title(kurz), starts_on(JJJJ-MM-TT), "
+        "ends_on, all_day(true ohne Uhrzeit), time_start, time_end(HH:MM|null)}] } "
+        "— lege für JEDES konkrete Datum/jede Frist einen Eintrag an; mehrtägige "
+        "Schließungen als ein Eintrag mit ends_on.\n"
+        "• info → { notes: zusammenhängender, gut lesbarer Text }\n"
+        "Erfinde keine Felder, lass Unbekanntes null."
     )
 
 
@@ -186,24 +246,13 @@ def extract(
 
     try:
         raw = json.loads(content)
-        # The model returns the free-form payload as a JSON STRING (payload_json)
-        # because strict structured-output mode forbids an open object. Parse it
-        # back into a dict so the rest of the pipeline + app see `payload` as
-        # before. A malformed/empty string degrades to {} rather than failing the
-        # whole extraction (the review gate validates per-type detail anyway).
-        payload_json = raw.pop("payload_json", "{}")
-        try:
-            parsed = json.loads(payload_json) if payload_json else {}
-            payload = parsed if isinstance(parsed, dict) else {}
-        except (json.JSONDecodeError, TypeError):
-            payload = {}
-        # The calendar events come back as a top-level structured array (strict
-        # schema). Fold them into payload.events — the shape the app + the
-        # publish_post RPC read to create calendar rows.
-        events = raw.pop("events", [])
-        if isinstance(events, list) and events:
-            payload["events"] = events
-        raw["payload"] = payload
+        # The schema carries all five typed payloads under `details` (the model
+        # fills the one matching content_type, nulls the rest). Collapse the
+        # matching branch into `payload` — the shape the app + publish_post read.
+        details = raw.pop("details", {}) or {}
+        ct = raw.get("content_type_suggested")
+        branch = details.get(ct) if isinstance(details, dict) else None
+        raw["payload"] = branch if isinstance(branch, dict) else {}
         return ExtractionEnvelope.model_validate(raw).normalized()
     except (json.JSONDecodeError, ValidationError, ValueError) as e:
         raise ValueError(f"extraction validation failed: {e}") from e

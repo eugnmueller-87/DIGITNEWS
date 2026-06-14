@@ -36,8 +36,15 @@ CONTENT_TYPES = [
 ]
 
 # JSON Schema the API constrains the response to (output_config.format). Mirrors
-# the ExtractionEnvelope below; per-type payload detail is validated downstream
-# in the review gate, so payload stays an open object here.
+# the ExtractionEnvelope below.
+#
+# Anthropic's structured-output (strict JSON schema) mode requires EVERY object
+# to set `additionalProperties: false` — an open `{"type":"object",
+# "additionalProperties": true}` is rejected with a 400. The per-type payload is
+# free-form and is validated downstream in the review gate, so we return it here
+# as a JSON STRING the model fills with a JSON object, then parse it ourselves
+# (see `extract`). This keeps the schema strict-mode-valid while preserving the
+# open payload contract.
 _OUTPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -46,14 +53,20 @@ _OUTPUT_SCHEMA = {
         "confidence": {"type": "number"},
         "title": {"type": "string"},
         "summary": {"type": "string"},
-        "payload": {"type": "object", "additionalProperties": True},
+        "payload_json": {
+            "type": "string",
+            "description": (
+                "Typ-spezifische Detaildaten als JSON-OBJEKT-String "
+                '(z.B. "{}" wenn keine). Wird serverseitig geparst.'
+            ),
+        },
     },
     "required": [
         "content_type_suggested",
         "confidence",
         "title",
         "summary",
-        "payload",
+        "payload_json",
     ],
 }
 
@@ -84,8 +97,8 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
         "(Termine/Schließtage), info (Sonstiges). Löse relative Daten gegen das "
         f"Aufnahmedatum {capture_date} auf (Zeitzone Europe/Berlin); bei "
         "Unsicherheit Datum null lassen, niemals erfinden. Felder: "
-        "content_type_suggested, confidence (0-1), title, summary, payload "
-        "(typ-spezifisch)."
+        "content_type_suggested, confidence (0-1), title, summary, payload_json "
+        '(typ-spezifische Details als JSON-Objekt-String, z.B. "{}").'
     )
 
 
@@ -132,6 +145,17 @@ def extract(
 
     try:
         raw = json.loads(content)
+        # The model returns the free-form payload as a JSON STRING (payload_json)
+        # because strict structured-output mode forbids an open object. Parse it
+        # back into a dict so the rest of the pipeline + app see `payload` as
+        # before. A malformed/empty string degrades to {} rather than failing the
+        # whole extraction (the review gate validates per-type detail anyway).
+        payload_json = raw.pop("payload_json", "{}")
+        try:
+            parsed = json.loads(payload_json) if payload_json else {}
+            raw["payload"] = parsed if isinstance(parsed, dict) else {}
+        except (json.JSONDecodeError, TypeError):
+            raw["payload"] = {}
         return ExtractionEnvelope.model_validate(raw).normalized()
     except (json.JSONDecodeError, ValidationError, ValueError) as e:
         raise ValueError(f"extraction validation failed: {e}") from e

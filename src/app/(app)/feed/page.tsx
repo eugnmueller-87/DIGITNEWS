@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
-import { CategoryChip, CategoryGlyph } from "@/components/category-chip";
+import { CategoryChip } from "@/components/category-chip";
 import { Alert, Button, EmptyState, SectionHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
 import { createClient } from "@/lib/supabase/server";
+
+import { FeedCard } from "./feed-card";
 
 export const metadata: Metadata = { title: "Pinnwand" };
 
@@ -116,37 +118,18 @@ export default async function FeedPage() {
         )
       ) : (
         <div className="grid gap-3">
-          {list.map((post) => {
-            const isEvent = post.content_type === "event_notice";
-            const cat = isEvent ? "event_notice" : "info";
-            return (
-              <article
-                key={post.id}
-                className="rounded-[16px] border border-border bg-paper p-4"
-              >
-                <div className="flex items-center gap-2.5">
-                  <CategoryGlyph category={cat} />
-                  <CategoryChip category={cat} />
-                  {post.published_at && (
-                    <time className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
-                      {new Date(post.published_at).toLocaleDateString("de-DE", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      })}
-                    </time>
-                  )}
-                </div>
-                <h2 className="mt-2.5 text-[17px] font-bold leading-snug text-ink">
-                  {post.title}
-                </h2>
-                {post.body && (
-                  <p className="mt-1 line-clamp-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-soft">
-                    {post.body}
-                  </p>
-                )}
-              </article>
-            );
-          })}
+          {list.map((post) => (
+            <FeedCard
+              key={post.id}
+              post={{
+                id: post.id,
+                title: post.title,
+                body: post.body,
+                content_type: post.content_type ?? null,
+                published_at: post.published_at,
+              }}
+            />
+          ))}
         </div>
       )}
     </div>

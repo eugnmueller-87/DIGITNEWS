@@ -18,7 +18,15 @@ export type BottomNavIcon =
   | "calendar"
   | "review"
   | "capture"
-  | "members";
+  | "members"
+  | "more";
+
+/** A raised, primary floating action — the staff capture button. */
+export interface BottomNavFab {
+  href: string;
+  label: string;
+  icon: BottomNavIcon;
+}
 
 /**
  * Phone-only bottom navigation: thumb-reachable primary destinations, fixed to
@@ -26,56 +34,77 @@ export type BottomNavIcon =
  * where the top pill nav (AppNav) is the navigation. The top nav stays the
  * complete list on every breakpoint; this is the fast-path for the daily
  * destinations on a phone. Active state mirrors AppNav's prefix matching.
+ *
+ * `fab` (optional) renders the ONE primary action as a raised circular button
+ * floating above the bar — used for staff capture, so "take a photo" is always
+ * one obvious tap, distinct from the four destination tabs.
  */
-export function BottomNav({ items }: { items: BottomNavItem[] }) {
+export function BottomNav({
+  items,
+  fab,
+}: {
+  items: BottomNavItem[];
+  fab?: BottomNavFab;
+}) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <nav
-      aria-label="Hauptnavigation"
-      className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t-[3px] border-ink bg-paper/95 backdrop-blur sm:hidden"
-    >
-      <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
-        {items.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <li key={item.href} className="flex-1">
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={clsx(
-                  // 56px min target height = comfortable thumb tap.
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-bold",
-                  active ? "text-ink" : "text-ink-soft",
-                )}
-              >
-                <span
+    <>
+      {fab && (
+        <Link
+          href={fab.href}
+          aria-label={fab.label}
+          className="rounded-wobble-pill fixed bottom-20 right-5 z-30 flex h-14 w-14 items-center justify-center border-[3px] border-ink bg-sunshine text-ink shadow-felt transition-transform hover:-translate-y-0.5 active:translate-y-0.5 sm:hidden"
+        >
+          <Icon name={fab.icon} size={26} />
+        </Link>
+      )}
+      <nav
+        aria-label="Hauptnavigation"
+        className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t-[3px] border-ink bg-paper/95 backdrop-blur sm:hidden"
+      >
+        <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
+          {items.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <li key={item.href} className="flex-1">
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={clsx(
-                    "flex h-8 w-10 items-center justify-center rounded-full border-2 transition-colors",
-                    active
-                      ? "border-ink bg-sunshine"
-                      : "border-transparent bg-transparent",
+                    // 56px min target height = comfortable thumb tap.
+                    "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-bold",
+                    active ? "text-ink" : "text-ink-soft",
                   )}
                 >
-                  <Icon name={item.icon} />
-                </span>
-                <span className="truncate">{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+                  <span
+                    className={clsx(
+                      "flex h-8 w-10 items-center justify-center rounded-full border-2 transition-colors",
+                      active
+                        ? "border-ink bg-sunshine"
+                        : "border-transparent bg-transparent",
+                    )}
+                  >
+                    <Icon name={item.icon} />
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 }
 
-/** Inline 24px stroke icons (currentColor) — no icon library dependency. */
-function Icon({ name }: { name: BottomNavIcon }) {
+/** Inline stroke icons (currentColor) — no icon library dependency. */
+function Icon({ name, size = 22 }: { name: BottomNavIcon; size?: number }) {
   const common = {
-    width: 22,
-    height: 22,
+    width: size,
+    height: size,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
@@ -123,6 +152,14 @@ function Icon({ name }: { name: BottomNavIcon }) {
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case "more":
+      return (
+        <svg {...common}>
+          <circle cx="5" cy="12" r="1.4" />
+          <circle cx="12" cy="12" r="1.4" />
+          <circle cx="19" cy="12" r="1.4" />
         </svg>
       );
   }

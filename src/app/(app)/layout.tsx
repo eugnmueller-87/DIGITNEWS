@@ -1,6 +1,10 @@
 import { AccountMenu } from "@/components/account-menu";
 import { AppNav, type NavItem } from "@/components/app-nav";
-import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
+import {
+  BottomNav,
+  type BottomNavItem,
+  type BottomNavFab,
+} from "@/components/bottom-nav";
 import { SunLogo } from "@/components/sun-logo";
 import { brand } from "@/config/brand";
 import { requireSession } from "@/lib/auth";
@@ -50,22 +54,31 @@ export default async function AppLayout({
     adminNav.push({ href: "/operator", label: "Operator" });
   }
 
-  // Phone bottom bar: the daily destinations only (max 5 so they stay
-  // thumb-sized). Admins swap two member tabs for their workflow tabs
-  // (Aufnahme + Prüfen); the top pill nav remains the complete list.
+  // Phone bottom bar: exactly FOUR thumb-sized tabs per role, with secondary
+  // destinations collapsed into "Mehr" so the bar never crowds. Admins also get
+  // a raised camera FAB — capture is their one primary action, kept distinct
+  // from the four destination tabs (not buried as a tab). The top pill nav
+  // remains the complete list on desktop.
+  //   Eltern: Feed · Essen · Kalender · Mehr
+  //   Team:   Feed · Prüfen · Mitglieder · Mehr   (+ camera FAB)
   const bottomNav: BottomNavItem[] = isAdmin
     ? [
         { href: "/feed", label: "Feed", icon: "feed" },
-        { href: "/kalender", label: "Kalender", icon: "calendar" },
-        { href: "/aufnahme", label: "Aufnahme", icon: "capture" },
         { href: "/review", label: "Prüfen", icon: "review" },
+        { href: "/admin/mitglieder", label: "Mitglieder", icon: "members" },
+        { href: "/mehr", label: "Mehr", icon: "more" },
       ]
     : [
         { href: "/feed", label: "Feed", icon: "feed" },
         { href: "/essensplan", label: "Essen", icon: "meal" },
-        { href: "/rueckblick", label: "Rückblick", icon: "review" },
         { href: "/kalender", label: "Kalender", icon: "calendar" },
+        { href: "/mehr", label: "Mehr", icon: "more" },
       ];
+
+  // Staff capture FAB — the one raised primary action on a phone.
+  const bottomFab: BottomNavFab | undefined = isAdmin
+    ? { href: "/aufnahme", label: "Aushang aufnehmen", icon: "capture" }
+    : undefined;
 
   return (
     <div className="relative z-[1] flex min-h-full flex-col">
@@ -114,7 +127,7 @@ export default async function AppLayout({
         style={{ contain: "strict" }}
       />
 
-      <BottomNav items={bottomNav} />
+      <BottomNav items={bottomNav} fab={bottomFab} />
     </div>
   );
 }

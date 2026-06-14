@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 
-import { Card, Button, Alert } from "@/components/ui";
+import { Card, Button, Alert, MiniButton } from "@/components/ui";
 
 import { subscribePush, unsubscribePush } from "./actions";
 
@@ -103,23 +103,23 @@ export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
     <Card>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <h2 className="font-display text-base font-bold text-ink">
             Push-Benachrichtigungen
           </h2>
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="mt-1 text-sm text-ink-soft">
             Erhalte eine Push-Nachricht auf diesem Gerät, wenn etwas
             veröffentlicht wird.
           </p>
         </div>
         {subscribed ? (
-          <button
+          <MiniButton
             type="button"
             disabled={pending}
             onClick={disable}
-            className="shrink-0 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium disabled:opacity-50 dark:border-zinc-700"
+            className="shrink-0"
           >
             Aus
-          </button>
+          </MiniButton>
         ) : (
           <div className="shrink-0">
             <Button onClick={enable} disabled={pending} className="w-auto px-4">

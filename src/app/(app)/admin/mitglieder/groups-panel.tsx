@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 
-import { Card, Button, Input, Alert } from "@/components/ui";
+import { Card, Button, Input, Alert, MiniButton } from "@/components/ui";
 
 import {
   createGroupAction,
@@ -27,10 +27,8 @@ export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
 
   return (
     <Card>
-      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-        Gruppen
-      </h2>
-      <p className="mt-1 text-xs text-zinc-400">
+      <h2 className="font-display text-base font-bold text-ink">Gruppen</h2>
+      <p className="mt-1 text-sm text-ink-soft">
         Lege die Gruppen deiner Einrichtung an (z. B. „Kita 1“, „Kita 2“) und
         weise Personen unten einer Gruppe zu.
       </p>
@@ -96,35 +94,34 @@ function GroupRow({ id, name }: { id: string; name: string }) {
             maxLength={80}
             className="h-9 flex-1"
           />
-          <button
+          <MiniButton
             type="button"
+            tone="primary"
             disabled={pending}
             onClick={save}
-            className="rounded-lg bg-zinc-900 px-2.5 py-1 text-xs text-white disabled:opacity-50 dark:bg-white dark:text-zinc-900"
           >
             Speichern
-          </button>
-          <button
+          </MiniButton>
+          <MiniButton
             type="button"
             onClick={() => {
               setEditing(false);
               setValue(name);
             }}
-            className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs dark:border-zinc-700"
           >
             Abbrechen
-          </button>
+          </MiniButton>
         </>
       ) : (
         <>
-          <span className="rounded-md bg-zinc-100 px-2 py-1 dark:bg-zinc-800">
+          <span className="rounded-md bg-surface-2 px-2 py-1 text-ink">
             {name}
           </span>
           <span className="flex gap-2">
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs text-zinc-500 underline"
+              className="press text-xs text-ink-soft underline"
             >
               Umbenennen
             </button>
@@ -132,14 +129,14 @@ function GroupRow({ id, name }: { id: string; name: string }) {
               type="button"
               disabled={pending}
               onClick={remove}
-              className="text-xs text-red-500 underline disabled:opacity-50"
+              className="press text-xs text-tomato underline disabled:opacity-50"
             >
               Löschen
             </button>
           </span>
         </>
       )}
-      {error && <span className="ml-2 text-xs text-red-500">{error}</span>}
+      {error && <span className="ml-2 text-xs text-tomato">{error}</span>}
     </li>
   );
 }

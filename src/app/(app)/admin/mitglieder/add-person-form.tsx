@@ -47,7 +47,7 @@ export function AddPersonForm({ canAddAdmins }: { canAddAdmins: boolean }) {
               id="role"
               name="role"
               defaultValue="member"
-              className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              className="h-12 w-full rounded-[12px] border border-border bg-surface-2 px-4 text-base font-medium text-ink outline-none focus:border-accent focus:bg-paper"
             >
               <option value="member">Mitglied (nur lesen)</option>
               <option value="admin">Administrator:in</option>

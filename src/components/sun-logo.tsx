@@ -1,11 +1,23 @@
-/** The Aushang/DIGITNEWS sun mark — a friendly spinning sun (from the design). */
-export function SunLogo({ className }: { className?: string }) {
+/**
+ * The Aushang sun mark. Static by default (motion means something) — pass
+ * `spinning` to animate it as a live indicator (pull-to-refresh, capture
+ * processing). Reduced-motion users get a static mark via the global rule.
+ */
+export function SunLogo({
+  className,
+  spinning = false,
+}: {
+  className?: string;
+  spinning?: boolean;
+}) {
   return (
     <svg
       viewBox="0 0 100 100"
       aria-hidden="true"
       className={className}
-      style={{ animation: "sunSpin 40s linear infinite" }}
+      style={
+        spinning ? { animation: "sunSpin 0.9s linear infinite" } : undefined
+      }
     >
       <g stroke="#34302A" strokeWidth="4" strokeLinecap="round">
         <line x1="50" y1="2" x2="50" y2="16" />
@@ -21,7 +33,7 @@ export function SunLogo({ className }: { className?: string }) {
         cx="50"
         cy="50"
         r="28"
-        fill="#F9B233"
+        fill="#F5A623"
         stroke="#34302A"
         strokeWidth="4"
       />

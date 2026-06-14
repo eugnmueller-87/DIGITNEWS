@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { Alert } from "@/components/ui";
+import { Alert, MiniButton } from "@/components/ui";
 import type { Role, MembershipStatus } from "@/lib/database.types";
 
 import { setAdminAction } from "./actions";
@@ -32,7 +32,7 @@ export function OrgAdmins({ people }: { people: Person[] }) {
   }
 
   if (people.length === 0) {
-    return <p className="mt-2 text-xs text-zinc-400">Noch keine Personen.</p>;
+    return <p className="mt-2 text-sm text-ink-soft">Noch keine Personen.</p>;
   }
 
   return (
@@ -42,16 +42,14 @@ export function OrgAdmins({ people }: { people: Person[] }) {
           key={p.id}
           className="flex items-center justify-between gap-2 text-sm"
         >
-          <span className="min-w-0 truncate">
+          <span className="min-w-0 truncate text-ink">
             {p.displayName ?? "—"}
             {p.status === "invited" && (
-              <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-                eingeladen
-              </span>
+              <span className="ml-2 text-xs text-sun-deep">eingeladen</span>
             )}
           </span>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-soft">
               {p.role === "superadmin"
                 ? "Operator"
                 : p.role === "admin"
@@ -59,24 +57,22 @@ export function OrgAdmins({ people }: { people: Person[] }) {
                   : "Mitglied"}
             </span>
             {p.role === "member" && (
-              <button
+              <MiniButton
                 type="button"
                 disabled={pending}
                 onClick={() => toggle(p.id, true)}
-                className="rounded-lg border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
               >
                 → Admin
-              </button>
+              </MiniButton>
             )}
             {p.role === "admin" && (
-              <button
+              <MiniButton
                 type="button"
                 disabled={pending}
                 onClick={() => toggle(p.id, false)}
-                className="rounded-lg border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
               >
                 → Mitglied
-              </button>
+              </MiniButton>
             )}
           </div>
         </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { Card } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { getActiveIcsToken } from "@/lib/ics";
@@ -34,14 +35,19 @@ export default async function EinstellungenPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Einstellungen</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Kalender abonnieren, Benachrichtigungen, Konto.
-        </p>
-      </div>
+      <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
+        Einstellungen
+      </h1>
 
-      <CalendarSubPanel icsUrl={icsUrl} />
+      <Card>
+        <h2 className="font-display mb-1 text-base font-bold text-ink">
+          Kalender abonnieren
+        </h2>
+        <p className="mb-3 text-sm text-ink-soft">
+          Aushang-Termine automatisch in deiner Kalender-App.
+        </p>
+        <CalendarSubPanel icsUrl={icsUrl} />
+      </Card>
       <PushPanel vapidPublicKey={publicEnv.vapidPublicKey} />
       <DigestToggle initial={profile?.email_digest_opt_in ?? true} />
       <DeleteAccountPanel role={session.role} warnLastAdmin={isLastAdminRisk} />

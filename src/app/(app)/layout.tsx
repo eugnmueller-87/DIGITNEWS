@@ -1,10 +1,7 @@
+import { CaptureLauncher } from "@/app/(app)/aufnahme/capture-launcher";
 import { AccountMenu } from "@/components/account-menu";
 import { AppNav, type NavItem } from "@/components/app-nav";
-import {
-  BottomNav,
-  type BottomNavItem,
-  type BottomNavFab,
-} from "@/components/bottom-nav";
+import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { SunLogo } from "@/components/sun-logo";
 import { brand } from "@/config/brand";
 import { requireSession } from "@/lib/auth";
@@ -14,9 +11,11 @@ import { createClient } from "@/lib/supabase/server";
  * Authenticated app shell. requireSession() guarantees a logged-in user WITH a
  * profile reaches any (app) page; otherwise redirect to /login.
  *
- * Layout: a sticky top bar with the org name + account menu, and a primary nav
- * row below (member sections, then admin/operator sections after a divider). The
- * nav scrolls horizontally on phones instead of wrapping.
+ * Mobile-first chrome: a frosted sticky top bar (logo + org name + account),
+ * and a phone-only bottom tab bar (4 tabs per role) + a staff capture FAB. The
+ * horizontal pill nav (AppNav) is desktop-only (≥sm). Role is resolved here on
+ * the server; the bottom nav + FAB visibility derive from it — no client role
+ * logic.
  */
 export default async function AppLayout({
   children,
@@ -24,16 +23,22 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await requireSession();
-
-  const supabase = await createClient();
-  const { data: org } = await supabase
-    .from("orgs")
-    .select("name")
-    .eq("id", session.orgId)
-    .maybeSingle();
-
   const isAdmin = session.role === "admin" || session.role === "superadmin";
   const isSuperadmin = session.role === "superadmin";
+
+  const supabase = await createClient();
+  // Org name + (for admins) the pending-draft count for the Prüfen tab badge.
+  // RLS scopes the posts read to the caller's own org.
+  const [{ data: org }, draftCountResult] = await Promise.all([
+    supabase.from("orgs").select("name").eq("id", session.orgId).maybeSingle(),
+    isAdmin
+      ? supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "draft")
+      : Promise.resolve({ count: 0 }),
+  ]);
+  const draftCount = draftCountResult.count ?? 0;
 
   const memberNav: NavItem[] = [
     { href: "/feed", label: "Feed" },
@@ -54,17 +59,15 @@ export default async function AppLayout({
     adminNav.push({ href: "/operator", label: "Operator" });
   }
 
-  // Phone bottom bar: exactly FOUR thumb-sized tabs per role, with secondary
-  // destinations collapsed into "Mehr" so the bar never crowds. Admins also get
-  // a raised camera FAB — capture is their one primary action, kept distinct
-  // from the four destination tabs (not buried as a tab). The top pill nav
-  // remains the complete list on desktop.
+  // Phone bottom bar: exactly FOUR thumb-sized tabs per role; secondary
+  // destinations live in "Mehr". Admins get a raised capture FAB (CaptureLauncher)
+  // and a draft-count badge on Prüfen.
   //   Eltern: Feed · Essen · Kalender · Mehr
-  //   Team:   Feed · Prüfen · Mitglieder · Mehr   (+ camera FAB)
+  //   Team:   Feed · Prüfen · Mitglieder · Mehr   (+ capture FAB)
   const bottomNav: BottomNavItem[] = isAdmin
     ? [
         { href: "/feed", label: "Feed", icon: "feed" },
-        { href: "/review", label: "Prüfen", icon: "review" },
+        { href: "/review", label: "Prüfen", icon: "review", badge: draftCount },
         { href: "/admin/mitglieder", label: "Mitglieder", icon: "members" },
         { href: "/mehr", label: "Mehr", icon: "more" },
       ]
@@ -75,30 +78,21 @@ export default async function AppLayout({
         { href: "/mehr", label: "Mehr", icon: "more" },
       ];
 
-  // Staff capture FAB — the one raised primary action on a phone.
-  const bottomFab: BottomNavFab | undefined = isAdmin
-    ? { href: "/aufnahme", label: "Aushang aufnehmen", icon: "capture" }
-    : undefined;
-
   return (
     <div className="relative z-[1] flex min-h-full flex-col">
-      <header className="pt-safe sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
+      <header className="pt-safe sticky top-0 z-10 border-b border-border bg-paper/85 backdrop-blur-xl">
         <div className="px-content mx-auto w-full max-w-3xl">
           <div className="flex items-center justify-between gap-3 py-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <SunLogo className="h-11 w-11 shrink-0" />
-              <span className="min-w-0">
-                <span className="font-display block truncate text-lg font-bold leading-tight text-ink">
-                  {org?.name ?? brand.name}
-                </span>
-                <span className="block text-[11px] font-extrabold uppercase tracking-wider text-ink-soft">
-                  Kita-Infos für Eltern
-                </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <SunLogo className="h-9 w-9 shrink-0" />
+              <span className="font-display min-w-0 truncate text-[17px] font-bold leading-tight text-ink">
+                {org?.name ?? brand.name}
               </span>
             </div>
             <AccountMenu role={session.role} />
           </div>
-          <div className="pb-2">
+          {/* Desktop primary nav only — phone uses the bottom bar. */}
+          <div className="hidden pb-2 sm:block">
             <AppNav items={memberNav} adminItems={adminNav} />
           </div>
         </div>
@@ -125,7 +119,8 @@ export default async function AppLayout({
         style={{ contain: "strict" }}
       />
 
-      <BottomNav items={bottomNav} fab={bottomFab} />
+      <BottomNav items={bottomNav} />
+      {isAdmin && <CaptureLauncher />}
     </div>
   );
 }

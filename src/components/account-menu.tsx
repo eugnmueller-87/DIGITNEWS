@@ -35,7 +35,7 @@ export function AccountMenu({ role }: { role: string }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="font-display flex h-10 w-10 items-center justify-center rounded-full bg-sage text-sm font-bold text-white shadow-felt"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-sm font-bold text-ink"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Konto"
@@ -46,7 +46,7 @@ export function AccountMenu({ role }: { role: string }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-20 mt-2 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[12px] border border-border bg-paper py-1 shadow-felt"
+          className="absolute right-0 z-20 mt-2 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[14px] border border-border bg-paper py-1 shadow-float"
         >
           <div className="px-3 py-2 text-xs font-bold text-ink-soft">
             Angemeldet als {ROLE_LABEL[role] ?? "Nutzer"}

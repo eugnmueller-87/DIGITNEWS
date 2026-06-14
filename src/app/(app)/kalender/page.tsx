@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 
-import { Card } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { publicEnv } from "@/lib/env";
+import { getActiveIcsToken } from "@/lib/ics";
 import { createClient } from "@/lib/supabase/server";
 
+import { CalendarSubBanner } from "./calendar-sub-banner";
 import { CalendarView } from "./calendar-view";
 
 export const metadata: Metadata = { title: "Kalender" };
@@ -21,42 +24,43 @@ export interface CalEvent {
 
 /**
  * Member calendar. Lists this org's CONFIRMED events (RLS-scoped) and renders a
- * month grid + an upcoming list. The "subscribe" link to the ICS feed lives in
- * profile settings. Events come from published posts (the publish step confirms
- * pending events).
+ * month grid + an upcoming list. A pinned banner makes the personal-calendar
+ * subscription (ICS) a first-class action so Aushang events flow into the
+ * parent's Google/Apple calendar. The ICS token lookup runs in parallel with
+ * the events fetch and degrades gracefully if absent.
  */
 export default async function KalenderPage() {
-  await requireSession();
+  const session = await requireSession();
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("events")
-    .select(
-      "id, title, category, starts_on, ends_on, all_day, time_start, time_end",
-    )
-    .eq("status", "confirmed")
-    .order("starts_on", { ascending: true })
-    .limit(500);
+  const [eventsResult, token] = await Promise.all([
+    supabase
+      .from("events")
+      .select(
+        "id, title, category, starts_on, ends_on, all_day, time_start, time_end",
+      )
+      .eq("status", "confirmed")
+      .order("starts_on", { ascending: true })
+      .limit(500),
+    getActiveIcsToken(session.userId),
+  ]);
 
-  const events = (data ?? []) as CalEvent[];
+  const events = (eventsResult.data ?? []) as CalEvent[];
+  const icsUrl = token ? `${publicEnv.siteUrl}/api/ics/${token}` : null;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Kalender</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Termine und Schließtage deiner Einrichtung.
-          </p>
-        </div>
-      </div>
+      <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
+        Kalender
+      </h1>
+
+      <CalendarSubBanner icsUrl={icsUrl} hasSub={token != null} />
 
       {events.length === 0 ? (
-        <Card>
-          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Noch keine Termine.
-          </p>
-        </Card>
+        <EmptyState
+          title="Noch keine Termine."
+          hint="Sobald deine Einrichtung Termine veröffentlicht, erscheinen sie hier — und in deinem abonnierten Kalender."
+        />
       ) : (
         <CalendarView events={events} />
       )}

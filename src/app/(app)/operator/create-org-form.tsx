@@ -57,12 +57,12 @@ export function CreateOrgForm() {
             id="role"
             name="role"
             defaultValue="admin"
-            className="h-11 w-full rounded-xl border border-zinc-300 bg-white px-4 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            className="h-12 w-full rounded-[12px] border border-border bg-surface-2 px-4 text-ink outline-none focus:border-accent focus:bg-paper"
           >
             <option value="admin">Administrator:in</option>
             <option value="member">Mitglied (nur lesen)</option>
           </select>
-          <p className="text-xs text-zinc-400">
+          <p className="text-sm text-ink-soft">
             Jede Organisation braucht mindestens eine Administrator:in.
           </p>
         </div>

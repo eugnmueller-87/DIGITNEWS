@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { CategoryChip } from "@/components/category-chip";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -37,7 +38,8 @@ export default async function RueckblickPage() {
         <div className="space-y-3">
           {list.map((p) => (
             <Card key={p.id}>
-              <h2 className="font-medium">{p.title}</h2>
+              <CategoryChip category="reflection" />
+              <h2 className="mt-2 text-[17px] font-bold text-ink">{p.title}</h2>
               {/* Phase 3 renders the Mon–Fri activity list from post_details. */}
             </Card>
           ))}

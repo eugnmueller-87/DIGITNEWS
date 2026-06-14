@@ -51,21 +51,23 @@ export default async function OperatorPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Operator</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
+          Operator
+        </h1>
+        <p className="text-[15px] text-ink-soft">
           Organisationen anlegen und Admin-Rechte verwalten.
         </p>
       </div>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <h2 className="font-display text-base font-bold text-ink">
           Neue Organisation
         </h2>
         <CreateOrgForm />
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <h2 className="font-display text-base font-bold text-ink">
           Organisationen ({orgList.length})
         </h2>
         {orgList.map((org) => {
@@ -74,8 +76,8 @@ export default async function OperatorPage() {
           return (
             <Card key={org.id}>
               <div className="flex items-baseline justify-between">
-                <h3 className="font-medium">{org.name}</h3>
-                <span className="text-xs text-zinc-400">
+                <h3 className="font-bold text-ink">{org.name}</h3>
+                <span className="text-sm text-ink-soft">
                   {org.org_type} · {memberCount}{" "}
                   {memberCount === 1 ? "Person" : "Personen"}
                 </span>

@@ -21,6 +21,8 @@ export interface FeedPost {
   title: string | null;
   body: string | null;
   published_at: string | null;
+  /** Confirmed content type (null = unconfirmed; renders as info to members). */
+  content_type?: string | null;
 }
 
 /** The assembled, ordered view the feed page renders. */

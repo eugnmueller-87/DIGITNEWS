@@ -38,7 +38,7 @@ export const metadata: Metadata = {
  * the mobile status bar tints to the app instead of a mismatched dark bar.
  */
 export const viewport: Viewport = {
-  themeColor: "#fbf8f2", // --app-bg
+  themeColor: "#f7f6f3", // --app-bg
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

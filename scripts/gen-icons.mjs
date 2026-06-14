@@ -23,7 +23,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MASTER = join(ROOT, "public", "icons", "master.svg");
 const OUT_DIR = join(ROOT, "public");
 
-const PAPER = { r: 0xfb, g: 0xf8, b: 0xf2, alpha: 1 }; // --app-bg #fbf8f2
+const PAPER = { r: 0xf7, g: 0xf6, b: 0xf3, alpha: 1 }; // --app-bg #f7f6f3
 
 /**
  * Each target: output filename, pixel size, the fraction of the canvas the sun

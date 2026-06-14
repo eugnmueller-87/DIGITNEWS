@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { Card } from "@/components/ui";
+import { Card, EmptyState, SectionHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import type { ContentType } from "@/lib/content/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,44 +56,44 @@ export default async function ReviewPage() {
     }
   }
 
+  const nothing =
+    drafts.length === 0 && processing.length === 0 && failed.length === 0;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Prüfen</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Prüfe ausgelesene Aushänge und veröffentliche sie.
-        </p>
-      </div>
+      <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
+        Prüfen
+      </h1>
 
-      {drafts.length === 0 &&
-        processing.length === 0 &&
-        failed.length === 0 && (
-          <Card>
-            <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              Nichts zu prüfen. Fotografiere einen Aushang, um zu starten.
-            </p>
-          </Card>
-        )}
-
-      {drafts.map((d) => (
-        <ReviewCard
-          key={d.id}
-          id={d.id}
-          title={d.title}
-          body={d.body}
-          suggested={d.content_type_suggested}
-          imageUrl={signed.get(d.id) ?? null}
+      {nothing && (
+        <EmptyState
+          title="Nichts zu prüfen."
+          hint="Tippe auf die Kamera, um einen Aushang aufzunehmen."
         />
-      ))}
+      )}
+
+      {drafts.length > 0 && (
+        <section className="space-y-3">
+          <SectionHeader>Zu prüfen · {drafts.length}</SectionHeader>
+          {drafts.map((d) => (
+            <ReviewCard
+              key={d.id}
+              id={d.id}
+              title={d.title}
+              body={d.body}
+              suggested={d.content_type_suggested}
+              imageUrl={signed.get(d.id) ?? null}
+            />
+          ))}
+        </section>
+      )}
 
       {processing.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Wird ausgelesen ({processing.length})
-          </h2>
+          <SectionHeader>Wird ausgelesen · {processing.length}</SectionHeader>
           {processing.map((p) => (
             <Card key={p.id}>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-ink-soft">
                 Aufnahme vom {new Date(p.created_at).toLocaleString("de-DE")}{" "}
                 wird verarbeitet …
               </p>
@@ -103,10 +103,8 @@ export default async function ReviewPage() {
       )}
 
       {failed.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Fehlgeschlagen ({failed.length})
-          </h2>
+        <section className="space-y-3">
+          <SectionHeader>Fehlgeschlagen · {failed.length}</SectionHeader>
           {failed.map((f) => (
             <ReviewCard
               key={f.id}

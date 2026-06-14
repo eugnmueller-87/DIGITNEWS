@@ -1,30 +1,26 @@
 import type { Metadata } from "next";
 
-import { Alert, EmptyState, PageHeader } from "@/components/ui";
+import { CategoryChip, CategoryGlyph } from "@/components/category-chip";
+import { Alert, Button, EmptyState, SectionHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Feed" };
+export const metadata: Metadata = { title: "Pinnwand" };
 
 /**
- * Member feed. In Phase 1 there are no published posts yet, so this renders an
- * empty state. The query goes through the member-safe posts_public view (no PII
- * columns) and is governed by RLS, so it can only ever return this org's
- * published posts. Proving this returns ONLY own-org rows is the Phase 1
- * acceptance test.
+ * Member feed ("Pinnwand"). Health alerts are pinned at the top, most-severe
+ * first (ordered in buildFeedView, NOT SQL — health_severity is text+CHECK so a
+ * DB ORDER BY would sort alphabetically). Everything else is a single vertical
+ * stream of shared-anatomy cards: category glyph-disc + chip + timestamp +
+ * 2-line body. Reads go through the member-safe posts_public view (no PII) under
+ * RLS, so they can only ever return this org's published posts.
  */
 export default async function FeedPage() {
   const session = await requireSession();
   const supabase = await createClient();
 
-  // Health alerts surface at the TOP, most severe first. health_severity is a
-  // text+CHECK column (not a real enum), so a DB ORDER BY on it would sort
-  // ALPHABETICALLY — wrong, and worse, the row cap could drop a still-relevant
-  // urgent alert in favour of newer-but-milder ones. So we fetch newest-first
-  // with a generous cap and impose the correct order in buildFeedView (unit-
-  // tested). Meal plans/reflections live in their own sections (excluded here).
   const [alertResult, postResult] = await Promise.all([
     supabase
       .from("posts_public")
@@ -40,8 +36,6 @@ export default async function FeedPage() {
       .limit(50),
   ]);
 
-  // A query error must NOT silently render as an empty feed (that would hide an
-  // outage behind "nothing posted yet"). buildFeedView surfaces it explicitly.
   const {
     alerts: alertList,
     posts: list,
@@ -51,90 +45,108 @@ export default async function FeedPage() {
     { data: postResult.data as FeedPost[] | null, error: postResult.error },
   );
 
+  const isAdmin = session.role === "admin" || session.role === "superadmin";
+
   return (
-    <div className="space-y-4">
+    <div>
+      <h1 className="font-display mb-4 text-[26px] font-bold leading-tight text-ink">
+        Pinnwand
+      </h1>
+
       {loadFailed && (
-        <Alert variant="error">
-          Die Pinnwand konnte gerade nicht geladen werden. Bitte lade die Seite
-          neu.
-        </Alert>
+        <div className="mb-4">
+          <Alert variant="error">
+            Die Pinnwand konnte gerade nicht geladen werden. Bitte lade die
+            Seite neu.
+          </Alert>
+        </div>
       )}
+
+      {/* Pinned health alerts — the only cards that break the monochrome calm. */}
       {alertList.length > 0 && (
-        <section className="mb-2 space-y-3">
-          {alertList.map((a) => (
-            <div
-              key={a.id}
-              className={clsx(
-                "rounded-[18px] border bg-paper p-5 shadow-felt",
-                a.health_severity === "urgent"
-                  ? "border-tomato"
-                  : "border-border",
-              )}
-            >
-              <span
+        <section className="mb-5 space-y-3">
+          <SectionHeader>Wichtig</SectionHeader>
+          {alertList.map((a) => {
+            const urgent = a.health_severity === "urgent";
+            return (
+              <div
+                key={a.id}
                 className={clsx(
-                  "rounded-full px-3 py-0.5 text-xs font-bold",
-                  a.health_severity === "urgent"
-                    ? "bg-tomato text-white"
-                    : "bg-sun-soft text-ink",
+                  "rounded-[16px] border p-4",
+                  urgent
+                    ? "border-tomato bg-tomato-soft"
+                    : "border-border bg-paper",
                 )}
               >
-                {a.health_severity === "urgent" ? "⚠️ Wichtig" : "ℹ️ Hinweis"}
-              </span>
-              <h3 className="font-display mt-2 text-xl font-semibold text-ink">
-                {a.title}
-              </h3>
-              {a.body && (
-                <p className="mt-1 font-semibold text-ink-soft">{a.body}</p>
-              )}
-            </div>
-          ))}
+                <CategoryChip
+                  category={urgent ? "health_urgent" : "health_advisory"}
+                />
+                <h3 className="mt-2 text-[17px] font-bold text-ink">
+                  {a.title}
+                </h3>
+                {a.body && (
+                  <p className="mt-1 text-[15px] leading-relaxed text-ink-soft">
+                    {a.body}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </section>
       )}
 
-      <PageHeader title="Pinnwand" subtitle="Neuigkeiten deiner Einrichtung." />
-
       {list.length === 0 ? (
-        // Suppress "nothing posted yet" during a load failure — the error Alert
-        // above already explains the empty screen; claiming nothing was posted
-        // would be misleading.
         loadFailed ? null : (
           <EmptyState
             title="Noch keine Aushänge."
             hint={
-              session.role === "admin" || session.role === "superadmin"
-                ? "Fotografiere einen Aushang unter „Aufnahme“ und gib ihn unter „Prüfen“ frei — dann erscheint er hier."
+              isAdmin
+                ? "Tippe auf die Kamera, um einen Aushang aufzunehmen — nach dem Prüfen erscheint er hier."
                 : "Sobald deine Einrichtung etwas veröffentlicht, siehst du es hier."
+            }
+            action={
+              isAdmin ? (
+                // Quiet hint; the FAB is the real entry point.
+                <a href="/aufnahme">
+                  <Button>Aushang aufnehmen</Button>
+                </a>
+              ) : undefined
             }
           />
         )
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {list.map((post) => (
-            <article
-              key={post.id}
-              className="rounded-[18px] border border-border bg-paper p-5 shadow-felt"
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-display text-lg font-semibold text-ink">
+        <div className="grid gap-3">
+          {list.map((post) => {
+            const isEvent = post.content_type === "event_notice";
+            const cat = isEvent ? "event_notice" : "info";
+            return (
+              <article
+                key={post.id}
+                className="rounded-[16px] border border-border bg-paper p-4"
+              >
+                <div className="flex items-center gap-2.5">
+                  <CategoryGlyph category={cat} />
+                  <CategoryChip category={cat} />
+                  {post.published_at && (
+                    <time className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
+                      {new Date(post.published_at).toLocaleDateString("de-DE", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      })}
+                    </time>
+                  )}
+                </div>
+                <h2 className="mt-2.5 text-[17px] font-bold leading-snug text-ink">
                   {post.title}
                 </h2>
-                {post.published_at && (
-                  <time className="shrink-0 text-xs font-bold text-ink-soft">
-                    {new Date(post.published_at).toLocaleDateString("de-DE", {
-                      day: "2-digit",
-                      month: "2-digit",
-                    })}
-                  </time>
+                {post.body && (
+                  <p className="mt-1 line-clamp-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-soft">
+                    {post.body}
+                  </p>
                 )}
-              </div>
-              {post.body && (
-                <p className="mt-1 whitespace-pre-line font-semibold text-ink-soft">
-                  {post.body}
-                </p>
-              )}
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

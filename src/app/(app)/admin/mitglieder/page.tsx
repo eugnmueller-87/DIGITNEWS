@@ -106,7 +106,7 @@ export default async function MitgliederPage() {
 
       {(verifiedApps.length > 0 || pendingApps.length > 0) && (
         <section className="space-y-2">
-          <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <h2 className="font-display text-base font-bold text-ink">
             Anfragen{verifiedApps.length > 0 && ` (${verifiedApps.length})`}
           </h2>
           <div className="space-y-2">
@@ -137,7 +137,7 @@ export default async function MitgliederPage() {
       )}
 
       <section className="space-y-2">
-        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <h2 className="font-display text-base font-bold text-ink">
           Mitglieder ({memberList.length})
         </h2>
         <div className="space-y-2">

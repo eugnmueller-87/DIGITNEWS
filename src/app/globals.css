@@ -1,72 +1,99 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Aushang / DIGITNEWS — Kita theme. Design tokens ported from
-   design/digitnews-kita-v2. Warm "felt-craft" aesthetic.
+   Aushang — "Tafel" theme: a quiet, paper-white iOS surface.
+   Monochrome base + ONE teal accent + minimal category semantics.
+   Color appears only where it means something (active tab, primary
+   action, health alerts, calendar categories). Token NAMES are kept
+   stable so existing utilities (bg-paper, text-ink, …) flip in place.
    ============================================================ */
 :root {
-  /* Flat warm theme (KitaNav). Variable NAMES are kept so existing utility
-     classes (bg-paper, text-ink, bg-sunshine, …) flip in place. */
-  --app-bg: #fbf8f2; /* flat page background */
-  --paper: #ffffff; /* cards are now pure white */
-  --border: #ece6da; /* 1px hairline dividers/borders */
-  --ink: #34302a;
-  --ink-soft: #8e887c;
+  /* Base / monochrome */
+  --app-bg: #f7f6f3; /* iOS grouped background */
+  --paper: #ffffff; /* cards / sheets */
+  --surface-2: #f1efea; /* inset wells: inputs, segmented track, day cells, ICS field, avatar */
+  --border: #e9e6df; /* 1px hairline card border */
+  --hairline: rgba(52, 48, 42, 0.08); /* inset list-row separators */
+  --ink: #2a2722;
+  --ink-soft: #8a857b;
+  --ink-faint: #9b958a; /* timestamps, placeholders, disabled (≥4.5:1 on white) */
 
-  --sunshine: #f9b233; /* sun */
-  --sun-soft: #fef1d8; /* active-tab pill fill */
-  --sun-deep: #c9760a; /* active icon / strong accent / focus ring */
-  --sage: #4fb3a0;
-  --sage-soft: #e2f4f0;
-  --sky: #cfe8f5;
+  /* THE accent — teal (primary buttons, active tab glyph, FAB, focus ring) */
+  --accent: #3fa08c;
+  --accent-soft: #e3f2ee;
+  --accent-deep: #2f8a77;
 
-  /* Aliases for tokens removed from the palette, so any unswept reference
-     still resolves and the build stays green. */
-  --grass: #4fb3a0;
-  --grass-deep: #3f9a89;
-  --berry: #4fb3a0;
-  --tomato: #e06a5a;
-  --wool-mint: #e2f4f0;
-  --wool-lilac: #cfe8f5;
-  --wool-pink: #fef1d8;
+  /* Sun — the warm secondary (logo, Rückblick/reflection warmth) */
+  --sunshine: #f5a623;
+  --sun-soft: #fcefd6;
+  --sun-deep: #b9690a;
 
-  /* Nutri-Score scale — unchanged (data semantics, not theme) */
+  /* Semantic (color carries meaning only: health + calendar categories) */
+  --tomato: #e0533f;
+  --tomato-soft: #fbe7e2;
+  --sage: #3fa08c;
+  --sage-soft: #e3f2ee;
+  --sky: #4a90c2;
+  --sky-soft: #e3eef6;
+
+  /* Nutri-Score scale — UNTOUCHED (data semantics, not theme) */
   --nutri-a: #038141;
   --nutri-b: #85bb2f;
   --nutri-c: #fecb02;
   --nutri-d: #ee8100;
   --nutri-e: #e63e11;
 
-  /* Flat radii (the .rounded-wobble-* utilities read these). */
-  --wobble-a: 18px;
-  --wobble-b: 18px;
+  /* Legacy aliases repointed so unswept refs resolve (berry → teal accent) */
+  --grass: #3fa08c;
+  --grass-deep: #2f8a77;
+  --berry: #3fa08c;
+  --wool-mint: #e3f2ee;
+  --wool-lilac: #e3eef6;
+  --wool-pink: #fcefd6;
+
+  /* Radius — one iOS family (utilities read these; no markup change) */
+  --wobble-a: 16px; /* cards, sheets, alerts */
+  --wobble-b: 12px; /* inputs, wells, chips-as-buttons, date tiles */
   --wobble-pill: 999px;
 
   --border-w: 1px;
-  --shadow-felt: 0 1px 2px rgba(40, 36, 28, 0.04);
-  --shadow-felt-sm: 0 1px 2px rgba(40, 36, 28, 0.04);
+
+  /* Elevation — ONE-elevation rule: resting cards are border-only.
+     felt = barely-there; float = the only real elevation. */
+  --shadow-felt: 0 1px 2px rgba(42, 39, 34, 0.05);
+  --shadow-felt-sm: 0 0 0 1px var(--border);
+  --shadow-float:
+    0 8px 24px -6px rgba(42, 39, 34, 0.18), 0 2px 6px rgba(42, 39, 34, 0.06);
 }
 
 /* Expose tokens to Tailwind's theme so utilities like bg-paper / text-ink work. */
 @theme inline {
   --color-app-bg: var(--app-bg);
-  --color-border: var(--border);
-  --color-sky: var(--sky);
   --color-paper: var(--paper);
-  --color-grass: var(--grass);
-  --color-grass-deep: var(--grass-deep);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-deep: var(--accent-deep);
   --color-sunshine: var(--sunshine);
   --color-sun-soft: var(--sun-soft);
   --color-sun-deep: var(--sun-deep);
+  --color-tomato: var(--tomato);
+  --color-tomato-soft: var(--tomato-soft);
   --color-sage: var(--sage);
   --color-sage-soft: var(--sage-soft);
-  --color-tomato: var(--tomato);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-grass: var(--grass);
+  --color-grass-deep: var(--grass-deep);
   --color-berry: var(--berry);
   --color-wool-mint: var(--wool-mint);
   --color-wool-lilac: var(--wool-lilac);
   --color-wool-pink: var(--wool-pink);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
   --font-display: var(--font-fredoka), system-ui, sans-serif;
   --font-body: var(--font-nunito), system-ui, sans-serif;
 }
@@ -131,12 +158,27 @@ body {
   border-radius: var(--wobble-pill);
 }
 
-/* Felt shadows */
+/* Elevation utilities */
 .shadow-felt {
   box-shadow: var(--shadow-felt);
 }
 .shadow-felt-sm {
   box-shadow: var(--shadow-felt-sm);
+}
+.shadow-float {
+  box-shadow: var(--shadow-float);
+}
+
+/* Universal iOS press-state. Add .press to any interactive surface (cards,
+   chips, rows, tabs, buttons, FAB) for a quick scale+dim on tap. */
+.press {
+  transition:
+    transform 60ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 60ms;
+}
+.press:active {
+  transform: scale(0.97);
+  opacity: 0.92;
 }
 
 @keyframes sunSpin {
@@ -173,6 +215,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;
+    transition: none !important;
+  }
+  .press:active {
+    transform: none !important;
   }
 }
 
@@ -180,6 +226,6 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--sun-deep);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

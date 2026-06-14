@@ -14,12 +14,14 @@ export const metadata: Metadata = { title: "Aushang fotografieren" };
 export default async function AufnahmePage() {
   await requireAdmin();
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Aushang fotografieren</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Fotografiere den Aushang. Wir lesen ihn aus, maskieren persönliche
-          Daten und legen dir einen Entwurf zum Prüfen an.
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
+          Aushang fotografieren
+        </h1>
+        <p className="mx-auto mt-1 max-w-sm text-[15px] text-ink-soft">
+          Wir lesen ihn aus, maskieren persönliche Daten und legen dir einen
+          Entwurf zum Prüfen an.
         </p>
       </div>
       <CapturePanel />

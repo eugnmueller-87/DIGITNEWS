@@ -1,8 +1,16 @@
 import { clsx } from "@/lib/clsx";
 
-/** Kita-themed UI primitives (felt-craft aesthetic; see globals.css tokens). */
+import { SunLogo } from "./sun-logo";
 
-/** A page heading + optional subtitle. Display font + dashed underline accent. */
+/**
+ * "Tafel" UI primitives — a quiet, paper-white iOS surface. Monochrome base,
+ * one teal accent (--accent), hairline borders, one-elevation rule (resting
+ * cards are border-only; real elevation is reserved for floating things).
+ * Fredoka (font-display) is reserved for H1 + big numerals; body text is
+ * Nunito at the base weight. See globals.css for tokens.
+ */
+
+/** A page heading + optional subtitle. */
 export function PageHeader({
   title,
   subtitle,
@@ -15,13 +23,22 @@ export function PageHeader({
   return (
     <div className="mb-5">
       <div className="flex items-start justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+        <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
+          {title}
+        </h1>
         {action && <div className="shrink-0">{action}</div>}
       </div>
-      {subtitle && (
-        <p className="mt-1 font-semibold text-ink-soft">{subtitle}</p>
-      )}
+      {subtitle && <p className="mt-1 text-ink-soft">{subtitle}</p>}
     </div>
+  );
+}
+
+/** An uppercase section header (iOS grouped-list style). */
+export function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-2 px-1 text-[13px] font-bold uppercase tracking-[0.04em] text-ink-soft">
+      {children}
+    </h2>
   );
 }
 
@@ -35,15 +52,15 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={clsx("skeleton rounded-2xl bg-ink/10", className)}
+      className={clsx("skeleton rounded-[12px] bg-ink/[0.06]", className)}
     />
   );
 }
 
-/** A skeleton shaped like a feed/section card (border + soft shadow). */
+/** A skeleton shaped like a feed/section card (border-only, no shadow). */
 export function SkeletonCard({ lines = 2 }: { lines?: number }) {
   return (
-    <div className="rounded-[18px] border border-border bg-paper p-5 shadow-felt">
+    <div className="rounded-[16px] border border-border bg-paper p-4">
       <Skeleton className="h-5 w-2/3" />
       <div className="mt-3 space-y-2">
         {Array.from({ length: lines }).map((_, i) => (
@@ -57,16 +74,29 @@ export function SkeletonCard({ lines = 2 }: { lines?: number }) {
   );
 }
 
-/** A centered empty-state inside a dashed card. */
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+/**
+ * A centered empty-state: the (static) sun mark as a quiet marker, a title, and
+ * an optional hint. Replaces the dashed box — the artwork IS the empty signal.
+ */
+export function EmptyState({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="rounded-[18px] border border-dashed border-border bg-paper px-6 py-10 text-center">
-      <p className="font-display text-lg font-semibold text-ink">{title}</p>
+    <div className="flex flex-col items-center px-6 py-14 text-center">
+      <SunLogo className="mb-4 h-14 w-14 opacity-40 grayscale" />
+      <p className="font-display text-lg font-bold text-ink">{title}</p>
       {hint && (
-        <p className="mx-auto mt-1 max-w-xs text-sm font-semibold text-ink-soft">
+        <p className="mx-auto mt-1.5 max-w-xs text-[15px] text-ink-soft">
           {hint}
         </p>
       )}
+      {action && <div className="mt-5 w-full max-w-xs">{action}</div>}
     </div>
   );
 }
@@ -81,7 +111,7 @@ export function Card({
   return (
     <div
       className={clsx(
-        "rounded-[18px] border border-border bg-paper p-6 shadow-felt",
+        "rounded-[16px] border border-border bg-paper p-4",
         className,
       )}
     >
@@ -98,7 +128,7 @@ export function Button({
     <button
       {...props}
       className={clsx(
-        "font-display inline-flex h-11 w-full items-center justify-center rounded-full bg-sunshine px-6 text-base font-semibold text-ink shadow-felt transition-colors hover:bg-sun-deep hover:text-white active:bg-sun-deep disabled:cursor-not-allowed disabled:opacity-50",
+        "press inline-flex h-12 w-full items-center justify-center rounded-full bg-accent px-6 text-base font-bold text-white transition-colors hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
     />
@@ -107,9 +137,8 @@ export function Button({
 
 /**
  * A compact secondary action button for dense admin rows (promote, remove,
- * approve, copy …). Felt-themed and always ≥44px tall so it's a comfortable
- * thumb target on a phone. `tone` picks the fill; `danger` is for destructive
- * confirmations.
+ * approve, copy …). Always ≥44px tall so it's a comfortable thumb target.
+ * `tone` picks the fill; `danger` is for destructive confirmations.
  */
 export function MiniButton({
   tone = "neutral",
@@ -119,16 +148,15 @@ export function MiniButton({
   tone?: "neutral" | "primary" | "danger";
 }) {
   const tones = {
-    neutral: "border-border bg-paper text-ink hover:bg-sun-soft",
-    primary:
-      "border-transparent bg-sunshine text-ink hover:bg-sun-deep hover:text-white",
+    neutral: "border-border bg-paper text-ink hover:bg-surface-2",
+    primary: "border-transparent bg-accent text-white hover:bg-accent-deep",
     danger: "border-transparent bg-tomato text-white",
   } as const;
   return (
     <button
       {...props}
       className={clsx(
-        "font-display inline-flex h-11 min-h-11 items-center justify-center rounded-full border px-3.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "press inline-flex h-11 min-h-11 items-center justify-center rounded-full border px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         tones[tone],
         className,
       )}
@@ -144,7 +172,7 @@ export function Input({
     <input
       {...props}
       className={clsx(
-        "h-11 w-full rounded-[12px] border border-border bg-white px-4 text-base font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-soft/60 focus:border-sun-deep",
+        "h-12 w-full rounded-[12px] border border-border bg-surface-2 px-4 text-base font-medium text-ink outline-none placeholder:text-ink-faint focus:border-accent focus:bg-paper",
         className,
       )}
     />
@@ -158,10 +186,7 @@ export function Label({
   return (
     <label
       {...props}
-      className={clsx(
-        "font-display mb-1.5 block font-semibold text-ink",
-        className,
-      )}
+      className={clsx("mb-1.5 block text-sm font-bold text-ink", className)}
     />
   );
 }
@@ -191,9 +216,9 @@ export function Alert({
   children: React.ReactNode;
 }) {
   const styles = {
-    info: "bg-sky/40 border-border text-ink",
-    error: "bg-tomato/15 border-tomato text-ink",
-    success: "bg-sage-soft border-border text-ink",
+    info: "bg-surface-2 border-border text-ink",
+    error: "bg-tomato-soft border-tomato text-ink",
+    success: "bg-sage-soft border-sage/40 text-ink",
   } as const;
   return (
     <div
@@ -223,9 +248,7 @@ export function PageShell({
       {title && (
         <div className="mb-6 text-center">
           <h1 className="font-display text-3xl font-bold text-ink">{title}</h1>
-          {subtitle && (
-            <p className="mt-1.5 font-semibold text-ink-soft">{subtitle}</p>
-          )}
+          {subtitle && <p className="mt-1.5 text-ink-soft">{subtitle}</p>}
         </div>
       )}
       {children}

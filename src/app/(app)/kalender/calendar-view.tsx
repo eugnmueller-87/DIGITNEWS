@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Card } from "@/components/ui";
+import { DateTile } from "@/components/date-tile";
 import {
   anchorMonth,
   covers,
@@ -12,15 +12,23 @@ import {
   prevMonth,
   sortByStart,
 } from "@/lib/calendar";
+import { clsx } from "@/lib/clsx";
 
 import type { CalEvent } from "./page";
 
 type View = "month" | "list";
 
-const CATEGORY_COLOR: Record<CalEvent["category"], string> = {
+// Three visually DISTINCT dot colors (the old map had event/deadline both amber).
+const CATEGORY_DOT: Record<CalEvent["category"], string> = {
   closure: "bg-sage",
-  event: "bg-sun-soft",
+  event: "bg-sky",
   deadline: "bg-sunshine",
+};
+// Soft-fill chip per calendar category (matches the dot hue).
+const CATEGORY_CHIP: Record<CalEvent["category"], string> = {
+  closure: "bg-sage-soft text-sage",
+  event: "bg-sky-soft text-sky",
+  deadline: "bg-sun-soft text-sun-deep",
 };
 const CATEGORY_LABEL: Record<CalEvent["category"], string> = {
   closure: "Schließtag",
@@ -46,30 +54,35 @@ const MONTHS = [
 
 export function CalendarView({ events }: { events: CalEvent[] }) {
   const [view, setView] = useState<View>("month");
-  // Anchor the month on the first event's month (parsed from the ISO STRING so
-  // it never shifts across the UTC boundary), else a sensible default.
   const [cursor, setCursor] = useState(() =>
     anchorMonth(events[0]?.starts_on, { y: 2026, m: 0 }),
   );
 
   const grid = useMemo(() => monthGrid(cursor), [cursor]);
-
   const upcoming = useMemo(() => sortByStart(events), [events]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="font-display inline-flex gap-1 rounded-full border border-border bg-paper p-1 text-sm font-semibold">
+    <div className="space-y-4">
+      {/* iOS segmented control — a sliding white thumb in a surface-2 track. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative grid grid-cols-2 rounded-full bg-surface-2 p-1 text-sm font-bold">
+          <span
+            aria-hidden
+            className="absolute inset-y-1 w-[calc(50%-0.25rem)] rounded-full bg-paper shadow-felt transition-transform duration-200 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)]"
+            style={{
+              transform:
+                view === "month" ? "translateX(0)" : "translateX(100%)",
+            }}
+          />
           {(["month", "list"] as const).map((v) => (
             <button
               key={v}
               type="button"
               onClick={() => setView(v)}
-              className={
-                view === v
-                  ? "rounded-full bg-sun-soft px-3 py-1 text-ink"
-                  : "rounded-full px-3 py-1 text-ink-soft"
-              }
+              className={clsx(
+                "relative z-10 rounded-full px-5 py-1.5 transition-colors",
+                view === v ? "text-ink" : "text-ink-soft",
+              )}
             >
               {v === "month" ? "Monat" : "Liste"}
             </button>
@@ -77,23 +90,23 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
         </div>
 
         {view === "month" && (
-          <div className="font-display flex items-center gap-2 text-sm">
+          <div className="font-display flex items-center gap-1.5">
             <button
               type="button"
               aria-label="Vorheriger Monat"
               onClick={() => setCursor(prevMonth)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-paper text-lg leading-none shadow-felt"
+              className="press flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg leading-none text-ink"
             >
               ‹
             </button>
-            <span className="min-w-28 text-center font-semibold sm:min-w-32">
+            <span className="min-w-28 text-center text-sm font-bold tabular-nums sm:min-w-32">
               {MONTHS[cursor.m]} {cursor.y}
             </span>
             <button
               type="button"
               aria-label="Nächster Monat"
               onClick={() => setCursor(nextMonth)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-paper text-lg leading-none shadow-felt"
+              className="press flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg leading-none text-ink"
             >
               ›
             </button>
@@ -102,8 +115,8 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
       </div>
 
       {view === "month" ? (
-        <Card className="p-3">
-          <div className="grid grid-cols-7 gap-px text-center text-xs font-bold text-ink-soft">
+        <div className="rounded-[16px] border border-border bg-paper p-3">
+          <div className="grid grid-cols-7 gap-px text-center text-[11px] font-bold text-ink-faint">
             {WEEKDAYS.map((w) => (
               <div key={w} className="py-1">
                 {w}
@@ -121,7 +134,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
                 >
                   {d && (
                     <>
-                      <div className="font-display font-semibold text-ink">
+                      <div className="font-display font-bold tabular-nums text-ink">
                         {d}
                       </div>
                       <div className="mt-0.5 space-y-0.5">
@@ -132,7 +145,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
                             title={e.title}
                           >
                             <span
-                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${CATEGORY_COLOR[e.category]}`}
+                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${CATEGORY_DOT[e.category]}`}
                             />
                             <span className="truncate">{e.title}</span>
                           </div>
@@ -144,54 +157,31 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
               );
             })}
           </div>
-        </Card>
+        </div>
       ) : (
         <div className="space-y-3">
-          {upcoming.map((e) => {
-            const [, m, d] = e.starts_on.split("-");
-            const MONTH_ABBR = [
-              "Jan",
-              "Feb",
-              "Mär",
-              "Apr",
-              "Mai",
-              "Jun",
-              "Jul",
-              "Aug",
-              "Sep",
-              "Okt",
-              "Nov",
-              "Dez",
-            ];
-            return (
-              <div
-                key={e.id}
-                className="flex items-center gap-4 rounded-[18px] border border-border bg-paper p-4 shadow-felt"
-              >
-                <div className="font-display flex w-16 shrink-0 flex-col items-center rounded-[12px] border border-border bg-app-bg py-1.5">
-                  <span className="text-2xl font-bold leading-none text-ink">
-                    {d}
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-sun-deep">
-                    {MONTH_ABBR[Number(m) - 1]}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${CATEGORY_COLOR[e.category]} ${e.category === "closure" ? "text-white" : "text-ink"}`}
-                  >
-                    {CATEGORY_LABEL[e.category]}
-                  </span>
-                  <h3 className="font-display mt-1 text-lg font-semibold text-ink">
-                    {e.title}
-                  </h3>
-                  <p className="text-sm font-semibold text-ink-soft">
-                    {formatRange(e)}
-                  </p>
-                </div>
+          {upcoming.map((e) => (
+            <div
+              key={e.id}
+              className="flex items-center gap-3.5 rounded-[16px] border border-border bg-paper p-3.5"
+            >
+              <DateTile iso={e.starts_on} />
+              <div className="min-w-0 flex-1">
+                <span
+                  className={clsx(
+                    "inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
+                    CATEGORY_CHIP[e.category],
+                  )}
+                >
+                  {CATEGORY_LABEL[e.category]}
+                </span>
+                <h3 className="mt-1 text-[17px] font-bold text-ink">
+                  {e.title}
+                </h3>
+                <p className="text-sm text-ink-soft">{formatRange(e)}</p>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>

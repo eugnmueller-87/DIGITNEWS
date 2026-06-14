@@ -1,102 +1,75 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { PageHeader, Card } from "@/components/ui";
+import { Group, Row } from "@/components/grouped-list";
 import { requireSession } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Mehr" };
 
-interface MoreLink {
-  href: string;
-  label: string;
-  hint: string;
-}
-
 /**
  * "Mehr" hub — the overflow destination that keeps the phone bottom nav at four
- * thumb-sized tabs. Secondary destinations live here instead of crowding the
- * nav: everyone gets Rückblick + Einstellungen; admins also get the capture +
- * member-management entries that aren't on their four-tab bar, and superadmins
- * get the Operator console. The top pill nav still lists everything on desktop.
+ * thumb-sized tabs. iOS grouped-table of links; everyone gets Rückblick,
+ * Kalender-Abo, and Einstellungen, admins also get the capture + member-
+ * management entries, and superadmins the Operator console. Rows are rendered
+ * by role server-side; the desktop pill nav still lists everything.
  */
 export default async function MehrPage() {
   const session = await requireSession();
   const isAdmin = session.role === "admin" || session.role === "superadmin";
   const isSuperadmin = session.role === "superadmin";
 
-  const sections: { title: string; links: MoreLink[] }[] = [
-    {
-      title: "Für dich",
-      links: [
-        { href: "/rueckblick", label: "Rückblick", hint: "Wochenrückblicke" },
-        {
-          href: "/einstellungen",
-          label: "Einstellungen",
-          hint: "Kalender-Abo, E-Mail, Konto",
-        },
-      ],
-    },
-  ];
-
-  if (isAdmin) {
-    const adminLinks: MoreLink[] = [
-      { href: "/aufnahme", label: "Aufnahme", hint: "Aushang fotografieren" },
-      {
-        href: "/admin/mitglieder",
-        label: "Mitglieder",
-        hint: "Eltern & Team verwalten",
-      },
-    ];
-    if (isSuperadmin) {
-      adminLinks.push({
-        href: "/operator",
-        label: "Operator",
-        hint: "Organisationen verwalten",
-      });
-    }
-    sections.push({ title: "Verwaltung", links: adminLinks });
-  }
-
   return (
     <div>
-      <PageHeader title="Mehr" subtitle="Weitere Bereiche" />
+      <h1 className="font-display mb-5 text-[26px] font-bold leading-tight text-ink">
+        Mehr
+      </h1>
 
-      <div className="space-y-6">
-        {sections.map((section) => (
-          <div key={section.title}>
-            <h2 className="font-display mb-2 px-1 text-sm font-bold uppercase tracking-wide text-ink-soft">
-              {section.title}
-            </h2>
-            <Card className="p-0">
-              <ul>
-                {section.links.map((link, i) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className={
-                        "flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-sun-soft" +
-                        (i > 0 ? " border-t border-border" : "")
-                      }
-                    >
-                      <span className="min-w-0">
-                        <span className="font-display block font-semibold text-ink">
-                          {link.label}
-                        </span>
-                        <span className="block text-sm font-semibold text-ink-soft">
-                          {link.hint}
-                        </span>
-                      </span>
-                      <span aria-hidden className="text-xl text-ink-soft">
-                        ›
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </div>
-        ))}
-      </div>
+      <Group title="Für dich">
+        <Row
+          first
+          href="/rueckblick"
+          glyph="sun"
+          title="Rückblick"
+          subtitle="Wochenrückblicke"
+        />
+        <Row
+          href="/kalender"
+          glyph="calendarPlus"
+          title="Kalender abonnieren"
+          subtitle="Termine automatisch in deinem Kalender"
+        />
+        <Row
+          href="/einstellungen"
+          glyph="settings"
+          title="Einstellungen"
+          subtitle="Benachrichtigungen, Konto"
+        />
+      </Group>
+
+      {isAdmin && (
+        <Group title="Verwaltung">
+          <Row
+            first
+            href="/aufnahme"
+            glyph="capture"
+            title="Aufnahme"
+            subtitle="Aushang fotografieren"
+          />
+          <Row
+            href="/admin/mitglieder"
+            glyph="members"
+            title="Mitglieder"
+            subtitle="Eltern & Team verwalten"
+          />
+          {isSuperadmin && (
+            <Row
+              href="/operator"
+              glyph="operator"
+              title="Operator"
+              subtitle="Organisationen verwalten"
+            />
+          )}
+        </Group>
+      )}
     </div>
   );
 }

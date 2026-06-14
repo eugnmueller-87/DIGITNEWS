@@ -24,10 +24,10 @@ export function DigestToggle({ initial }: { initial: boolean }) {
     <Card>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <h2 className="font-display text-base font-bold text-ink">
             E-Mail-Benachrichtigungen
           </h2>
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="mt-1 text-sm text-ink-soft">
             Erhalte eine E-Mail, wenn deine Einrichtung etwas veröffentlicht.
           </p>
         </div>
@@ -38,11 +38,11 @@ export function DigestToggle({ initial }: { initial: boolean }) {
           disabled={pending}
           onClick={toggle}
           className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-            on ? "bg-zinc-900 dark:bg-white" : "bg-zinc-300 dark:bg-zinc-700"
+            on ? "bg-accent" : "bg-border"
           } disabled:opacity-50`}
         >
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform dark:bg-zinc-900 ${
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
               on ? "translate-x-5" : "translate-x-0.5"
             }`}
           />

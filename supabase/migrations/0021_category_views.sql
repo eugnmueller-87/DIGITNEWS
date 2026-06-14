@@ -24,6 +24,8 @@ alter table public.category_views enable row level security;
 
 -- A member reads + writes only their own view rows. (Writes also go through the
 -- definer RPC below, but a direct self-scoped policy keeps it simple + safe.)
+-- Drop-then-create so re-running the migration is idempotent.
+drop policy if exists "category_views_self" on public.category_views;
 create policy "category_views_self" on public.category_views
   for all to authenticated
   using (user_id = auth.uid())

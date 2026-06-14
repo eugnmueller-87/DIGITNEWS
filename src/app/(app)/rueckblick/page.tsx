@@ -4,7 +4,7 @@ import { CategoryChip } from "@/components/category-chip";
 import { PostDetail } from "@/components/post-detail";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Rückblick" };
@@ -27,32 +27,33 @@ interface ReflectionRow {
  * signed, and raw-photos is never touched.
  */
 export default async function RueckblickPage() {
-  await requireSession();
+  const session = await requireSession();
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("posts_public")
-    .select("id, title, body, published_at, extraction, redacted_image_path")
-    .eq("content_type", "reflection")
-    .order("published_at", { ascending: false })
-    .limit(20);
+  const [{ data }, profileResult] = await Promise.all([
+    supabase
+      .from("posts_public")
+      .select("id, title, body, published_at, extraction, redacted_image_path")
+      .eq("content_type", "reflection")
+      .order("published_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("profiles")
+      .select("photo_consent")
+      .eq("id", session.userId)
+      .maybeSingle(),
+  ]);
 
   const list = (data ?? []) as ReflectionRow[];
+  const photoConsent = profileResult.data?.photo_consent ?? false;
 
-  const imageUrls = new Map<string, string>();
+  // Clear original only when the member opted in AND the admin released the post;
+  // else the blurred image. Org-scoped raw read lives in the helper.
   const withImg = list.filter((p) => p.redacted_image_path);
-  if (withImg.length > 0) {
-    const admin = createAdminClient();
-    const signed = await Promise.all(
-      withImg.map((p) =>
-        admin.storage
-          .from("redacted-photos")
-          .createSignedUrl(p.redacted_image_path as string, 600)
-          .then((r) => ({ id: p.id, url: r.data?.signedUrl ?? null })),
-      ),
-    );
-    for (const s of signed) if (s.url) imageUrls.set(s.id, s.url);
-  }
+  const imageUrls =
+    withImg.length > 0
+      ? await signPostImages(withImg, session.orgId, photoConsent)
+      : new Map<string, string>();
 
   return (
     <div className="space-y-4">

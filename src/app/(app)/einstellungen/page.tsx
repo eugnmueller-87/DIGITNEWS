@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CalendarSubPanel } from "./calendar-sub-panel";
 import { DeleteAccountPanel } from "./delete-account-panel";
 import { DigestToggle } from "./digest-toggle";
+import { PhotoConsentToggle } from "./photo-consent-toggle";
 import { PushPanel } from "./push-panel";
 
 export const metadata: Metadata = { title: "Einstellungen" };
@@ -24,7 +25,7 @@ export default async function EinstellungenPage() {
   const [{ data: profile }, token] = await Promise.all([
     supabase
       .from("profiles")
-      .select("email_digest_opt_in")
+      .select("email_digest_opt_in, photo_consent")
       .eq("id", session.userId)
       .maybeSingle(),
     getActiveIcsToken(session.userId),
@@ -50,6 +51,7 @@ export default async function EinstellungenPage() {
       </Card>
       <PushPanel vapidPublicKey={publicEnv.vapidPublicKey} />
       <DigestToggle initial={profile?.email_digest_opt_in ?? true} />
+      <PhotoConsentToggle initial={profile?.photo_consent ?? false} />
       <DeleteAccountPanel role={session.role} warnLastAdmin={isLastAdminRisk} />
     </div>
   );

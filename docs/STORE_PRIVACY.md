@@ -3,8 +3,10 @@
 This document is the single source for the **Apple App Privacy ("Nutrition
 Label")** and **Google Play Data Safety** forms. It maps exactly what Aushang
 collects/processes, where it goes, and why — leaning on the architecture:
-**only already-published board content, raw photos never leave our infra, PII
-redacted locally before any external call, fail-closed.**
+**only already-published board content, raw photos never leave our infra to any
+third party, PII redacted locally before any external call, fail-closed.** (A
+raw original may be shown to a member _within the app_ only when the member opted
+in AND the admin released that specific post — see "Photo consent" below.)
 
 > Status: PWA-first. There is **no native wrapper yet**, so there are no native
 > SDKs and no device-identifier/ad collection of any kind. When a Capacitor
@@ -39,6 +41,17 @@ redacted locally before any external call, fail-closed.**
   `source_image_path`) are **column-level REVOKE'd** from `authenticated`, so no
   browser/anon client — not even an admin's — can read them; admin PII access is
   server-only.
+- **Photo consent (`0020`):** by default members see only the **blurred**
+  (redacted) image. A member may opt in (`profiles.photo_consent`) to seeing the
+  **clear original** of posts the admin has explicitly released
+  (`posts.clear_photo_allowed`, default off, set at publish). A member sees the
+  original **only when BOTH flags are true**; the decision is made **server-side**
+  and the original is delivered exclusively via a **short-TTL signed URL** minted
+  by the service role (the `source_image_path` column stays REVOKE'd — the client
+  never reads it and can never set `clear_photo_allowed`). Both default false, so
+  no original is ever exposed without two deliberate opt-ins. The original is the
+  same notice that hung on the physical board and never leaves the app or goes to
+  any third party.
 
 ## 2. Sub-processors / external calls (the only places data leaves our app)
 

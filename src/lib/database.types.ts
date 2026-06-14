@@ -47,6 +47,8 @@ export interface Profile {
   display_name: string | null;
   group_id: string | null;
   email_digest_opt_in: boolean;
+  /** Member opt-in to seeing the CLEAR (original) photo where the admin released it (0020). */
+  photo_consent: boolean;
   created_at: string;
 }
 
@@ -72,6 +74,18 @@ export interface PublicPost {
   extraction: unknown;
   published_at: string | null;
   created_at: string;
+}
+
+/**
+ * Server-only post fields needed to decide which image a member sees (0020).
+ * Read from the `posts` table via the SERVICE ROLE (org-scoped) — NOT exposed in
+ * posts_public: source_image_path is PII (REVOKE'd from `authenticated`, 0004)
+ * and clear_photo_allowed is never read directly by members.
+ */
+export interface PostImageGate {
+  id: string;
+  source_image_path: string | null;
+  clear_photo_allowed: boolean;
 }
 
 /** Admin-edited structured detail for meal_plan / reflection / health posts. */

@@ -69,6 +69,9 @@ were fixed in migration `0007` + app code.
 - A user in org A can never read or write any row of org B (superadmins are the
   one intended cross-org exception, via explicit `*_superadmin_*` policies).
 - A `member` never sees non-published posts, non-confirmed events, or PII columns.
+  (PII **columns** stay unreadable; the photo-consent feature is the one place a
+  raw image is delivered to a member — only via a server-minted signed URL, never
+  a column read — see "Photo consent" below.)
 - A `member` can never become `admin`/`superadmin`; an `admin` can never become
   `superadmin`, act cross-org, or add/remove admins. Role/org_id/membership_status
   are written only by security-definer flows; never client-settable.
@@ -88,6 +91,37 @@ were fixed in migration `0007` + app code.
 - **`npm audit`** flags a transitive `postcss` advisory inside Next.js's own
   tree; the "fix" downgrades Next to 9.x and is intentionally not applied (see
   README).
+
+## Photo consent — releasing the clear original to members (migration 0020)
+
+By default members only ever see the **blurred** (`redacted_image_path`) image;
+the raw original (`source_image_path`, `raw-photos` bucket) is admin/worker-only
+and its column is `REVOKE`'d from `authenticated` (`0004`). `0020` adds a
+**double-gated** path to show the original to a member, never a silent default:
+
+- `profiles.photo_consent` (member opt-in, default false) — self-set via the RLS
+  client, exactly like `email_digest_opt_in`; a member can set only their own.
+- `posts.clear_photo_allowed` (admin per-post release, default false) — written
+  **only** by `publish_post` (security-definer, re-checks admin+org). A member can
+  never set it.
+
+Design properties:
+
+- The visibility decision is a **server-side AND** of the two flags
+  (`src/lib/photo.ts` → `signPostImages`). The client never chooses which image it
+  gets; it only renders the URL the server hands it.
+- The original is delivered **exclusively via a short-TTL (10 min) signed URL**
+  minted by the **service role**. `source_image_path` stays REVOKE'd — no member
+  client ever reads the column; neither column enters `posts_public`.
+- The service-role read of `source_image_path` + `clear_photo_allowed` is
+  **org-scoped** (`.eq("org_id", session.orgId)`) — mandatory, since the service
+  role bypasses RLS — so a consenting member in org B can never reach org A's
+  originals.
+- Both defaults are false ⇒ every pre-`0020` published post is safe with zero
+  backfill, and a post is exposed only after two deliberate opt-ins.
+- Operationally: the raw originals of **published** posts are now retained by
+  design (the purge in `0014` only deletes `failed` posts), since a released
+  clear-photo post depends on its original existing.
 
 ## QR self-apply — public surface (migration 0009)
 

@@ -16,6 +16,7 @@ interface DraftRow {
   body: string | null;
   content_type_suggested: ContentType | null;
   redacted_image_path: string | null;
+  clear_photo_allowed: boolean;
   created_at: string;
 }
 
@@ -33,7 +34,7 @@ export default async function ReviewPage() {
   const { data } = await admin
     .from("posts")
     .select(
-      "id, status, title, body, content_type_suggested, redacted_image_path, created_at",
+      "id, status, title, body, content_type_suggested, redacted_image_path, clear_photo_allowed, created_at",
     )
     .eq("org_id", session.orgId)
     .in("status", ["draft", "processing", "failed"])
@@ -83,6 +84,7 @@ export default async function ReviewPage() {
               body={d.body}
               suggested={d.content_type_suggested}
               imageUrl={signed.get(d.id) ?? null}
+              clearPhotoAllowed={d.clear_photo_allowed}
             />
           ))}
         </section>

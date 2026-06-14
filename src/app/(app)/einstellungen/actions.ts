@@ -53,6 +53,31 @@ export async function setDigestOptIn(optIn: boolean): Promise<SettingsState> {
   return { ok: true, message: "Gespeichert." };
 }
 
+/**
+ * Toggle the caller's photo-consent on their own profile (RLS-governed). When ON,
+ * the member sees the CLEAR original photo on posts the admin has released
+ * (clear_photo_allowed); when OFF they see the blurred image. Revalidate the
+ * member-facing pages so the change takes effect without a manual navigation.
+ */
+export async function setPhotoConsent(optIn: boolean): Promise<SettingsState> {
+  const session = await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ photo_consent: optIn })
+    .eq("id", session.userId);
+  if (error) {
+    return { ok: false, message: "Konnte Einstellung nicht speichern." };
+  }
+  revalidatePath("/einstellungen");
+  revalidatePath("/feed");
+  revalidatePath("/rueckblick");
+  revalidatePath("/info");
+  revalidatePath("/gesundheit");
+  revalidatePath("/essensplan");
+  return { ok: true, message: "Gespeichert." };
+}
+
 /** Save the caller's web-push subscription (opt-in). */
 export async function subscribePush(sub: PushSub): Promise<SettingsState> {
   const session = await requireSession();

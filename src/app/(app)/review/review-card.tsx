@@ -33,6 +33,7 @@ export function ReviewCard({
   body,
   suggested,
   imageUrl,
+  clearPhotoAllowed = false,
   failed = false,
 }: {
   id: string;
@@ -40,6 +41,7 @@ export function ReviewCard({
   body: string | null;
   suggested: ContentType | null;
   imageUrl: string | null;
+  clearPhotoAllowed?: boolean;
   failed?: boolean;
 }) {
   const [state, formAction, publishing] = useActionState(publishDraft, initial);
@@ -47,6 +49,10 @@ export function ReviewCard({
   const [discardError, setDiscardError] = useState<string | null>(null);
   // No pre-selection when there's no suggestion (forces a deliberate choice).
   const [selected, setSelected] = useState<ContentType | null>(suggested);
+  // Per-post clear-photo release. Default OFF — members keep seeing the masked
+  // image unless the admin deliberately releases the original here AND the
+  // member opted into clear photos. Drives a deterministic hidden form field.
+  const [clearPhoto, setClearPhoto] = useState(clearPhotoAllowed);
 
   if (state.ok) {
     return (
@@ -93,6 +99,12 @@ export function ReviewCard({
         <input type="hidden" name="postId" value={id} />
         {/* The chip selection drives this deterministic form field. */}
         <input type="hidden" name="contentType" value={selected ?? ""} />
+        {/* Per-post clear-photo release (deterministic; default off). */}
+        <input
+          type="hidden"
+          name="clearPhotoAllowed"
+          value={clearPhoto ? "1" : ""}
+        />
 
         {!failed && (
           <div className="space-y-1.5">
@@ -148,6 +160,38 @@ export function ReviewCard({
             className="w-full rounded-[12px] border border-border bg-surface-2 px-4 py-2.5 text-base font-medium text-ink outline-none focus:border-accent focus:bg-paper"
           />
         </div>
+
+        {!failed && imageUrl && (
+          <div className="flex items-start justify-between gap-4 rounded-[12px] border border-border bg-surface-2 px-4 py-3">
+            <div>
+              <p className="text-sm font-bold text-ink">
+                Originalfoto freigeben
+              </p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-ink-soft">
+                Mitglieder, die klare Fotos aktiviert haben, sehen dann das
+                unverpixelte Originalfoto statt der maskierten Version. Nur
+                freigeben, wenn keine fremden Klarnamen darauf zu lesen sind.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={clearPhoto}
+              onClick={() => setClearPhoto((v) => !v)}
+              className={clsx(
+                "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
+                clearPhoto ? "bg-accent" : "bg-border",
+              )}
+            >
+              <span
+                className={clsx(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+                  clearPhoto ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </button>
+          </div>
+        )}
 
         {state.message && <Alert variant="error">{state.message}</Alert>}
         {discardError && <Alert variant="error">{discardError}</Alert>}

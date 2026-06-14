@@ -28,7 +28,7 @@ export default async function MitgliederPage() {
       supabase
         .from("profiles")
         .select(
-          "id, role, membership_status, display_name, group_id, created_at",
+          "id, role, membership_status, display_name, group_id, photo_consent, created_at",
         )
         .eq("org_id", session.orgId)
         .order("created_at", { ascending: true }),
@@ -64,6 +64,7 @@ export default async function MitgliederPage() {
     | "membership_status"
     | "display_name"
     | "group_id"
+    | "photo_consent"
     | "created_at"
   >[];
 
@@ -149,6 +150,7 @@ export default async function MitgliederPage() {
               status={m.membership_status}
               displayName={m.display_name}
               groupId={m.group_id}
+              photoConsent={m.photo_consent}
               isSelf={m.id === session.userId}
               groups={groups}
               // An org admin can remove members; a superadmin can also remove

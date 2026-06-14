@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
 import { maskPlaceholders } from "@/lib/content/mask";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
 import { FeedCard } from "./feed-card";
@@ -25,7 +25,7 @@ export default async function FeedPage() {
   const session = await requireSession();
   const supabase = await createClient();
 
-  const [alertResult, postResult] = await Promise.all([
+  const [alertResult, postResult, profileResult] = await Promise.all([
     supabase
       .from("posts_public")
       .select("id, title, body, health_severity, published_at")
@@ -40,7 +40,13 @@ export default async function FeedPage() {
       .or("content_type.is.null,content_type.in.(info,event_notice)")
       .order("published_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("profiles")
+      .select("photo_consent")
+      .eq("id", session.userId)
+      .maybeSingle(),
   ]);
+  const photoConsent = profileResult.data?.photo_consent ?? false;
 
   const {
     alerts: alertList,
@@ -51,29 +57,19 @@ export default async function FeedPage() {
     { data: postResult.data as FeedPost[] | null, error: postResult.error },
   );
 
-  // Mint short-TTL signed URLs for the (masked) photos — the redacted-photos
-  // bucket is private, so a member can't read it directly; the server signs
-  // per-post URLs with the admin client (same pattern as /review). We only sign
-  // paths returned by the org-scoped posts_public query above, so this stays
-  // org-isolated; the raw-photos bucket is never touched.
-  const imageUrls = new Map<string, string>();
-  const withImg = (
+  // Mint short-TTL signed URLs for each post's photo. signPostImages picks the
+  // CLEAR original only when the member opted in (photoConsent) AND the admin
+  // released that post (clear_photo_allowed); otherwise the blurred image. The
+  // raw read is org-scoped inside the helper. (See src/lib/photo.ts.)
+  const imagePosts = (
     postResult.data as
       | ({ id: string; redacted_image_path: string | null } & FeedPost)[]
       | null
   )?.filter((p) => p.redacted_image_path);
-  if (withImg && withImg.length > 0) {
-    const admin = createAdminClient();
-    const signed = await Promise.all(
-      withImg.map((p) =>
-        admin.storage
-          .from("redacted-photos")
-          .createSignedUrl(p.redacted_image_path as string, 600)
-          .then((r) => ({ id: p.id, url: r.data?.signedUrl ?? null })),
-      ),
-    );
-    for (const s of signed) if (s.url) imageUrls.set(s.id, s.url);
-  }
+  const imageUrls =
+    imagePosts && imagePosts.length > 0
+      ? await signPostImages(imagePosts, session.orgId, photoConsent)
+      : new Map<string, string>();
 
   const isAdmin = session.role === "admin" || session.role === "superadmin";
 

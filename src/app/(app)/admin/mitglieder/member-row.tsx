@@ -30,6 +30,7 @@ export function MemberRow({
   status,
   displayName,
   groupId,
+  photoConsent,
   isSelf,
   canRemove,
   canManage,
@@ -40,6 +41,7 @@ export function MemberRow({
   status: MembershipStatus;
   displayName: string | null;
   groupId: string | null;
+  photoConsent: boolean;
   isSelf: boolean;
   canRemove: boolean;
   canManage: boolean;
@@ -77,6 +79,25 @@ export function MemberRow({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {/* Photo-consent state — so the admin can follow up with members who
+              haven't released clear photos. Members only (admins don't consume
+              the consent-gated feed the same way). */}
+          {role === "member" && (
+            <span
+              className={
+                photoConsent
+                  ? "rounded-full bg-sage-soft px-2.5 py-0.5 text-xs font-bold text-ink"
+                  : "rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-soft"
+              }
+              title={
+                photoConsent
+                  ? "Sieht freigegebene Originalfotos"
+                  : "Sieht nur maskierte Fotos"
+              }
+            >
+              {photoConsent ? "Foto: frei" : "Foto: nein"}
+            </span>
+          )}
           <span className="rounded-full bg-sun-soft px-2.5 py-0.5 text-xs font-bold text-ink">
             {ROLE_LABEL[role]}
           </span>

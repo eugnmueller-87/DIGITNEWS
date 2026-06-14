@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { type FeedPost } from "@/lib/feed";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
 import { FeedCard } from "../feed/feed-card";
@@ -36,31 +36,32 @@ export async function CategoryFeed({
     ? `content_type.eq.${contentType},content_type.is.null`
     : `content_type.eq.${contentType}`;
 
-  const { data } = await supabase
-    .from("posts_public")
-    .select(
-      "id, title, body, content_type, extraction, redacted_image_path, published_at",
-    )
-    .or(filter)
-    .order("published_at", { ascending: false })
-    .limit(50);
+  const [{ data }, profileResult] = await Promise.all([
+    supabase
+      .from("posts_public")
+      .select(
+        "id, title, body, content_type, extraction, redacted_image_path, published_at",
+      )
+      .or(filter)
+      .order("published_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("profiles")
+      .select("photo_consent")
+      .eq("id", session.userId)
+      .maybeSingle(),
+  ]);
 
   const list = (data ?? []) as Row[];
+  const photoConsent = profileResult.data?.photo_consent ?? false;
 
-  const imageUrls = new Map<string, string>();
+  // Clear original only when the member opted in AND the admin released the post;
+  // else the blurred image. Org-scoped raw read lives in the helper.
   const withImg = list.filter((p) => p.redacted_image_path);
-  if (withImg.length > 0) {
-    const admin = createAdminClient();
-    const signed = await Promise.all(
-      withImg.map((p) =>
-        admin.storage
-          .from("redacted-photos")
-          .createSignedUrl(p.redacted_image_path as string, 600)
-          .then((r) => ({ id: p.id, url: r.data?.signedUrl ?? null })),
-      ),
-    );
-    for (const s of signed) if (s.url) imageUrls.set(s.id, s.url);
-  }
+  const imageUrls =
+    withImg.length > 0
+      ? await signPostImages(withImg, session.orgId, photoConsent)
+      : new Map<string, string>();
 
   if (list.length === 0) return <EmptyState title={emptyTitle} />;
 

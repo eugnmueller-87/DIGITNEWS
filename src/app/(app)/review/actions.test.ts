@@ -140,6 +140,33 @@ describe("publishDraft", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/review");
   });
 
+  it("passes the per-post clear-photo release flag to publish_post", async () => {
+    await publishDraft(
+      PREV,
+      fd({
+        postId: "post-1",
+        contentType: "reflection",
+        title: "Bastelwoche",
+        clearPhotoAllowed: "1",
+      }),
+    );
+    expect(rpc).toHaveBeenCalledWith(
+      "publish_post",
+      expect.objectContaining({ p_clear_photo_allowed: true }),
+    );
+  });
+
+  it("defaults clear-photo release to false when the field is absent", async () => {
+    await publishDraft(
+      PREV,
+      fd({ postId: "post-1", contentType: "info", title: "Hinweis" }),
+    );
+    expect(rpc).toHaveBeenCalledWith(
+      "publish_post",
+      expect.objectContaining({ p_clear_photo_allowed: false }),
+    );
+  });
+
   it("reports failure and does not revalidate when publish_post errors", async () => {
     publishError = { message: "boom" };
     const res = await publishDraft(

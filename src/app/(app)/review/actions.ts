@@ -39,6 +39,9 @@ export async function publishDraft(
   const body = String(formData.get("body") ?? "")
     .trim()
     .slice(0, 4000);
+  // Per-post clear-photo release (default off). Only members who also opted into
+  // clear photos will ever see the original; the visibility AND is server-side.
+  const clearPhotoAllowed = formData.get("clearPhotoAllowed") === "1";
 
   if (!isContentType(contentType)) {
     return { ok: false, message: "Bitte wähle eine Art." };
@@ -64,6 +67,7 @@ export async function publishDraft(
     p_content_type: contentType,
     p_title: title,
     p_body: body,
+    p_clear_photo_allowed: clearPhotoAllowed,
   });
   if (error) {
     // publish_post raises 'duplicate_title' when an already-published post in

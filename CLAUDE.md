@@ -64,6 +64,10 @@ any PR if you touch one:
    `source_image_path`) are column-level `REVOKE`d from `authenticated` (`0004`) — so even an
    admin's browser/anon client cannot read them. **Admin PII access is server-only by
    construction** (service role via a route handler/server component, never the browser client).
+   One deliberate exception (`0020`, photo consent): a member may see the **raw original** of a
+   post when they opted in (`profiles.photo_consent`) AND the admin released it
+   (`posts.clear_photo_allowed`) — delivered only via a server-minted signed URL
+   (`src/lib/photo.ts`), never a column read; both flags default false. See SECURITY.md.
 
 ### Three roles, multi-tenant by `org_id`
 

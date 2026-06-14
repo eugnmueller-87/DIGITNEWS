@@ -10,6 +10,7 @@ import {
 } from "@/components/category-chip";
 import { Icon } from "@/components/icons";
 import { PostDetail } from "@/components/post-detail";
+import { maskPlaceholders } from "@/lib/content/mask";
 
 export interface FeedCardData {
   id: string;
@@ -19,6 +20,8 @@ export interface FeedCardData {
   published_at: string | null;
   /** Structured extraction payload (typed per content_type) for the detail view. */
   payload?: unknown;
+  /** Short-TTL signed URL of the (masked) photo, or null. Shown in the sheet. */
+  imageUrl?: string | null;
 }
 
 /**
@@ -60,7 +63,7 @@ export function FeedCard({ post }: { post: FeedCardData }) {
         </h2>
         {post.body && (
           <p className="mt-1 line-clamp-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-soft">
-            {post.body}
+            {maskPlaceholders(post.body)}
           </p>
         )}
       </button>
@@ -78,7 +81,16 @@ export function FeedCard({ post }: { post: FeedCardData }) {
         <h2 className="mt-3 font-display text-xl font-bold text-ink">
           {post.title}
         </h2>
-        <div className="mt-2 max-h-[55vh] overflow-y-auto">
+        <div className="mt-2 max-h-[60vh] overflow-y-auto">
+          {post.imageUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */
+            <img
+              src={post.imageUrl}
+              alt={post.title ?? "Aushang"}
+              loading="lazy"
+              className="mb-3 w-full rounded-[12px] border border-border bg-surface-2 object-contain"
+            />
+          )}
           <PostDetail
             contentType={post.content_type}
             body={post.body}

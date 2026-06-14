@@ -4,7 +4,9 @@ import { CategoryChip } from "@/components/category-chip";
 import { Alert, Button, EmptyState, SectionHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
+import { maskPlaceholders } from "@/lib/content/mask";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import { FeedCard } from "./feed-card";
@@ -33,7 +35,7 @@ export default async function FeedPage() {
     supabase
       .from("posts_public")
       .select(
-        "id, title, body, category, content_type, extraction, published_at",
+        "id, title, body, category, content_type, extraction, redacted_image_path, published_at",
       )
       .or("content_type.is.null,content_type.in.(info,event_notice)")
       .order("published_at", { ascending: false })
@@ -48,6 +50,30 @@ export default async function FeedPage() {
     { data: alertResult.data as FeedAlert[] | null, error: alertResult.error },
     { data: postResult.data as FeedPost[] | null, error: postResult.error },
   );
+
+  // Mint short-TTL signed URLs for the (masked) photos — the redacted-photos
+  // bucket is private, so a member can't read it directly; the server signs
+  // per-post URLs with the admin client (same pattern as /review). We only sign
+  // paths returned by the org-scoped posts_public query above, so this stays
+  // org-isolated; the raw-photos bucket is never touched.
+  const imageUrls = new Map<string, string>();
+  const withImg = (
+    postResult.data as
+      | ({ id: string; redacted_image_path: string | null } & FeedPost)[]
+      | null
+  )?.filter((p) => p.redacted_image_path);
+  if (withImg && withImg.length > 0) {
+    const admin = createAdminClient();
+    const signed = await Promise.all(
+      withImg.map((p) =>
+        admin.storage
+          .from("redacted-photos")
+          .createSignedUrl(p.redacted_image_path as string, 600)
+          .then((r) => ({ id: p.id, url: r.data?.signedUrl ?? null })),
+      ),
+    );
+    for (const s of signed) if (s.url) imageUrls.set(s.id, s.url);
+  }
 
   const isAdmin = session.role === "admin" || session.role === "superadmin";
 
@@ -90,7 +116,7 @@ export default async function FeedPage() {
                 </h3>
                 {a.body && (
                   <p className="mt-1 text-[15px] leading-relaxed text-ink-soft">
-                    {a.body}
+                    {maskPlaceholders(a.body)}
                   </p>
                 )}
               </div>
@@ -132,6 +158,7 @@ export default async function FeedPage() {
                 payload:
                   (post as { extraction?: { payload?: unknown } }).extraction
                     ?.payload ?? null,
+                imageUrl: imageUrls.get(post.id) ?? null,
               }}
             />
           ))}

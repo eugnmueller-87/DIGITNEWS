@@ -2,6 +2,7 @@ import { CategoryChip } from "@/components/category-chip";
 import { DateTile } from "@/components/date-tile";
 import { Icon } from "@/components/icons";
 import { clsx } from "@/lib/clsx";
+import { maskPlaceholders } from "@/lib/content/mask";
 import type {
   EventNoticeItem,
   EventNoticePayload,
@@ -64,10 +65,11 @@ function formatDateRange(start: string | null, end: string | null): string {
  * `info` without notes, the DEFAULT branch, and any payload that fails its guard.
  */
 function BodyText({ body }: { body: string | null }) {
-  if (!body) return null;
+  const clean = maskPlaceholders(body);
+  if (!clean) return null;
   return (
     <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink">
-      {body}
+      {clean}
     </p>
   );
 }
@@ -227,7 +229,7 @@ function MealPlanDetail({ payload }: { payload: MealPlanPayload }) {
                       <span aria-hidden className="text-ink-faint">
                         •
                       </span>
-                      <span>{dish}</span>
+                      <span>{maskPlaceholders(dish)}</span>
                     </li>
                   ))}
                 </ul>
@@ -276,7 +278,7 @@ function ReflectionDetail({ payload }: { payload: ReflectionPayload }) {
               )}
               {d.summary && (
                 <p className="mt-1 text-[15px] leading-relaxed text-ink">
-                  {d.summary}
+                  {maskPlaceholders(d.summary)}
                 </p>
               )}
               {isStringArray(d.activities) && d.activities.length > 0 && (
@@ -286,7 +288,7 @@ function ReflectionDetail({ payload }: { payload: ReflectionPayload }) {
                       key={j}
                       className="rounded-full bg-paper px-2.5 py-0.5 text-[12px] font-semibold text-ink-soft"
                     >
-                      {a}
+                      {maskPlaceholders(a)}
                     </span>
                   ))}
                 </div>
@@ -328,7 +330,7 @@ function HealthNoticeDetail({ payload }: { payload: HealthNoticePayload }) {
       <div className={clsx("flex items-center gap-2", s.heading)}>
         <Icon name="warning" size={20} />
         <h3 className="font-display text-[18px] font-bold leading-snug">
-          {payload.topic}
+          {maskPlaceholders(payload.topic)}
         </h3>
       </div>
 
@@ -338,7 +340,7 @@ function HealthNoticeDetail({ payload }: { payload: HealthNoticePayload }) {
             Was zu tun ist:
           </p>
           <p className="mt-0.5 text-[15px] leading-relaxed text-ink">
-            {payload.action_required}
+            {maskPlaceholders(payload.action_required)}
           </p>
         </div>
       )}
@@ -379,7 +381,7 @@ function EventNoticeDetail({ payload }: { payload: EventNoticePayload }) {
                 {EVENT_CATEGORY_LABEL[ev.category] ?? "Termin"}
               </p>
               <h3 className="mt-0.5 text-[16px] font-bold leading-snug text-ink">
-                {ev.title}
+                {maskPlaceholders(ev.title)}
               </h3>
               <p className="mt-0.5 text-[14px] font-semibold text-ink-soft">
                 {formatDateRange(ev.starts_on, ev.ends_on)}
@@ -403,7 +405,9 @@ function InfoDetail({
   payload: InfoPayload;
   body: string | null;
 }) {
-  const notes = typeof payload.notes === "string" ? payload.notes.trim() : "";
+  const notes = maskPlaceholders(
+    typeof payload.notes === "string" ? payload.notes.trim() : "",
+  );
   const sections = Array.isArray(payload.sections)
     ? payload.sections.filter(
         (s) => s && Array.isArray(s.items) && s.items.length > 0,
@@ -413,8 +417,9 @@ function InfoDetail({
     ? payload.schedule.filter((r) => r && r.time && r.activity)
     : [];
 
-  // Nothing structured → fall back to notes intro, then body.
+  // Nothing structured → show the fuller body, falling back to notes.
   if (!sections.length && !schedule.length) {
+    if (body) return <BodyText body={body} />;
     if (notes) {
       return (
         <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink">
@@ -422,13 +427,21 @@ function InfoDetail({
         </p>
       );
     }
-    return <BodyText body={body} />;
+    return null;
   }
 
   return (
     <div className="space-y-4">
-      {notes && (
+      {/* Intro: the notes lead if present, else the full body paragraph so the
+          reader still gets the complete text above the structured detail. */}
+      {notes ? (
         <p className="text-[16px] leading-relaxed text-ink-soft">{notes}</p>
+      ) : (
+        body && (
+          <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink-soft">
+            {maskPlaceholders(body)}
+          </p>
+        )
       )}
 
       {/* Timetable: time → activity rows */}
@@ -443,9 +456,9 @@ function InfoDetail({
               )}
             >
               <span className="w-24 shrink-0 font-bold tabular-nums text-accent-deep">
-                {row.time}
+                {maskPlaceholders(row.time)}
               </span>
-              <span className="text-ink">{row.activity}</span>
+              <span className="text-ink">{maskPlaceholders(row.activity)}</span>
             </div>
           ))}
         </div>
@@ -456,14 +469,14 @@ function InfoDetail({
         <div key={i}>
           {s.heading && (
             <h3 className="font-display mb-1 text-[15px] font-bold text-ink">
-              {s.heading}
+              {maskPlaceholders(s.heading)}
             </h3>
           )}
           <ul className="space-y-1">
             {s.items.map((it, j) => (
               <li key={j} className="flex gap-2 text-[16px] text-ink">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                <span className="leading-relaxed">{it}</span>
+                <span className="leading-relaxed">{maskPlaceholders(it)}</span>
               </li>
             ))}
           </ul>

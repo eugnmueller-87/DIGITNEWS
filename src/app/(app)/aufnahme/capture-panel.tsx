@@ -14,7 +14,16 @@ type Status = "idle" | "working" | "done" | "error";
 
 interface Shot {
   id: string;
-  state: "uploading" | "processing" | "queued" | "failed";
+  state: "uploading" | "processing" | "queued" | "failed" | "duplicate";
+}
+
+/** SHA-256 (hex) of a Blob's bytes — identifies an exact-duplicate capture. */
+async function sha256Hex(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -37,11 +46,14 @@ export function CapturePanel() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  // A non-error info notice (e.g. "this photo was already captured").
+  const [notice, setNotice] = useState<string | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setError(null);
+    setNotice(null);
     setStatus("working");
 
     for (const file of Array.from(files)) {
@@ -73,6 +85,10 @@ export function CapturePanel() {
       useWebWorker: true,
     });
 
+    // 1b. Hash the bytes we're about to upload — the server rejects an exact
+    //     re-capture of the same photo for this org ("already posted").
+    const sourceHash = await sha256Hex(compressed);
+
     // 2. Get a signed upload target from the server.
     const target = await getUploadTarget();
     if (!target.ok || !target.path || !target.token) {
@@ -93,8 +109,19 @@ export function CapturePanel() {
     );
 
     // 4. Finalize: create the post + trigger the worker.
-    const res = await finalizeCapture(target.path);
-    if (!res.ok) throw new Error(res.message ?? "finalize");
+    const res = await finalizeCapture(target.path, sourceHash);
+    if (!res.ok) {
+      if (res.duplicate) {
+        // Not an error — the photo was already captured. Mark this shot and
+        // surface the specific message; don't flip the whole panel to "error".
+        setShots((s) =>
+          s.map((x) => (x.id === shotId ? { ...x, state: "duplicate" } : x)),
+        );
+        setNotice(res.message ?? "Dieser Aushang wurde bereits aufgenommen.");
+        return;
+      }
+      throw new Error(res.message ?? "finalize");
+    }
 
     setShots((s) =>
       s.map((x) =>
@@ -184,6 +211,9 @@ export function CapturePanel() {
                 {shot.state === "uploading" && "lädt hoch …"}
                 {shot.state === "processing" && "wird ausgelesen …"}
                 {shot.state === "queued" && "in Bearbeitung ✓"}
+                {shot.state === "duplicate" && (
+                  <span className="text-ink-soft">bereits aufgenommen</span>
+                )}
                 {shot.state === "failed" && (
                   <span className="text-tomato">fehlgeschlagen</span>
                 )}
@@ -191,6 +221,12 @@ export function CapturePanel() {
             </li>
           ))}
         </ul>
+      )}
+
+      {notice && (
+        <div className="mt-3">
+          <Alert variant="info">{notice}</Alert>
+        </div>
       )}
 
       {error && (

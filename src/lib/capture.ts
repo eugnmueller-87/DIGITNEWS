@@ -32,11 +32,20 @@ export async function createRawUploadTarget(
  * trigger the worker. Returns the post id. If the worker isn't configured, the
  * post stays 'processing' (no-op trigger) — surfaced to the admin.
  */
+/** Raised when the same image bytes were already captured for this org. */
+export class DuplicateImageError extends Error {
+  constructor() {
+    super("duplicate_image");
+    this.name = "DuplicateImageError";
+  }
+}
+
 export async function startProcessing(params: {
   actorId: string;
   orgId: string;
   orgType: string;
   sourcePath: string;
+  sourceHash?: string | null;
 }): Promise<{ postId: string; triggered: boolean }> {
   const admin = createAdminClient();
 
@@ -44,8 +53,20 @@ export async function startProcessing(params: {
     p_actor_id: params.actorId,
     p_org_id: params.orgId,
     p_source_path: params.sourcePath,
+    p_source_hash: params.sourceHash ?? null,
   });
   if (error || !postId) {
+    // The RPC raises 'duplicate_image' (and the partial unique index is the
+    // race backstop, surfacing as a unique-violation 23505) when this exact
+    // image was already captured for the org. Map both to a typed error so the
+    // action can show a friendly "already posted" message instead of a generic
+    // failure.
+    if (
+      error?.message?.includes("duplicate_image") ||
+      error?.code === "23505"
+    ) {
+      throw new DuplicateImageError();
+    }
     throw new Error(error?.message || "Konnte Aufnahme nicht anlegen.");
   }
 

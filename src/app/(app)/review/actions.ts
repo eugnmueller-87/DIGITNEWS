@@ -66,6 +66,17 @@ export async function publishDraft(
     p_body: body,
   });
   if (error) {
+    // publish_post raises 'duplicate_title' when an already-published post in
+    // this org shares this title (and, for events, the start date). Hard block:
+    // tell the admin so they can discard or rename if it's genuinely different.
+    if (error.message?.includes("duplicate_title")) {
+      return {
+        ok: false,
+        message:
+          "Ein Aushang mit diesem Titel wurde bereits veröffentlicht. " +
+          "Verwirf diesen Entwurf oder ändere den Titel, wenn es ein anderer ist.",
+      };
+    }
     return { ok: false, message: "Veröffentlichen fehlgeschlagen." };
   }
 

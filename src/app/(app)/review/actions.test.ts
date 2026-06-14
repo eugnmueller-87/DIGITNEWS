@@ -150,6 +150,19 @@ describe("publishDraft", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
+  it("hard-blocks a duplicate title with a specific message", async () => {
+    // publish_post raises 'duplicate_title' when an already-published post in
+    // the org shares this (normalized) title.
+    publishError = { message: "duplicate_title" };
+    const res = await publishDraft(
+      PREV,
+      fd({ postId: "post-1", contentType: "info", title: "Winterfest" }),
+    );
+    expect(res.ok).toBe(false);
+    expect(res.message).toMatch(/bereits veröffentlicht/i);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("truncates an over-long title to 120 chars before publishing", async () => {
     await publishDraft(
       PREV,

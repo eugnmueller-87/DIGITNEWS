@@ -1,7 +1,11 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth";
-import { createRawUploadTarget, startProcessing } from "@/lib/capture";
+import {
+  createRawUploadTarget,
+  startProcessing,
+  DuplicateImageError,
+} from "@/lib/capture";
 import { createClient } from "@/lib/supabase/server";
 
 /** Get a signed upload target so the browser can upload the raw image directly. */
@@ -20,10 +24,19 @@ export async function getUploadTarget(): Promise<{
   }
 }
 
-/** After the browser uploaded the raw image, create the post + trigger the worker. */
-export async function finalizeCapture(sourcePath: string): Promise<{
+/**
+ * After the browser uploaded the raw image, create the post + trigger the
+ * worker. `sourceHash` is the SHA-256 of the uploaded bytes (hex); the server
+ * uses it to reject an exact-duplicate capture for the org. `duplicate` is set
+ * when this image was already captured, so the UI can say so specifically.
+ */
+export async function finalizeCapture(
+  sourcePath: string,
+  sourceHash?: string,
+): Promise<{
   ok: boolean;
   triggered?: boolean;
+  duplicate?: boolean;
   message?: string;
 }> {
   const session = await requireAdmin();
@@ -42,9 +55,17 @@ export async function finalizeCapture(sourcePath: string): Promise<{
       orgId: session.orgId,
       orgType: org?.org_type ?? "sonstiges",
       sourcePath,
+      sourceHash,
     });
     return { ok: true, triggered };
-  } catch {
+  } catch (e) {
+    if (e instanceof DuplicateImageError) {
+      return {
+        ok: false,
+        duplicate: true,
+        message: "Dieser Aushang wurde bereits aufgenommen.",
+      };
+    }
     return {
       ok: false,
       message: "Verarbeitung konnte nicht gestartet werden.",

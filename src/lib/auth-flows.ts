@@ -26,8 +26,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * /registrieren, which verifies via verifyOtp({type:"recovery"}) and lands them
  * on /set-password.
  *
- * generateLink creates the user if absent (admin API is not bound by
- * enable_signup) and returns properties.email_otp WITHOUT sending an email.
+ * IMPORTANT: the "recovery" generateLink does NOT create a missing user — it
+ * returns 404 user_not_found for any brand-new email (only "invite"/"signup"
+ * create-or-find). So we createUser FIRST (admin API, not bound by
+ * enable_signup; treats "already registered" as benign), THEN mint the recovery
+ * OTP — which keeps the /registrieren verifyOtp({type:"recovery"}) contract.
  *
  * Returns { userId, code }.
  */
@@ -35,6 +38,23 @@ async function generateRegistrationCode(
   email: string,
 ): Promise<{ userId: string; code: string }> {
   const admin = createAdminClient();
+
+  // 1. Create-or-find the user. createUser CAN create (recovery cannot).
+  const created = await admin.auth.admin.createUser({
+    email,
+    email_confirm: false,
+  });
+  if (created.error) {
+    const m = created.error.message?.toLowerCase() ?? "";
+    // Already exists → fall through and just mint the code below.
+    const benign =
+      m.includes("already") || m.includes("registered") || m.includes("exists");
+    if (!benign) {
+      throw new Error("Registrierungscode konnte nicht erstellt werden.");
+    }
+  }
+
+  // 2. Mint the recovery OTP (the user now exists, so recovery succeeds).
   const { data, error } = await admin.auth.admin.generateLink({
     type: "recovery",
     email,
@@ -88,7 +108,7 @@ export async function provisionPerson(params: {
   email: string;
   role: "admin" | "member";
   displayName?: string | null;
-}): Promise<ProvisionOutcome> {
+}): Promise<{ outcome: ProvisionOutcome; userId: string | null }> {
   const admin = createAdminClient();
 
   // Create-or-find the auth user (no email sent yet).
@@ -107,7 +127,7 @@ export async function provisionPerson(params: {
     if (msg.includes("already belongs")) {
       // Email is provisioned somewhere already. Treat as a benign no-op; the
       // caller shows the neutral "done" message either way (no enumeration).
-      return "already_elsewhere";
+      return { outcome: "already_elsewhere", userId: null };
     }
     // Authorization / other failures are real errors the caller maps.
     throw new Error(error.message || "Konnte Person nicht hinzufügen.");
@@ -118,7 +138,7 @@ export async function provisionPerson(params: {
   // the admin can re-send (re-add) or the user can use "Passwort vergessen".
   await sendRegistrationCode(params.email);
 
-  return "added";
+  return { outcome: "added", userId };
 }
 
 /**

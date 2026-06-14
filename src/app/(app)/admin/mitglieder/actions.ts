@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth";
 import { provisionPerson, removePerson } from "@/lib/auth-flows";
+import { assignGroup } from "@/lib/groups";
 import {
   parseEmail,
   parseNonEmpty,
@@ -32,6 +33,7 @@ export async function addPerson(
   let email: string;
   let displayName: string | null;
   let role: "admin" | "member";
+  let groupId: string | null;
   try {
     email = parseEmail(formData.get("email"));
     const rawName = String(formData.get("displayName") ?? "").trim();
@@ -42,18 +44,32 @@ export async function addPerson(
       formData.get("role"),
       session.role === "superadmin",
     );
+    // Optional group to file the new member into immediately. The DB's
+    // assign_group re-validates the group belongs to this org, so we just pass
+    // the raw value (empty → no group).
+    groupId = String(formData.get("groupId") ?? "") || null;
   } catch (e) {
     return { ok: false, message: (e as Error).message };
   }
 
   try {
-    await provisionPerson({
+    const { userId } = await provisionPerson({
       actorId: session.userId,
       orgId: session.orgId,
       email,
       role,
       displayName,
     });
+    // File the new member into the chosen group. Best-effort: a failed group
+    // assign must NOT undo a successful add — the admin can re-assign in the
+    // member list. (Only possible when a real userId came back, i.e. "added".)
+    if (groupId && userId) {
+      try {
+        await assignGroup(session.userId, userId, groupId);
+      } catch {
+        /* soft: keep the add; group can be set later */
+      }
+    }
     // NOTE: we do NOT branch the message on the "already_elsewhere" outcome.
     // Returning a different message for an email that already belongs to another
     // org would be a cross-tenant existence oracle. Both outcomes report the

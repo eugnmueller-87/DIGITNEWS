@@ -97,7 +97,7 @@ export default async function MitgliederPage() {
         subtitle="Personen hinzufügen, Gruppen verwalten, Rollen vergeben."
       />
 
-      <AddPersonForm canAddAdmins={canAddAdmins} />
+      <AddPersonForm canAddAdmins={canAddAdmins} groups={groups} />
 
       <GroupsPanel groups={groups} />
 

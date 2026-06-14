@@ -63,7 +63,7 @@ export async function createOrgWithAdmin(
   // orphan org. If the chosen role is 'member', the org has no admin yet — the
   // superadmin can promote someone later, so we allow it.
   try {
-    const outcome = await provisionPerson({
+    const { outcome } = await provisionPerson({
       actorId: session.userId,
       orgId,
       email: adminEmail,

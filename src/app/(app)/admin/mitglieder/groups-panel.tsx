@@ -34,28 +34,34 @@ export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
       </p>
 
       {groups.length > 0 && (
-        <ul className="mt-3 space-y-1.5">
+        <ul className="mt-3 space-y-2">
           {groups.map((g) => (
             <GroupRow key={g.id} id={g.id} name={g.name} />
           ))}
         </ul>
       )}
 
-      <form action={formAction} className="mt-3 flex gap-2">
+      <form action={formAction} className="mt-3 flex flex-wrap gap-2">
         <Input
           name="name"
           placeholder="Neue Gruppe, z. B. Kita 1"
           maxLength={80}
           required
-          className="flex-1"
+          className="min-w-40 flex-1"
         />
-        <Button type="submit" disabled={pending} className="w-auto px-4">
-          {pending ? "…" : "Hinzufügen"}
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-auto min-w-32 px-5"
+        >
+          {pending ? "Wird angelegt …" : "Hinzufügen"}
         </Button>
       </form>
-      {state.message && !state.ok && (
+      {state.message && (
         <div className="mt-2">
-          <Alert variant="error">{state.message}</Alert>
+          <Alert variant={state.ok ? "success" : "error"}>
+            {state.message}
+          </Alert>
         </div>
       )}
     </Card>
@@ -85,58 +91,62 @@ function GroupRow({ id, name }: { id: string; name: string }) {
   }
 
   return (
-    <li className="flex items-center justify-between gap-2 text-sm">
-      {editing ? (
-        <>
-          <Input
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            maxLength={80}
-            className="h-9 flex-1"
-          />
-          <MiniButton
-            type="button"
-            tone="primary"
-            disabled={pending}
-            onClick={save}
-          >
-            Speichern
-          </MiniButton>
-          <MiniButton
-            type="button"
-            onClick={() => {
-              setEditing(false);
-              setValue(name);
-            }}
-          >
-            Abbrechen
-          </MiniButton>
-        </>
-      ) : (
-        <>
-          <span className="rounded-md bg-surface-2 px-2 py-1 text-ink">
-            {name}
-          </span>
-          <span className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="press text-xs text-ink-soft underline"
-            >
-              Umbenennen
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={remove}
-              className="press text-xs text-tomato underline disabled:opacity-50"
-            >
-              Löschen
-            </button>
-          </span>
-        </>
+    <li>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {editing ? (
+          <>
+            <Input
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              maxLength={80}
+              className="min-w-40 flex-1"
+            />
+            <div className="flex gap-2">
+              <MiniButton
+                type="button"
+                tone="primary"
+                disabled={pending}
+                onClick={save}
+              >
+                Speichern
+              </MiniButton>
+              <MiniButton
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setValue(name);
+                }}
+              >
+                Abbrechen
+              </MiniButton>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="rounded-[10px] bg-surface-2 px-3 py-1.5 font-semibold text-ink">
+              {name}
+            </span>
+            <div className="flex gap-2">
+              <MiniButton type="button" onClick={() => setEditing(true)}>
+                Umbenennen
+              </MiniButton>
+              <MiniButton
+                type="button"
+                tone="danger"
+                disabled={pending}
+                onClick={remove}
+              >
+                Löschen
+              </MiniButton>
+            </div>
+          </>
+        )}
+      </div>
+      {error && (
+        <div className="mt-2">
+          <Alert variant="error">{error}</Alert>
+        </div>
       )}
-      {error && <span className="ml-2 text-xs text-tomato">{error}</span>}
     </li>
   );
 }

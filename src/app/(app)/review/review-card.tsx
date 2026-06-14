@@ -2,7 +2,6 @@
 
 import { useActionState, useState, useTransition } from "react";
 
-import { CategoryChip, type ChipCategory } from "@/components/category-chip";
 import { Icon } from "@/components/icons";
 import { Card, Button, Input, Field, Label, Alert } from "@/components/ui";
 import { clsx } from "@/lib/clsx";
@@ -12,11 +11,6 @@ import type { ContentType } from "@/lib/content/types";
 import { publishDraft, discardDraft, type ReviewActionState } from "./actions";
 
 const initial: ReviewActionState = { ok: false, message: null };
-
-/** Map a content_type to the chip category used for its selector glyph. */
-function chipFor(ct: ContentType): ChipCategory {
-  return ct === "health_notice" ? "health_advisory" : (ct as ChipCategory);
-}
 
 /**
  * One draft's review card. The masked photo sits on top (with a "Maskiert" trust
@@ -110,9 +104,14 @@ export function ReviewCard({
           <div className="space-y-1.5">
             <Label>
               Art{" "}
-              {suggested && (
+              {suggested ? (
                 <span className="font-normal text-ink-faint">
-                  · Vorschlag: {CONTENT_TYPE_LABELS[suggested]}
+                  · Vorschlag der KI: {CONTENT_TYPE_LABELS[suggested]} — tippe
+                  zum Ändern
+                </span>
+              ) : (
+                <span className="font-normal text-ink-faint">
+                  · tippe die passende Art an
                 </span>
               )}
             </Label>
@@ -124,14 +123,16 @@ export function ReviewCard({
                     key={ct}
                     type="button"
                     onClick={() => setSelected(ct)}
-                    className={clsx(
-                      "press rounded-full ring-2 ring-transparent transition",
-                      active && "ring-accent",
-                      !active && "opacity-70",
-                    )}
                     aria-pressed={active}
+                    className={clsx(
+                      "press inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-2 text-[13px] font-bold transition",
+                      active
+                        ? "border-accent bg-accent text-white shadow-sm"
+                        : "border-border bg-paper text-ink-soft hover:bg-surface-2",
+                    )}
                   >
-                    <CategoryChip category={chipFor(ct)} />
+                    {active && <Icon name="check" size={14} />}
+                    {CONTENT_TYPE_LABELS[ct]}
                   </button>
                 );
               })}

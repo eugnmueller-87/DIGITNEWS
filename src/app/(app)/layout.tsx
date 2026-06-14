@@ -41,11 +41,10 @@ export default async function AppLayout({
   const draftCount = draftCountResult.count ?? 0;
 
   const memberNav: NavItem[] = [
-    { href: "/feed", label: "Feed" },
+    { href: "/bereiche", label: "Bereiche" },
     { href: "/essensplan", label: "Essensplan" },
     { href: "/rueckblick", label: "Rückblick" },
     { href: "/kalender", label: "Kalender" },
-    { href: "/bereiche", label: "Bereiche" },
   ];
 
   const adminNav: NavItem[] = [];
@@ -62,18 +61,20 @@ export default async function AppLayout({
 
   // Phone bottom bar: exactly FOUR thumb-sized tabs per role; secondary
   // destinations live in "Mehr". Admins get a raised capture FAB (CaptureLauncher)
-  // and a draft-count badge on Prüfen.
-  //   Eltern: Feed · Essen · Kalender · Mehr
-  //   Team:   Feed · Prüfen · Mitglieder · Mehr   (+ capture FAB)
+  // and a draft-count badge on Prüfen. "Bereiche" is the home tab — the organised
+  // category hub (with per-category "new" counts) that contains the Pinnwand row;
+  // the flat /feed page is still reachable from there, just not its own tab.
+  //   Eltern: Bereiche · Essen · Kalender · Mehr
+  //   Team:   Bereiche · Prüfen · Mitglieder · Mehr   (+ capture FAB)
   const bottomNav: BottomNavItem[] = isAdmin
     ? [
-        { href: "/feed", label: "Feed", icon: "feed" },
+        { href: "/bereiche", label: "Bereiche", icon: "feed" },
         { href: "/review", label: "Prüfen", icon: "review", badge: draftCount },
         { href: "/admin/mitglieder", label: "Mitglieder", icon: "members" },
         { href: "/mehr", label: "Mehr", icon: "more" },
       ]
     : [
-        { href: "/feed", label: "Feed", icon: "feed" },
+        { href: "/bereiche", label: "Bereiche", icon: "feed" },
         { href: "/essensplan", label: "Essen", icon: "meal" },
         { href: "/kalender", label: "Kalender", icon: "calendar" },
         { href: "/mehr", label: "Mehr", icon: "more" },

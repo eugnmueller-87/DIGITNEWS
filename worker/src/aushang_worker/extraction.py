@@ -48,14 +48,18 @@ CONTENT_TYPES = [
 # src/lib/content/extraction-schema.ts.
 
 # --- reusable field schemas ---
-# NOTE: strict mode rejects an `enum` that mixes a value list with null + a
-# union type, so nullable fields use type+description only (the prompt + the
+# NOTE 1: strict mode rejects an `enum` that mixes a value list with null + a
+# union type, so constrained fields use type+description only (the prompt + the
 # downstream review gate constrain the actual values).
-_DAY = {"type": ["string", "null"], "description": "mon|tue|wed|thu|fri oder null"}
+# NOTE 2: Anthropic caps a schema at 16 union/nullable parameters. So ONLY the
+# genuinely date-semantic fields (where null ≠ "") stay nullable; everything
+# else is a plain string and the model emits "" when there's nothing — the app
+# treats empty as absent. This keeps us under the union limit.
+_DAY = {"type": "string", "description": "mon|tue|wed|thu|fri oder leer"}
 _ISO = {"type": ["string", "null"], "description": "ISO Datum JJJJ-MM-TT oder null"}
-_NUTRI = {"type": ["string", "null"], "description": "A|B|C|D|E oder null (Schätzung)"}
-_HHMM = {"type": ["string", "null"], "description": "HH:MM oder null"}
-_STR = {"type": ["string", "null"]}
+_NUTRI = {"type": "string", "description": "A|B|C|D|E oder leer (Schätzung)"}
+_HHMM = {"type": "string", "description": "HH:MM oder leer"}
+_STR = {"type": "string", "description": "Text oder leer"}
 
 
 def _obj(props: dict, required: list[str] | None = None) -> dict:

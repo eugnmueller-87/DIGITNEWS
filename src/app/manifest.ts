@@ -8,7 +8,7 @@ import { brand } from "@/config/brand";
  * `maskable` use SEPARATE files: the maskable variants keep the mark inside
  * Android's ~80% safe zone so it isn't cropped, while `any` fills more.
  *
- * background_color / theme_color match the app's paper ground (globals.css)
+ * background_color / theme_color match the app's flat warm ground (globals.css)
  * so the splash + status bar tint to the brand, not a mismatched neutral.
  */
 export default function manifest(): MetadataRoute.Manifest {
@@ -21,8 +21,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#fff9ec", // --paper
-    theme_color: "#fff9ec", // --paper (matches the sticky header)
+    background_color: "#fbf8f2", // --app-bg
+    theme_color: "#fbf8f2", // --app-bg (matches the flat warm ground)
     lang: "de",
     dir: "ltr",
     categories: ["productivity", "education"],

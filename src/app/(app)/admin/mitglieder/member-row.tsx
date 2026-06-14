@@ -77,7 +77,7 @@ export function MemberRow({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-full border-2 border-ink bg-sunshine/50 px-2.5 py-0.5 text-xs font-bold text-ink">
+          <span className="rounded-full bg-sun-soft px-2.5 py-0.5 text-xs font-bold text-ink">
             {ROLE_LABEL[role]}
           </span>
           {canRemove &&
@@ -106,7 +106,7 @@ export function MemberRow({
       </div>
 
       {showManage && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t-2 border-ink/10 pt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
           {/* Group assignment */}
           {groups.length > 0 && (
             <label className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft">
@@ -117,7 +117,7 @@ export function MemberRow({
                 onChange={(e) =>
                   run(() => assignGroupAction(id, e.target.value))
                 }
-                className="h-11 rounded-2xl border-[3px] border-ink bg-white px-3 text-sm font-semibold text-ink outline-none focus:bg-sky/20 disabled:opacity-50"
+                className="h-11 rounded-[12px] border border-border bg-white px-3 text-sm font-semibold text-ink outline-none focus:border-sun-deep disabled:opacity-50"
               >
                 <option value="">—</option>
                 {groups.map((g) => (

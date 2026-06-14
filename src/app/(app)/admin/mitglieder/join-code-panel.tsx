@@ -72,7 +72,7 @@ export function JoinCodePanel({
                 readOnly
                 value={url}
                 onFocus={(e) => e.currentTarget.select()}
-                className="h-11 min-w-0 flex-1 rounded-2xl border-[3px] border-ink bg-white px-3 text-sm font-semibold text-ink-soft"
+                className="h-11 min-w-0 flex-1 rounded-[12px] border border-border bg-white px-3 text-sm font-semibold text-ink-soft"
               />
               <MiniButton tone={copied ? "primary" : "neutral"} onClick={copy}>
                 {copied ? "Kopiert ✓" : "Link kopieren"}

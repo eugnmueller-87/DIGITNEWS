@@ -7,7 +7,7 @@ export function SunLogo({ className }: { className?: string }) {
       className={className}
       style={{ animation: "sunSpin 40s linear infinite" }}
     >
-      <g stroke="#4A3F35" strokeWidth="4" strokeLinecap="round">
+      <g stroke="#34302A" strokeWidth="4" strokeLinecap="round">
         <line x1="50" y1="2" x2="50" y2="16" />
         <line x1="50" y1="84" x2="50" y2="98" />
         <line x1="2" y1="50" x2="16" y2="50" />
@@ -21,16 +21,16 @@ export function SunLogo({ className }: { className?: string }) {
         cx="50"
         cy="50"
         r="28"
-        fill="#FFD45E"
-        stroke="#4A3F35"
+        fill="#F9B233"
+        stroke="#34302A"
         strokeWidth="4"
       />
-      <circle cx="42" cy="46" r="3.5" fill="#4A3F35" />
-      <circle cx="58" cy="46" r="3.5" fill="#4A3F35" />
+      <circle cx="42" cy="46" r="3.5" fill="#34302A" />
+      <circle cx="58" cy="46" r="3.5" fill="#34302A" />
       <path
         d="M41 57 Q50 65 59 57"
         fill="none"
-        stroke="#4A3F35"
+        stroke="#34302A"
         strokeWidth="3.5"
         strokeLinecap="round"
       />

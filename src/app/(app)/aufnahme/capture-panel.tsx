@@ -162,8 +162,8 @@ export function CapturePanel() {
           onClick={() => cameraInputRef.current?.click()}
           disabled={working}
           className={clsx(
-            "flex min-h-32 flex-col items-center justify-center gap-1.5 rounded-3xl border-[3px] border-dashed border-ink-soft bg-sky/25 px-6 py-7 text-center transition-colors",
-            "hover:bg-sky/50 active:bg-sky/60 disabled:opacity-60",
+            "flex min-h-32 flex-col items-center justify-center gap-1.5 rounded-[18px] border border-dashed border-border bg-sage-soft px-6 py-7 text-center transition-colors",
+            "hover:bg-sun-soft disabled:opacity-60",
           )}
         >
           <span className="text-4xl leading-none" aria-hidden>
@@ -182,8 +182,8 @@ export function CapturePanel() {
           onClick={() => galleryInputRef.current?.click()}
           disabled={working}
           className={clsx(
-            "flex min-h-32 flex-col items-center justify-center gap-1.5 rounded-3xl border-[3px] border-dashed border-ink-soft bg-paper px-6 py-7 text-center transition-colors",
-            "hover:bg-sky/20 active:bg-sky/30 disabled:opacity-60",
+            "flex min-h-32 flex-col items-center justify-center gap-1.5 rounded-[18px] border border-dashed border-border bg-paper px-6 py-7 text-center transition-colors",
+            "hover:bg-sun-soft disabled:opacity-60",
           )}
         >
           <span className="text-4xl leading-none" aria-hidden>

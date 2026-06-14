@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Master app icon for Aushang. Single source for all generated PWA icons (and
-  later native densities) via scripts/gen-icons.mjs. Brand colours: paper
-  #fff9ec, sunshine #ffd45e, ink #4a3f35 (see src/app/globals.css).
+  later native densities) via scripts/gen-icons.mjs. Brand colours: app-bg
+  #fbf8f2, sun #f9b233, ink #34302a (see src/app/globals.css).
 
   The sun mark sits on a transparent ground so the generator can place it on a
   paper background with whatever padding each target (regular vs. maskable
   safe-zone) needs.
 -->
 <svg width="512" height="512" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <g stroke="#4A3F35" stroke-width="4" stroke-linecap="round">
+  <g stroke="#34302A" stroke-width="4" stroke-linecap="round">
     <line x1="50" y1="2" x2="50" y2="16" />
     <line x1="50" y1="84" x2="50" y2="98" />
     <line x1="2" y1="50" x2="16" y2="50" />
@@ -19,8 +19,8 @@
     <line x1="84" y1="16" x2="74" y2="26" />
     <line x1="26" y1="74" x2="16" y2="84" />
   </g>
-  <circle cx="50" cy="50" r="28" fill="#FFD45E" stroke="#4A3F35" stroke-width="4" />
-  <circle cx="42" cy="46" r="3.5" fill="#4A3F35" />
-  <circle cx="58" cy="46" r="3.5" fill="#4A3F35" />
-  <path d="M41 57 Q50 65 59 57" fill="none" stroke="#4A3F35" stroke-width="3.5" stroke-linecap="round" />
+  <circle cx="50" cy="50" r="28" fill="#F9B233" stroke="#34302A" stroke-width="4" />
+  <circle cx="42" cy="46" r="3.5" fill="#34302A" />
+  <circle cx="58" cy="46" r="3.5" fill="#34302A" />
+  <path d="M41 57 Q50 65 59 57" fill="none" stroke="#34302A" stroke-width="3.5" stroke-linecap="round" />
 </svg>

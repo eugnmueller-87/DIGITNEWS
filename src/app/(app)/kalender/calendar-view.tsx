@@ -18,8 +18,8 @@ import type { CalEvent } from "./page";
 type View = "month" | "list";
 
 const CATEGORY_COLOR: Record<CalEvent["category"], string> = {
-  closure: "bg-berry",
-  event: "bg-wool-pink",
+  closure: "bg-sage",
+  event: "bg-sun-soft",
   deadline: "bg-sunshine",
 };
 const CATEGORY_LABEL: Record<CalEvent["category"], string> = {
@@ -59,7 +59,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="font-display inline-flex gap-1 rounded-full border-[3px] border-ink bg-paper p-1 text-sm font-semibold">
+        <div className="font-display inline-flex gap-1 rounded-full border border-border bg-paper p-1 text-sm font-semibold">
           {(["month", "list"] as const).map((v) => (
             <button
               key={v}
@@ -67,7 +67,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
               onClick={() => setView(v)}
               className={
                 view === v
-                  ? "rounded-full bg-sunshine px-3 py-1 text-ink"
+                  ? "rounded-full bg-sun-soft px-3 py-1 text-ink"
                   : "rounded-full px-3 py-1 text-ink-soft"
               }
             >
@@ -82,7 +82,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
               type="button"
               aria-label="Vorheriger Monat"
               onClick={() => setCursor(prevMonth)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-ink bg-paper text-lg leading-none shadow-felt-sm active:translate-y-0.5"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-paper text-lg leading-none shadow-felt"
             >
               ‹
             </button>
@@ -93,7 +93,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
               type="button"
               aria-label="Nächster Monat"
               onClick={() => setCursor(nextMonth)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-ink bg-paper text-lg leading-none shadow-felt-sm active:translate-y-0.5"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-paper text-lg leading-none shadow-felt"
             >
               ›
             </button>
@@ -166,19 +166,19 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
             return (
               <div
                 key={e.id}
-                className="rounded-wobble-a flex items-center gap-4 border-[3px] border-ink bg-paper p-4 shadow-felt-sm"
+                className="flex items-center gap-4 rounded-[18px] border border-border bg-paper p-4 shadow-felt"
               >
-                <div className="font-display flex w-16 shrink-0 flex-col items-center rounded-2xl border-[3px] border-ink bg-white py-1.5">
+                <div className="font-display flex w-16 shrink-0 flex-col items-center rounded-[12px] border border-border bg-app-bg py-1.5">
                   <span className="text-2xl font-bold leading-none text-ink">
                     {d}
                   </span>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-tomato">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-sun-deep">
                     {MONTH_ABBR[Number(m) - 1]}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <span
-                    className={`inline-block rounded-full border-2 border-ink px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${CATEGORY_COLOR[e.category]} ${e.category === "closure" ? "text-white" : "text-ink"}`}
+                    className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${CATEGORY_COLOR[e.category]} ${e.category === "closure" ? "text-white" : "text-ink"}`}
                   >
                     {CATEGORY_LABEL[e.category]}
                   </span>

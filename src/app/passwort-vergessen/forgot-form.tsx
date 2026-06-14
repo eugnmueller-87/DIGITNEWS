@@ -22,7 +22,7 @@ export function ForgotForm() {
           <Alert variant="success">{state.message}</Alert>
           <Link
             href="/registrieren"
-            className="rounded-wobble-pill font-display flex h-11 w-full items-center justify-center border-[3px] border-ink bg-sunshine px-6 text-base font-semibold text-ink shadow-felt"
+            className="font-display flex h-11 w-full items-center justify-center rounded-full bg-sunshine px-6 text-base font-semibold text-ink shadow-felt transition-colors hover:bg-sun-deep hover:text-white"
           >
             Code eingeben
           </Link>

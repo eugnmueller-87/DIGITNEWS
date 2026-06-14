@@ -56,14 +56,14 @@ export function BottomNav({
         <Link
           href={fab.href}
           aria-label={fab.label}
-          className="rounded-wobble-pill fixed bottom-20 right-5 z-30 flex h-14 w-14 items-center justify-center border-[3px] border-ink bg-sunshine text-ink shadow-felt transition-transform hover:-translate-y-0.5 active:translate-y-0.5 sm:hidden"
+          className="fixed bottom-20 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-sunshine text-ink shadow-felt transition-colors hover:bg-sun-deep hover:text-white sm:hidden"
         >
           <Icon name={fab.icon} size={26} />
         </Link>
       )}
       <nav
         aria-label="Hauptnavigation"
-        className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t-[3px] border-ink bg-paper/95 backdrop-blur sm:hidden"
+        className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t border-border bg-paper/95 backdrop-blur sm:hidden"
       >
         <ul className="mx-auto flex max-w-3xl items-stretch justify-around">
           {items.map((item) => {
@@ -81,10 +81,8 @@ export function BottomNav({
                 >
                   <span
                     className={clsx(
-                      "flex h-8 w-10 items-center justify-center rounded-full border-2 transition-colors",
-                      active
-                        ? "border-ink bg-sunshine"
-                        : "border-transparent bg-transparent",
+                      "flex h-8 w-10 items-center justify-center rounded-full transition-colors",
+                      active ? "bg-sun-soft text-sun-deep" : "bg-transparent",
                     )}
                   >
                     <Icon name={item.icon} />

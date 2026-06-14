@@ -38,7 +38,7 @@ export const metadata: Metadata = {
  * the mobile status bar tints to the app instead of a mismatched dark bar.
  */
 export const viewport: Viewport = {
-  themeColor: "#fff9ec", // --paper
+  themeColor: "#fbf8f2", // --app-bg
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -55,9 +55,6 @@ export default function RootLayout({
       className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col text-ink">
-        {/* Decorative drifting clouds (reduced-motion safe). */}
-        <div className="cloud c1" aria-hidden="true" />
-        <div className="cloud c2" aria-hidden="true" />
         {children}
         <ServiceWorkerRegister />
       </body>

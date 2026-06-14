@@ -15,13 +15,7 @@ export function PageHeader({
   return (
     <div className="mb-5">
       <div className="flex items-start justify-between gap-3">
-        <h1 className="font-display flex items-center gap-3 text-2xl font-bold text-ink">
-          {title}
-          <span
-            aria-hidden
-            className="hidden h-1 flex-1 rounded bg-[repeating-linear-gradient(90deg,var(--ink)_0_14px,transparent_14px_26px)] opacity-25 sm:block"
-          />
-        </h1>
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
         {action && <div className="shrink-0">{action}</div>}
       </div>
       {subtitle && (
@@ -46,10 +40,10 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
-/** A skeleton shaped like a feed/section card (border + felt shadow). */
+/** A skeleton shaped like a feed/section card (border + soft shadow). */
 export function SkeletonCard({ lines = 2 }: { lines?: number }) {
   return (
-    <div className="rounded-wobble-a border-[3px] border-ink/15 bg-paper/70 p-5 shadow-felt-sm">
+    <div className="rounded-[18px] border border-border bg-paper p-5 shadow-felt">
       <Skeleton className="h-5 w-2/3" />
       <div className="mt-3 space-y-2">
         {Array.from({ length: lines }).map((_, i) => (
@@ -66,7 +60,7 @@ export function SkeletonCard({ lines = 2 }: { lines?: number }) {
 /** A centered empty-state inside a dashed card. */
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="rounded-[28px] border-[3px] border-dashed border-ink-soft/60 bg-paper/60 px-6 py-10 text-center">
+    <div className="rounded-[18px] border border-dashed border-border bg-paper px-6 py-10 text-center">
       <p className="font-display text-lg font-semibold text-ink">{title}</p>
       {hint && (
         <p className="mx-auto mt-1 max-w-xs text-sm font-semibold text-ink-soft">
@@ -87,7 +81,7 @@ export function Card({
   return (
     <div
       className={clsx(
-        "rounded-wobble-a border-[3px] border-ink bg-paper p-6 shadow-felt-sm",
+        "rounded-[18px] border border-border bg-paper p-6 shadow-felt",
         className,
       )}
     >
@@ -104,7 +98,7 @@ export function Button({
     <button
       {...props}
       className={clsx(
-        "rounded-wobble-pill font-display inline-flex h-11 w-full items-center justify-center border-[3px] border-ink bg-sunshine px-6 text-base font-semibold text-ink shadow-felt transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50",
+        "font-display inline-flex h-11 w-full items-center justify-center rounded-full bg-sunshine px-6 text-base font-semibold text-ink shadow-felt transition-colors hover:bg-sun-deep hover:text-white active:bg-sun-deep disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
     />
@@ -125,15 +119,16 @@ export function MiniButton({
   tone?: "neutral" | "primary" | "danger";
 }) {
   const tones = {
-    neutral: "bg-paper text-ink",
-    primary: "bg-sunshine text-ink",
-    danger: "bg-tomato text-white",
+    neutral: "border-border bg-paper text-ink hover:bg-sun-soft",
+    primary:
+      "border-transparent bg-sunshine text-ink hover:bg-sun-deep hover:text-white",
+    danger: "border-transparent bg-tomato text-white",
   } as const;
   return (
     <button
       {...props}
       className={clsx(
-        "font-display inline-flex h-11 min-h-11 items-center justify-center rounded-2xl border-[3px] border-ink px-3.5 text-sm font-semibold shadow-felt-sm transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50",
+        "font-display inline-flex h-11 min-h-11 items-center justify-center rounded-full border px-3.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         tones[tone],
         className,
       )}
@@ -149,7 +144,7 @@ export function Input({
     <input
       {...props}
       className={clsx(
-        "h-11 w-full rounded-2xl border-[3px] border-ink bg-white px-4 text-base font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-soft/60 focus:bg-sky/20",
+        "h-11 w-full rounded-[12px] border border-border bg-white px-4 text-base font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-soft/60 focus:border-sun-deep",
         className,
       )}
     />
@@ -196,15 +191,15 @@ export function Alert({
   children: React.ReactNode;
 }) {
   const styles = {
-    info: "bg-sky/40 border-ink text-ink",
-    error: "bg-tomato/20 border-tomato text-ink",
-    success: "bg-wool-mint/60 border-grass-deep text-ink",
+    info: "bg-sky/40 border-border text-ink",
+    error: "bg-tomato/15 border-tomato text-ink",
+    success: "bg-sage-soft border-border text-ink",
   } as const;
   return (
     <div
       role={variant === "error" ? "alert" : "status"}
       className={clsx(
-        "rounded-2xl border-[3px] px-4 py-3 text-sm font-semibold",
+        "rounded-[12px] border px-4 py-3 text-sm font-semibold",
         styles[variant],
       )}
     >

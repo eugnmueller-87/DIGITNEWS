@@ -64,22 +64,19 @@ export default async function FeedPage() {
           {alertList.map((a) => (
             <div
               key={a.id}
-              className="rounded-wobble-b relative border-[3px] border-ink bg-paper p-5 shadow-felt"
+              className={clsx(
+                "rounded-[18px] border bg-paper p-5 shadow-felt",
+                a.health_severity === "urgent"
+                  ? "border-tomato"
+                  : "border-border",
+              )}
             >
-              {/* Pin dot */}
-              <span
-                aria-hidden
-                className={clsx(
-                  "absolute -top-2.5 left-1/2 h-5 w-5 -translate-x-1/2 rounded-full border-[3px] border-ink",
-                  a.health_severity === "urgent" ? "bg-tomato" : "bg-sunshine",
-                )}
-              />
               <span
                 className={clsx(
-                  "rounded-full border-2 border-ink px-3 py-0.5 text-xs font-bold",
+                  "rounded-full px-3 py-0.5 text-xs font-bold",
                   a.health_severity === "urgent"
                     ? "bg-tomato text-white"
-                    : "bg-sunshine text-ink",
+                    : "bg-sun-soft text-ink",
                 )}
               >
                 {a.health_severity === "urgent" ? "⚠️ Wichtig" : "ℹ️ Hinweis"}
@@ -113,18 +110,11 @@ export default async function FeedPage() {
         )
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {list.map((post, i) => (
+          {list.map((post) => (
             <article
               key={post.id}
-              className={clsx(
-                "relative border-[3px] border-ink bg-paper p-5 shadow-felt",
-                i % 2 === 0 ? "rounded-wobble-a" : "rounded-wobble-b",
-              )}
+              className="rounded-[18px] border border-border bg-paper p-5 shadow-felt"
             >
-              <span
-                aria-hidden
-                className="absolute -top-2.5 left-1/2 h-4 w-4 -translate-x-1/2 rounded-full border-[3px] border-ink bg-berry"
-              />
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-display text-lg font-semibold text-ink">
                   {post.title}

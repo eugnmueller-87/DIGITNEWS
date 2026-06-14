@@ -5,43 +5,61 @@
    design/digitnews-kita-v2. Warm "felt-craft" aesthetic.
    ============================================================ */
 :root {
-  --sky: #bfe3f2;
-  --paper: #fff9ec;
-  --grass: #8fcb6b;
-  --grass-deep: #6fae4e;
-  --sunshine: #ffd45e;
-  --tomato: #ff8370;
-  --berry: #5b9bd5;
-  --wool-mint: #a8e0c5;
-  --wool-lilac: #cbb8e8;
-  --wool-pink: #f7b8c4;
-  --ink: #4a3f35;
-  --ink-soft: #7a6b5c;
+  /* Flat warm theme (KitaNav). Variable NAMES are kept so existing utility
+     classes (bg-paper, text-ink, bg-sunshine, …) flip in place. */
+  --app-bg: #fbf8f2; /* flat page background */
+  --paper: #ffffff; /* cards are now pure white */
+  --border: #ece6da; /* 1px hairline dividers/borders */
+  --ink: #34302a;
+  --ink-soft: #8e887c;
 
-  /* Nutri-Score scale */
+  --sunshine: #f9b233; /* sun */
+  --sun-soft: #fef1d8; /* active-tab pill fill */
+  --sun-deep: #c9760a; /* active icon / strong accent / focus ring */
+  --sage: #4fb3a0;
+  --sage-soft: #e2f4f0;
+  --sky: #cfe8f5;
+
+  /* Aliases for tokens removed from the palette, so any unswept reference
+     still resolves and the build stays green. */
+  --grass: #4fb3a0;
+  --grass-deep: #3f9a89;
+  --berry: #4fb3a0;
+  --tomato: #e06a5a;
+  --wool-mint: #e2f4f0;
+  --wool-lilac: #cfe8f5;
+  --wool-pink: #fef1d8;
+
+  /* Nutri-Score scale — unchanged (data semantics, not theme) */
   --nutri-a: #038141;
   --nutri-b: #85bb2f;
   --nutri-c: #fecb02;
   --nutri-d: #ee8100;
   --nutri-e: #e63e11;
 
-  /* Organic "wobble" border radii (hand-drawn feel) */
-  --wobble-a: 255px 25px 225px 25px / 25px 225px 25px 255px;
-  --wobble-b: 25px 225px 25px 255px / 255px 25px 225px 25px;
-  --wobble-pill: 95px 155px 148px 103px / 148px 95px 140px 155px;
+  /* Flat radii (the .rounded-wobble-* utilities read these). */
+  --wobble-a: 18px;
+  --wobble-b: 18px;
+  --wobble-pill: 999px;
 
-  --border-w: 3px;
-  --shadow-felt: 0 6px 0 rgba(74, 63, 53, 0.18);
-  --shadow-felt-sm: 0 4px 0 rgba(74, 63, 53, 0.15);
+  --border-w: 1px;
+  --shadow-felt: 0 1px 2px rgba(40, 36, 28, 0.04);
+  --shadow-felt-sm: 0 1px 2px rgba(40, 36, 28, 0.04);
 }
 
 /* Expose tokens to Tailwind's theme so utilities like bg-paper / text-ink work. */
 @theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-border: var(--border);
   --color-sky: var(--sky);
   --color-paper: var(--paper);
   --color-grass: var(--grass);
   --color-grass-deep: var(--grass-deep);
   --color-sunshine: var(--sunshine);
+  --color-sun-soft: var(--sun-soft);
+  --color-sun-deep: var(--sun-deep);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
   --color-tomato: var(--tomato);
   --color-berry: var(--berry);
   --color-wool-mint: var(--wool-mint);
@@ -68,12 +86,9 @@ html {
 body {
   font-family: var(--font-body), system-ui, sans-serif;
   color: var(--ink);
-  background:
-    radial-gradient(ellipse 60% 40% at 80% -5%, #fff3c9 0%, transparent 55%),
-    linear-gradient(180deg, var(--sky) 0%, #d6edf8 70%, #e8f4ea 100%);
-  background-attachment: fixed;
+  background: var(--app-bg);
   /* 100dvh tracks the *dynamic* viewport so the layout doesn't jump when iOS
-     Safari's URL bar shows/hides; min-height keeps the gradient full-bleed. */
+     Safari's URL bar shows/hides; min-height keeps the background full-bleed. */
   min-height: 100vh;
   min-height: 100dvh;
 }
@@ -124,56 +139,6 @@ body {
   box-shadow: var(--shadow-felt-sm);
 }
 
-/* Drifting clouds (decorative) */
-.cloud {
-  position: fixed;
-  z-index: 0;
-  opacity: 0.85;
-  pointer-events: none;
-  width: 150px;
-  height: 48px;
-  background: #fff;
-  border-radius: 100px;
-  filter: drop-shadow(0 4px 0 rgba(74, 63, 53, 0.06));
-}
-.cloud::before,
-.cloud::after {
-  content: "";
-  position: absolute;
-  background: #fff;
-  border-radius: 50%;
-}
-.cloud::before {
-  width: 60px;
-  height: 60px;
-  top: -28px;
-  left: 24px;
-}
-.cloud::after {
-  width: 42px;
-  height: 42px;
-  top: -18px;
-  right: 28px;
-}
-.cloud.c1 {
-  top: 6%;
-  animation: drift 95s linear infinite;
-}
-.cloud.c2 {
-  top: 30%;
-  transform: scale(0.6);
-  animation: drift 140s linear infinite;
-  animation-delay: -60s;
-}
-@keyframes drift {
-  from {
-    left: -200px;
-  }
-  to {
-    left: 110vw;
-  }
-}
-
 @keyframes sunSpin {
   to {
     transform: rotate(360deg);
@@ -206,13 +171,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cloud {
-    animation: none !important;
-    left: 8vw;
-  }
-  .cloud.c2 {
-    left: 60vw;
-  }
   * {
     animation: none !important;
   }
@@ -222,6 +180,6 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px dashed var(--berry);
-  outline-offset: 3px;
+  outline: 2px solid var(--sun-deep);
+  outline-offset: 2px;
 }

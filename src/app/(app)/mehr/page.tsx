@@ -74,8 +74,8 @@ export default async function MehrPage() {
                     <Link
                       href={link.href}
                       className={
-                        "flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-sunshine/30 active:bg-sunshine/40" +
-                        (i > 0 ? " border-t-2 border-ink/10" : "")
+                        "flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-sun-soft" +
+                        (i > 0 ? " border-t border-border" : "")
                       }
                     >
                       <span className="min-w-0">

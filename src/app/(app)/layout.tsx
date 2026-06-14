@@ -82,7 +82,7 @@ export default async function AppLayout({
 
   return (
     <div className="relative z-[1] flex min-h-full flex-col">
-      <header className="pt-safe sticky top-0 z-10 border-b-[3px] border-ink bg-paper/90 backdrop-blur">
+      <header className="pt-safe sticky top-0 z-10 border-b border-border bg-paper/90 backdrop-blur">
         <div className="px-content mx-auto w-full max-w-3xl">
           <div className="flex items-center justify-between gap-3 py-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -108,14 +108,12 @@ export default async function AppLayout({
         {children}
       </main>
 
-      <footer className="pb-safe px-content relative mt-10 border-t-[3px] border-ink bg-gradient-to-b from-grass to-grass-deep py-6 text-white">
+      <footer className="pb-safe px-content relative mt-10 border-t border-border bg-paper py-6 text-ink-soft">
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
-          <span className="font-display text-lg font-bold">
-            {brand.name} <span aria-hidden>🌼</span>
+          <span className="font-display text-lg font-bold text-ink">
+            {brand.name}
           </span>
-          <span className="text-sm font-semibold opacity-90">
-            {brand.footerPitch}
-          </span>
+          <span className="text-sm font-semibold">{brand.footerPitch}</span>
         </div>
       </footer>
 

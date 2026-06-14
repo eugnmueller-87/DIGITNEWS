@@ -39,7 +39,7 @@ export function BottomSheet({
   return (
     <div
       className={clsx(
-        "fixed inset-0 z-50 sm:items-center sm:justify-center",
+        "fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center",
         open ? "pointer-events-auto" : "pointer-events-none",
       )}
       aria-hidden={!open}
@@ -60,8 +60,8 @@ export function BottomSheet({
         role="dialog"
         aria-modal="true"
         className={clsx(
-          "pb-safe absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-[20px] bg-paper shadow-float transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)] sm:inset-x-auto sm:bottom-auto sm:rounded-[20px]",
-          open ? "translate-y-0" : "translate-y-full",
+          "pb-safe absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-[20px] bg-paper shadow-float transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)] sm:static sm:w-full sm:rounded-[20px] sm:pb-0",
+          open ? "translate-y-0" : "translate-y-full sm:translate-y-0",
         )}
       >
         <div className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-ink/15" />

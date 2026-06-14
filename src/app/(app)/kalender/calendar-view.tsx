@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { BottomSheet } from "@/components/bottom-sheet";
 import { DateTile } from "@/components/date-tile";
 import {
   anchorMonth,
@@ -57,9 +58,29 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
   const [cursor, setCursor] = useState(() =>
     anchorMonth(events[0]?.starts_on, { y: 2026, m: 0 }),
   );
+  // The tapped day (ISO) whose events are shown in the detail sheet, or a single
+  // tapped event from the list view.
+  const [sheetDay, setSheetDay] = useState<string | null>(null);
+  const [sheetEvent, setSheetEvent] = useState<CalEvent | null>(null);
 
   const grid = useMemo(() => monthGrid(cursor), [cursor]);
   const upcoming = useMemo(() => sortByStart(events), [events]);
+
+  const dayEvents = sheetDay
+    ? events.filter((e) => covers(e, sheetDay))
+    : sheetEvent
+      ? [sheetEvent]
+      : [];
+  const sheetTitle = sheetDay
+    ? (() => {
+        const [y, m, d] = sheetDay.split("-");
+        return `${d}.${m}.${y}`;
+      })()
+    : "Termin";
+  const closeSheet = () => {
+    setSheetDay(null);
+    setSheetEvent(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -126,11 +147,18 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
           <div className="grid grid-cols-7 gap-px">
             {grid.map((d, i) => {
               const iso = d ? isoOf(cursor.y, cursor.m, d) : "";
-              const dayEvents = d ? events.filter((e) => covers(e, iso)) : [];
+              const cellEvents = d ? events.filter((e) => covers(e, iso)) : [];
+              const hasEvents = cellEvents.length > 0;
               return (
-                <div
+                <button
                   key={i}
-                  className="min-h-16 rounded-lg p-0.5 text-left text-[11px] sm:p-1 sm:text-xs"
+                  type="button"
+                  disabled={!hasEvents}
+                  onClick={() => hasEvents && setSheetDay(iso)}
+                  className={clsx(
+                    "min-h-16 rounded-lg p-0.5 text-left text-[11px] sm:p-1 sm:text-xs",
+                    hasEvents && "press cursor-pointer hover:bg-surface-2",
+                  )}
                 >
                   {d && (
                     <>
@@ -138,7 +166,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
                         {d}
                       </div>
                       <div className="mt-0.5 space-y-0.5">
-                        {dayEvents.slice(0, 3).map((e) => (
+                        {cellEvents.slice(0, 3).map((e) => (
                           <div
                             key={e.id}
                             className="flex items-center gap-1 truncate text-ink-soft"
@@ -153,7 +181,7 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
                       </div>
                     </>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -161,9 +189,11 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
       ) : (
         <div className="space-y-3">
           {upcoming.map((e) => (
-            <div
+            <button
               key={e.id}
-              className="flex items-center gap-3.5 rounded-[16px] border border-border bg-paper p-3.5"
+              type="button"
+              onClick={() => setSheetEvent(e)}
+              className="press flex w-full items-center gap-3.5 rounded-[16px] border border-border bg-paper p-3.5 text-left"
             >
               <DateTile iso={e.starts_on} />
               <div className="min-w-0 flex-1">
@@ -180,10 +210,44 @@ export function CalendarView({ events }: { events: CalEvent[] }) {
                 </h3>
                 <p className="text-sm text-ink-soft">{formatRange(e)}</p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
+
+      {/* Day / event detail sheet */}
+      <BottomSheet
+        open={sheetDay != null || sheetEvent != null}
+        onClose={closeSheet}
+        title={sheetTitle}
+      >
+        <div className="space-y-3">
+          {dayEvents.map((e) => (
+            <div
+              key={e.id}
+              className="rounded-[14px] border border-border bg-paper p-3.5"
+            >
+              <span
+                className={clsx(
+                  "inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
+                  CATEGORY_CHIP[e.category],
+                )}
+              >
+                {CATEGORY_LABEL[e.category]}
+              </span>
+              <h3 className="mt-1.5 text-[17px] font-bold text-ink">
+                {e.title}
+              </h3>
+              <p className="mt-0.5 text-sm text-ink-soft">{formatRange(e)}</p>
+            </div>
+          ))}
+          {dayEvents.length === 0 && (
+            <p className="text-sm text-ink-soft">
+              Keine Termine an diesem Tag.
+            </p>
+          )}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

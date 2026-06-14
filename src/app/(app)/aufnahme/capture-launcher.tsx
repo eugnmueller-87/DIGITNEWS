@@ -37,7 +37,9 @@ export function CaptureLauncher() {
   );
 
   return (
-    <>
+    // Phone-only: on desktop, capture is the nav tab (/aufnahme). Gating the
+    // whole launcher prevents the FAB + sheet from overlaying desktop content.
+    <div className="sm:hidden">
       {/* Hidden inputs (shared handler) */}
       <input
         ref={cameraInputRef}
@@ -160,6 +162,6 @@ export function CaptureLauncher() {
           </Link>
         )}
       </BottomSheet>
-    </>
+    </div>
   );
 }

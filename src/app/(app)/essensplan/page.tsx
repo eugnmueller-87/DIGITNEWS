@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { CategoryChip } from "@/components/category-chip";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
@@ -29,6 +30,7 @@ export default async function EssensplanPage() {
 
   return (
     <div className="space-y-4">
+      <MarkSeen category="meal_plan" />
       <PageHeader title="Essensplan" subtitle="Was die Kinder essen." />
 
       {list.length === 0 ? (

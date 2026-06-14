@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { CategoryChip } from "@/components/category-chip";
 import { Alert, Button, EmptyState, SectionHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
@@ -75,6 +76,7 @@ export default async function FeedPage() {
 
   return (
     <div>
+      <MarkSeen category="feed" />
       <h1 className="font-display mb-4 text-[26px] font-bold leading-tight text-ink">
         Pinnwand
       </h1>

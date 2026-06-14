@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { EmptyState } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
@@ -50,6 +51,7 @@ export default async function KalenderPage() {
 
   return (
     <div className="space-y-4">
+      <MarkSeen category="event_notice" />
       <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
         Kalender
       </h1>

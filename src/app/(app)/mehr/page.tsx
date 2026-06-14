@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { Group, Row } from "@/components/grouped-list";
+import { NewBadge } from "@/components/new-badge";
 import { requireSession } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Mehr" };
 
@@ -17,6 +19,16 @@ export default async function MehrPage() {
   const isAdmin = session.role === "admin" || session.role === "superadmin";
   const isSuperadmin = session.role === "superadmin";
 
+  // Roll-up "new since last visit" count for the Bereiche entry. Use the 'feed'
+  // count (the union of all categories) so overlapping categories don't double-
+  // count. Best-effort — degrades to no badge if the RPC is unavailable.
+  const supabase = await createClient();
+  const { data: counts } = await supabase.rpc("category_new_counts");
+  const newTotal =
+    ((counts ?? []) as { category: string; new_count: number }[]).find(
+      (c) => c.category === "feed",
+    )?.new_count ?? 0;
+
   return (
     <div>
       <h1 className="font-display mb-5 text-[26px] font-bold leading-tight text-ink">
@@ -30,6 +42,7 @@ export default async function MehrPage() {
           glyph="feed"
           title="Bereiche"
           subtitle="Aushänge nach Kategorie"
+          trailing={<NewBadge count={Number(newTotal) || 0} />}
         />
         <Row
           href="/rueckblick"

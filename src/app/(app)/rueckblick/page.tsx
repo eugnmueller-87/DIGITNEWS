@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { CategoryChip } from "@/components/category-chip";
 import { PostDetail } from "@/components/post-detail";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
@@ -57,6 +58,7 @@ export default async function RueckblickPage() {
 
   return (
     <div className="space-y-4">
+      <MarkSeen category="reflection" />
       <PageHeader
         title="Rückblick"
         subtitle="Was die Kinder unter der Woche gemacht haben."

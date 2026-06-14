@@ -33,12 +33,17 @@ export default async function FeedPage() {
       .eq("content_type", "health_notice")
       .order("published_at", { ascending: false })
       .limit(50),
+    // The Pinnwand is the central stream of EVERYTHING published — every
+    // content_type plus unconfirmed (null) posts. We only exclude health_notice
+    // because those are already pinned at the top as alerts (avoid showing them
+    // twice). The dedicated libraries (Bereiche → Rückblick/Essensplan/…) are
+    // just filtered views of the same posts, not the only place they appear.
     supabase
       .from("posts_public")
       .select(
         "id, title, body, category, content_type, extraction, redacted_image_path, published_at",
       )
-      .or("content_type.is.null,content_type.in.(info,event_notice)")
+      .or("content_type.is.null,content_type.neq.health_notice")
       .order("published_at", { ascending: false })
       .limit(50),
     supabase

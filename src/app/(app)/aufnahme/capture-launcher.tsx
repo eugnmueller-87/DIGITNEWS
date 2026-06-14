@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/bottom-sheet";
@@ -19,6 +20,9 @@ import { useCapture } from "./use-capture";
  */
 export function CaptureLauncher() {
   const [open, setOpen] = useState(false);
+  // The /aufnahme page IS the full capture entry point — showing the floating
+  // FAB there too would be a redundant second camera button. Hide it there.
+  const pathname = usePathname();
   const {
     cameraInputRef,
     galleryInputRef,
@@ -35,6 +39,9 @@ export function CaptureLauncher() {
   const anyQueued = shots.some(
     (s) => s.state === "queued" || s.state === "processing",
   );
+
+  // All hooks have run above; safe to bail out of rendering the FAB here.
+  if (pathname === "/aufnahme") return null;
 
   return (
     // Phone-only: on desktop, capture is the nav tab (/aufnahme). Gating the

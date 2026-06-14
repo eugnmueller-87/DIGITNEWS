@@ -45,7 +45,16 @@ export function FeedCard({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isEvent = post.content_type === "event_notice";
-  const cat: ChipCategory = isEvent ? "event_notice" : "info";
+  // The Pinnwand now carries every content_type, so the chip reflects the real
+  // category. health_notice is pinned separately as an alert (never a card here),
+  // so it isn't in this map; null/unknown render as "info" (the routing contract).
+  const CHIP_BY_TYPE: Record<string, ChipCategory> = {
+    event_notice: "event_notice",
+    meal_plan: "meal_plan",
+    reflection: "reflection",
+    info: "info",
+  };
+  const cat: ChipCategory = CHIP_BY_TYPE[post.content_type ?? ""] ?? "info";
 
   const dateLabel = post.published_at
     ? new Date(post.published_at).toLocaleDateString("de-DE", {

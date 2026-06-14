@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { PageShell } from "@/components/ui";
-import { brand } from "@/config/brand";
 
 import { RegisterForm } from "./register-form";
 
@@ -22,11 +21,11 @@ export default async function RegistrierenPage({
 
   return (
     <PageShell
-      title={brand.name}
-      subtitle="Gib deine E-Mail und den Code aus der Einladungs-E-Mail ein."
+      title="Konto einrichten"
+      subtitle="Schritt 1 von 2: E-Mail + Code aus der Einladungs-E-Mail eingeben. Dein Passwort legst du danach selbst fest."
     >
       <RegisterForm presetEmail={email} />
-      <p className="mt-6 text-center text-xs text-zinc-400">
+      <p className="mt-6 text-center text-xs text-ink-faint">
         Zugänge werden von deiner Organisation vergeben. Es gibt keine
         Selbstregistrierung.
       </p>

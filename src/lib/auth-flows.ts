@@ -2,6 +2,7 @@ import "server-only";
 
 import { sendEmail } from "@/lib/email/client";
 import { registrationCodeEmail } from "@/lib/email/templates";
+import { publicEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -78,7 +79,10 @@ export async function sendRegistrationCode(email: string): Promise<void> {
   try {
     const { code } = await generateRegistrationCode(email);
     if (code) {
-      const { subject, html, text } = registrationCodeEmail(code);
+      // Link to the registration PAGE with the email prefilled — no token in
+      // the URL (scanner-proof); the code is still typed by the user.
+      const registerUrl = `${publicEnv.siteUrl}/registrieren?email=${encodeURIComponent(email)}`;
+      const { subject, html, text } = registrationCodeEmail(code, registerUrl);
       await sendEmail({ to: email, subject, html, text });
     }
   } catch {

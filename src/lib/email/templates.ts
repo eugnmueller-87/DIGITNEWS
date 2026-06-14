@@ -67,36 +67,54 @@ export function applicationVerificationEmail(verifyUrl: string): {
 }
 
 /**
- * Registration / password-reset CODE email. Shows a 6-digit code the user types
- * on /registrieren (no clickable link — so email scanners can't consume it).
- * Used for first-time invite onboarding and for "forgot password".
+ * Registration / password-reset CODE email. Shows a 6-digit code AND a button
+ * to the registration page. The button links only to /registrieren (with the
+ * email prefilled) — it carries NO token, so an email scanner can't consume the
+ * OTP; the code itself must still be typed. This gives the user a clear
+ * destination without weakening the scanner-proof design. Used for first-time
+ * invite onboarding and for "forgot password".
  */
-export function registrationCodeEmail(code: string): {
+export function registrationCodeEmail(
+  code: string,
+  registerUrl: string,
+): {
   subject: string;
   html: string;
   text: string;
 } {
   const safe = code.replace(/[^0-9A-Za-z]/g, "");
-  const heading = "Dein Anmelde-Code";
+  const heading = "Dein Zugangs-Code";
   const bodyHtml = `
-    <p style="margin:0 0 16px;">Dein Zugang zu ${brand.name} wurde eingerichtet. Gib diesen Code auf der Anmeldeseite ein, um dein Passwort festzulegen:</p>
+    <p style="margin:0 0 8px;">Dein Zugang zu ${brand.name} wurde eingerichtet. So richtest du dein Konto ein:</p>
+    <ol style="margin:0 0 16px;padding-left:18px;color:#3f3f46;">
+      <li style="margin-bottom:4px;">Tippe unten auf <b>„Konto einrichten"</b>.</li>
+      <li style="margin-bottom:4px;">Gib diesen Code ein.</li>
+      <li>Lege dein Passwort fest — fertig.</li>
+    </ol>
+    <p style="margin:0 0 8px;color:#71717a;font-size:13px;">Dein Code:</p>
     <p style="margin:0 0 20px;font-size:30px;font-weight:700;letter-spacing:6px;color:#18181b;font-family:monospace;">${safe}</p>
-    <p style="margin:0;color:#71717a;font-size:12px;">Der Code ist nur kurze Zeit gültig und kann nur einmal verwendet werden. Wenn du das nicht warst, kannst du diese E-Mail ignorieren.</p>
+    <p style="margin:0 0 20px;">${button(registerUrl, "Konto einrichten")}</p>
+    <p style="margin:0;color:#71717a;font-size:12px;">Der Code ist nur kurze Zeit gültig und kann nur einmal verwendet werden. Du hast noch kein Passwort — das legst du im letzten Schritt selbst fest. Wenn du das nicht warst, kannst du diese E-Mail ignorieren.</p>
   `;
   const text = [
-    "Dein Anmelde-Code",
+    "Dein Zugangs-Code",
     "",
-    `Dein Zugang zu ${brand.name} wurde eingerichtet. Gib diesen Code auf der Anmeldeseite ein, um dein Passwort festzulegen:`,
+    `Dein Zugang zu ${brand.name} wurde eingerichtet. So richtest du dein Konto ein:`,
     "",
-    safe,
+    `1. Öffne diese Seite: ${registerUrl}`,
+    "2. Gib diesen Code ein:",
     "",
-    "Der Code ist nur kurze Zeit gültig und einmalig verwendbar. Wenn du das nicht warst, ignoriere diese E-Mail.",
+    `   ${safe}`,
+    "",
+    "3. Lege dein Passwort fest — fertig.",
+    "",
+    "Der Code ist nur kurze Zeit gültig und einmalig verwendbar. Du hast noch kein Passwort — das legst du im letzten Schritt selbst fest. Wenn du das nicht warst, ignoriere diese E-Mail.",
     "",
     `${brand.name} — ${brand.footerPitch}`,
   ].join("\n");
 
   return {
-    subject: `${brand.name}: Dein Anmelde-Code`,
+    subject: `${brand.name}: Dein Zugangs-Code`,
     html: layout({ heading, bodyHtml }),
     text,
   };

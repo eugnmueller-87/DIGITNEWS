@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { brand } from "@/config/brand";
 import { serverEnv } from "@/lib/env.server";
 
 /**
@@ -46,7 +47,12 @@ export async function sendEmail(params: {
     return { sent: false, reason: "not_configured" };
   }
 
-  const from = serverEnv.emailFrom ?? "Aushang <onboarding@resend.dev>";
+  // Prefer the configured EMAIL_FROM; otherwise send from the brand's verified
+  // domain (brand.supportEmail). We deliberately do NOT fall back to Resend's
+  // onboarding@resend.dev test sender — that returns 403 for any recipient
+  // other than the account owner, so a missing EMAIL_FROM would silently fail
+  // to reach real users. The brand domain is the one verified in Resend.
+  const from = serverEnv.emailFrom ?? `${brand.name} <${brand.supportEmail}>`;
 
   try {
     const { error } = await client.emails.send({

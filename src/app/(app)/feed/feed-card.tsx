@@ -9,6 +9,7 @@ import {
   type ChipCategory,
 } from "@/components/category-chip";
 import { Icon } from "@/components/icons";
+import { PostDetail } from "@/components/post-detail";
 
 export interface FeedCardData {
   id: string;
@@ -16,6 +17,8 @@ export interface FeedCardData {
   body: string | null;
   content_type: string | null;
   published_at: string | null;
+  /** Structured extraction payload (typed per content_type) for the detail view. */
+  payload?: unknown;
 }
 
 /**
@@ -75,11 +78,13 @@ export function FeedCard({ post }: { post: FeedCardData }) {
         <h2 className="mt-3 font-display text-xl font-bold text-ink">
           {post.title}
         </h2>
-        {post.body && (
-          <p className="mt-2 max-h-[55vh] overflow-y-auto whitespace-pre-line text-[16px] leading-relaxed text-ink">
-            {post.body}
-          </p>
-        )}
+        <div className="mt-2 max-h-[55vh] overflow-y-auto">
+          <PostDetail
+            contentType={post.content_type}
+            body={post.body}
+            payload={post.payload}
+          />
+        </div>
         {isEvent && (
           <a
             href="/kalender"

@@ -32,7 +32,9 @@ export default async function FeedPage() {
       .limit(50),
     supabase
       .from("posts_public")
-      .select("id, title, body, category, content_type, published_at")
+      .select(
+        "id, title, body, category, content_type, extraction, published_at",
+      )
       .or("content_type.is.null,content_type.in.(info,event_notice)")
       .order("published_at", { ascending: false })
       .limit(50),
@@ -127,6 +129,9 @@ export default async function FeedPage() {
                 body: post.body,
                 content_type: post.content_type ?? null,
                 published_at: post.published_at,
+                payload:
+                  (post as { extraction?: { payload?: unknown } }).extraction
+                    ?.payload ?? null,
               }}
             />
           ))}

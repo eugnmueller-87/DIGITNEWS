@@ -122,7 +122,35 @@ _EVENT_ITEM = _obj(
     }
 )
 _EVENTS = _obj({"events": {"type": "array", "items": _EVENT_ITEM}})
-_INFO = _obj({"notes": _STR})
+# Info is structured so the UI can show bullet lists + a time→activity table
+# instead of one text block. `sections` = themed bullet groups; `schedule` =
+# a daily timetable; `notes` = a short intro / fallback.
+_INFO = _obj(
+    {
+        "notes": _STR,
+        "sections": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "heading": _STR,
+                    "items": {"type": "array", "items": {"type": "string"}},
+                }
+            ),
+        },
+        "schedule": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "time": {
+                        "type": "string",
+                        "description": "z.B. 08:00 oder 8:00-8:30",
+                    },
+                    "activity": {"type": "string"},
+                }
+            ),
+        },
+    }
+)
 
 # The five typed payloads as siblings (strict mode rejects oneOf/nullable
 # objects, so each is a plain object). The model fills the one matching
@@ -198,8 +226,13 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
         "ends_on, all_day(true ohne Uhrzeit), time_start, time_end(HH:MM|null)}] } "
         "— lege für JEDES konkrete Datum/jede Frist einen Eintrag an; mehrtägige "
         "Schließungen als ein Eintrag mit ends_on.\n"
-        "• info → { notes: zusammenhängender, gut lesbarer Text }\n"
-        "Erfinde keine Felder, lass Unbekanntes null."
+        "• info → { notes: kurzer Einleitungstext (1-2 Sätze) oder null; "
+        "sections:[{heading: Thema/Überschrift oder null, items:[Stichpunkt,…]}] "
+        "— zerlege Aufzählungen in thematische Gruppen mit kurzen Stichpunkten; "
+        "schedule:[{time, activity}] — NUR bei einem Tages-/Zeitablauf, je Zeile "
+        "ein Eintrag (time z.B. '08:00' oder '8:00-8:30'). Leere Listen [] wenn "
+        "nicht zutreffend }\n"
+        "Erfinde keine Felder, lass Unbekanntes null/leer."
     )
 
 

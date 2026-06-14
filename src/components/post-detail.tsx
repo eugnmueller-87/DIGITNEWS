@@ -404,14 +404,73 @@ function InfoDetail({
   body: string | null;
 }) {
   const notes = typeof payload.notes === "string" ? payload.notes.trim() : "";
-  if (notes) {
-    return (
-      <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink">
-        {notes}
-      </p>
-    );
+  const sections = Array.isArray(payload.sections)
+    ? payload.sections.filter(
+        (s) => s && Array.isArray(s.items) && s.items.length > 0,
+      )
+    : [];
+  const schedule = Array.isArray(payload.schedule)
+    ? payload.schedule.filter((r) => r && r.time && r.activity)
+    : [];
+
+  // Nothing structured → fall back to notes intro, then body.
+  if (!sections.length && !schedule.length) {
+    if (notes) {
+      return (
+        <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink">
+          {notes}
+        </p>
+      );
+    }
+    return <BodyText body={body} />;
   }
-  return <BodyText body={body} />;
+
+  return (
+    <div className="space-y-4">
+      {notes && (
+        <p className="text-[16px] leading-relaxed text-ink-soft">{notes}</p>
+      )}
+
+      {/* Timetable: time → activity rows */}
+      {schedule.length > 0 && (
+        <div className="overflow-hidden rounded-[12px] border border-border">
+          {schedule.map((row, i) => (
+            <div
+              key={i}
+              className={clsx(
+                "flex gap-3 px-3 py-2",
+                i > 0 && "border-t border-[color:var(--hairline)]",
+              )}
+            >
+              <span className="w-24 shrink-0 font-bold tabular-nums text-accent-deep">
+                {row.time}
+              </span>
+              <span className="text-ink">{row.activity}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Themed bullet groups */}
+      {sections.map((s, i) => (
+        <div key={i}>
+          {s.heading && (
+            <h3 className="font-display mb-1 text-[15px] font-bold text-ink">
+              {s.heading}
+            </h3>
+          )}
+          <ul className="space-y-1">
+            {s.items.map((it, j) => (
+              <li key={j} className="flex gap-2 text-[16px] text-ink">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <span className="leading-relaxed">{it}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // --- public API -------------------------------------------------------------

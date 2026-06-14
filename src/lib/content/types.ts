@@ -83,8 +83,20 @@ export interface EventNoticePayload {
   events: EventNoticeItem[];
 }
 
+export interface InfoSection {
+  heading: string | null;
+  items: string[];
+}
+export interface InfoScheduleItem {
+  time: string;
+  activity: string;
+}
 export interface InfoPayload {
   notes: string | null;
+  /** Themed bullet groups (e.g. Bildungsbereiche). */
+  sections?: InfoSection[];
+  /** A daily timetable (e.g. Tagesablauf) — time → activity rows. */
+  schedule?: InfoScheduleItem[];
 }
 
 /** The full validated extraction envelope the LLM emits (one per notice). */

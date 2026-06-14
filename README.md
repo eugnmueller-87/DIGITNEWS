@@ -7,14 +7,18 @@ Kirchengemeinden, Kleingartenkolonien, small businesses) that does **not** chang
 their processes. The org keeps pinning paper notices to its physical board; one
 admin photographs the board from inside the tool; the system OCRs and redacts the
 photo locally, extracts structured content and dates via an EU-hosted LLM, the
-admin reviews and confirms, and members get a private feed, a shared calendar, an
-ICS subscription, and an email digest.
+admin reviews and confirms, and members get a private feed, browsable category
+libraries, a shared calendar, an ICS subscription, and an email digest.
 
-> **Status: deployed.** Phases 1–5 are built — schema + RLS, auth, the capture →
-> OCR → redaction → LLM → review → publish pipeline, calendar/ICS, email, web
-> push, PWA, and GDPR/deletion flows. The web app runs on Vercel at
-> **[kita-connect.cloud](https://kita-connect.cloud)**; the OCR/redaction worker
-> (`worker/`) deploys separately on a VPS. See
+> **Status: live & in real-world testing.** Phases 1–5 are built and the full
+> pipeline runs end-to-end in production — schema + RLS, auth, the capture → OCR →
+> redaction → LLM → review → publish pipeline, content-type routing + per-category
+> libraries, calendar/ICS, email, web push, PWA, and GDPR/deletion flows. The web
+> app runs on Vercel at **[kita-connect.cloud](https://kita-connect.cloud)**; the
+> OCR/redaction worker (`worker/`) runs on a VPS. A first Kita is testing it, and
+> the app has since gained a clean mobile redesign ("Tafel"), post take-down,
+> duplicate prevention, opt-in clear-photo consent, and "new since last visit"
+> category counts (see **Post-launch** below). See
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
 > [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md).
 
@@ -34,7 +38,17 @@ change.
 | Styling             | Tailwind CSS v4                                                                                                                        |
 
 Plus a Python FastAPI OCR/redaction worker (Tesseract + Microsoft Presidio +
-spaCy), Mistral (EU) LLM extraction, Resend email, and Web Push — see `worker/`.
+spaCy), **Claude (Anthropic) LLM extraction on the redacted text only**, Resend
+email, and Web Push — see `worker/`.
+
+> **LLM note:** extraction uses the **Claude API** (`claude-haiku-4-5`), which is
+> **US-hosted**. The "privacy by construction" guarantee is preserved by the
+> redaction step _upstream_ of the call: only locally-redacted text (PII already
+> masked to `[NAME_1]`-style placeholders) is ever sent — never raw images, never
+> raw PII. The Anthropic key lives **only on the worker**. If strict EU residency
+> is ever required, swap the worker's `extraction` module back to an EU LLM;
+> nothing else in the pipeline changes. (Earlier docs referenced Mistral (EU);
+> the worker now uses Claude.)
 
 ---
 
@@ -83,13 +97,18 @@ false`) — accounts are invite-only.
    `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery`
    (not the default `{{ .ConfirmationURL }}`). See `supabase/config.toml`.
 
-5. Apply the migrations in order (SQL editor or `supabase db push`):
-   - `supabase/migrations/0001_schema.sql`
-   - `supabase/migrations/0002_functions.sql`
-   - `supabase/migrations/0003_rls.sql`
-   - `supabase/migrations/0004_security_hardening.sql`
-   - `supabase/migrations/0005_operator_model.sql` (three-role model)
-   - `supabase/migrations/0006_rls_three_roles.sql` (superadmin RLS)
+5. Apply **all** migrations in `supabase/migrations/` in numeric order (SQL editor
+   or `supabase db push`) — currently `0001` … `0021`. Highlights:
+   - `0001`–`0004` — schema, helper functions, RLS, column-grant hardening
+   - `0005`–`0007` — operator-provisioned three-role model + superadmin RLS
+   - `0008` — content classification (`content_type` routing)
+   - `0009` — QR self-apply public surface
+   - `0010` — capture pipeline (buckets, worker-callback definer flows)
+   - `0011`–`0014` — ICS tokens, account deletion, push subscriptions, retention purges
+   - `0015` — groups + admin role management
+   - `0016`–`0019` — duplicate prevention, publish-creates-events, post take-down, re-publish restores events
+   - `0020` — opt-in clear-photo consent (double-gated)
+   - `0021` — per-member "new since last visit" category counts
 6. Set `RESEND_API_KEY` + `EMAIL_FROM` (on a Resend-verified domain) so invite /
    password-reset emails are delivered. (Optionally also point Supabase's own
    SMTP at Resend for any mail Supabase sends directly.)
@@ -186,7 +205,7 @@ RPCs (`create_org`, `add_person`, `remove_person`, `set_admin`,
 
 ---
 
-## Security model (Phase 1)
+## Security model
 
 Defense in depth, four layers:
 
@@ -205,12 +224,19 @@ Defense in depth, four layers:
    `redactions`, `source_image_path`) are **column-level REVOKE**d from
    `authenticated` (migration `0004`), so a member cannot read them even by
    querying the base `posts` table directly. Admin PII access is server-only
-   (service role).
+   (service role). **One deliberate exception** (migration `0020`): a member may
+   see the unblurred **original** photo of a post — but only when they opted in
+   (`profiles.photo_consent`) **and** an admin released that specific post
+   (`posts.clear_photo_allowed`), both default-off. The decision is made
+   server-side and the original is delivered only via a short-TTL **signed URL**;
+   the `source_image_path` column stays REVOKE'd and the client can never set
+   `clear_photo_allowed`. See [`SECURITY.md`](SECURITY.md).
 
-**No onboarding intent in URLs.** Magic links only log a (pre-provisioned) user
-in; they carry no org/role parameters. Account + role assignment happen entirely
-server-side when an operator/admin provisions someone, so there is nothing
-escalatable to tamper with in the link.
+**No onboarding intent in URLs.** Login is email + password; the only links
+emailed are one-time invite/recovery links that merely _establish a session_ to
+set a password — they carry no org/role parameters. Account + role assignment
+happen entirely server-side when an operator/admin provisions someone, so there
+is nothing escalatable to tamper with in the link.
 
 This skeleton was put through multi-agent **adversarial security reviews** (the
 initial build and the operator-model refactor); findings and fixes are recorded
@@ -236,27 +262,39 @@ internal postcss. Do not run `npm audit fix --force`.
 src/
   app/
     (app)/                 # authenticated shell (requireSession)
-      admin/mitglieder/    # admin (requireAdmin) — add/remove members
+      aufnahme/            # admin capture (photograph → upload → trigger worker)
+      review/              # admin review gate — confirm content_type, edit, publish/take-down
+      feed/                # the Pinnwand: every published post (a row inside Bereiche)
+      bereiche/            # category hub + libraries + "new" counts; CategoryFeed
+      essensplan/ rueckblick/ kalender/ info/ gesundheit/   # per-category libraries
+      einstellungen/       # member settings: ICS sub, digest, push, photo-consent, delete
+      mehr/                # phone overflow hub
+      admin/mitglieder/    # admin (requireAdmin) — members, groups, invites, consent overview
       operator/            # superadmin (requireSuperadmin) — create orgs, manage admins
-      feed/                # member feed (empty in Phase 1)
-    auth/callback/         # magic-link landing + superadmin bootstrap + activate
-    login/                 # the only auth entry point
-    datenschutz/           # the one public legal page
-  components/              # UI primitives
+    api/worker/callback/   # worker → app callback (shared-secret)
+    api/ics/[token]/       # per-user ICS calendar feed
+    apply/                 # QR self-apply public surface (verified by admin)
+    auth/callback/         # invite/recovery link landing + superadmin bootstrap
+    login/ set-password/ passwort-vergessen/   # email+password auth entry points
+    datenschutz/           # public legal page
+  components/              # UI primitives ("Tafel" design system, category chips, nav)
   config/brand.ts          # SINGLE source of branding
   lib/
     supabase/              # client / server / admin / middleware clients
-    auth.ts auth-flows.ts  # session + onboarding helpers
+    content/               # content_type routing, extraction schema, placeholder mask
+    photo.ts               # the single raw-vs-redacted signed-URL decision (consent)
+    feed.ts ics.ts push.ts auth.ts auth-flows.ts   # domain helpers
     routes.ts              # public/admin route allowlist
     env.ts env.server.ts   # public vs server-only env (secret boundary)
   proxy.ts                 # deny-by-default middleware
 supabase/
-  migrations/              # 0001 schema · 0002 fns · 0003 RLS · 0004 hardening
-                          # · 0005 operator model · 0006 superadmin RLS
+  migrations/              # 0001 … 0021 (see "Provision Supabase" above)
   fixtures/two_orgs.sql    # isolation test fixture
   config.toml              # security-critical auth settings (version-controlled)
+worker/                    # FastAPI OCR + Presidio redaction + Claude extraction (VPS, Docker)
 scripts/
   check-no-client-secrets.mjs   # CI guard: no secrets in client bundle
+  check-no-source-secrets.mjs   # CI + pre-commit guard: no secrets in tracked source
 ```
 
 ---
@@ -268,12 +306,21 @@ An admin photographs a notice on `/aufnahme`; the browser compresses it
 `raw-photos` bucket via a signed URL. The app creates a `processing` post and
 triggers the **worker** (`worker/`) with a short-TTL signed URL. The worker:
 OpenCV deskew → Tesseract OCR (German) → **local PII redaction** (Presidio +
-spaCy + regex, fail-closed) → blur redacted regions → **Mistral** (EU) extraction
-on the **redacted text only** → schema-validate → callback. The callback
-(`/api/worker/callback`, shared-secret-guarded) uploads the redacted image and
-writes the draft. The admin reviews on `/review`: confirm the content type
-(pre-filled to the LLM suggestion), edit, and **publish** — the only path to
-member visibility.
+spaCy + regex, fail-closed) → blur redacted regions → **Claude** (Anthropic)
+extraction on the **redacted text only** → schema-validate → callback. The
+callback (`/api/worker/callback`, shared-secret-guarded) uploads the redacted
+image and writes the draft. The admin reviews on `/review`: confirm the content
+type (pre-filled to the LLM suggestion, **tap to correct it**), edit title/body,
+optionally release the original photo, and **publish** — the only path to member
+visibility. Publishing routes the post by its confirmed `content_type` (meal plan
+→ Essensplan, event → calendar + ICS, reflection → Rückblick, health → top-of-feed
+alert, info → general feed) and every published post also appears on the Pinnwand.
+
+The redaction is deliberately conservative but tuned not to mangle ordinary
+notices: deterministic PII (phone, email, IBAN, birthdate-near-"geb.") is caught
+by a regex pack at confidence 1.0, while the spaCy model's fuzzier guesses are
+held to higher per-entity thresholds and **`LOCATION` is excluded entirely** (on a
+public board the "locations" are the org's own name and town — not PII).
 
 ### Deploying the worker
 
@@ -283,28 +330,63 @@ bakes in Tesseract + the German spaCy model:
 ```bash
 cd worker
 docker build -t aushang-worker .
-docker run -p 8000:8000 \
+docker run -d --name aushang-worker --restart unless-stopped -p 8000:8000 \
   -e WORKER_SHARED_SECRET="<same as the app>" \
-  -e APP_CALLBACK_URL="https://aushang.app" \
-  -e MISTRAL_API_KEY="<your mistral key>" \
+  -e APP_CALLBACK_URL="https://kita-connect.cloud" \
+  -e ANTHROPIC_API_KEY="<your anthropic key>" \
   aushang-worker
 ```
 
-Then set `WORKER_URL` + `WORKER_SHARED_SECRET` in the app's env. The **Mistral
+Then set `WORKER_URL` + `WORKER_SHARED_SECRET` in the app's env. The **Anthropic
 key lives on the worker**, never in the web app — the app never sees raw PII or
 calls the LLM. Until the worker is deployed, captures upload and create a post
-but stay `processing` (no worker to run).
+but stay `processing` (no worker to run). Full VPS steps:
+[`worker/DEPLOY_HOSTINGER.md`](worker/DEPLOY_HOSTINGER.md). To ship a worker
+change: pull on the VPS, `docker build`, then recreate the container.
 
 ---
 
 ## Roadmap
 
-- **Phase 1 (done)** — walking skeleton.
-- **Phase 2 (done)** — capture flow + FastAPI
-  worker (OCR + Presidio redaction + image blur) + Mistral extraction + schema
-  validation.
-- **Phase 3** — review gate UI, redaction chips, event confirmation, publish.
-- **Phase 4** — calendar (month/list), ICS per-user tokens, email-on-publish, web
-  push, PWA install.
-- **Phase 5** — GDPR one-pager, AVV PDF, Datenschutzerklärung, deletion flows,
+- **Phase 1 (done)** — walking skeleton: schema, RLS, auth, operator model.
+- **Phase 2 (done)** — capture flow + FastAPI worker (OCR + Presidio redaction +
+  image blur) + Claude extraction + schema validation.
+- **Phase 3 (done)** — review gate UI, redaction handling, content-type confirmation,
+  event creation, publish.
+- **Phase 4 (done)** — calendar (month/list), ICS per-user tokens, email-on-publish,
+  web push, PWA install.
+- **Phase 5 (done)** — GDPR one-pager, AVV, Datenschutzerklärung, deletion flows,
   audit purges, hardening sweep.
+
+### Post-launch (during real-world testing)
+
+The app went live on [kita-connect.cloud](https://kita-connect.cloud) and a first
+Kita began testing. Shipped since:
+
+- **"Tafel" mobile redesign** — clean iOS-style, teal accent, 4-tab bottom nav +
+  staff capture FAB; **Bereiche** (the category hub) is the home tab.
+- **Content-type routing + category libraries** — each `content_type` has its own
+  browsable library (Essensplan, Rückblick, Termine, Infos, Gesundheit); the
+  Pinnwand carries everything. Per-type structured detail rendering, `[NAME_x]`
+  placeholders masked in member views.
+- **"New since last visit" counts** — per-member, per-category badges on the
+  Bereiche hub (migration `0021`).
+- **Post take-down + re-publish** — an admin can pull a published post; its
+  calendar events are cancelled (and removed from subscribed ICS feeds) and
+  restored on re-publish (`0018`/`0019`).
+- **Duplicate prevention** — exact-photo block at capture + same-title block at
+  publish (`0016`).
+- **Opt-in clear-photo consent** — double-gated (member opt-in × admin per-post
+  release) path to the original photo, server-minted signed URLs only (`0020`).
+- **Onboarding/email fixes** — invite email links to the registration page; From
+  address pinned to the verified domain; add-person create-or-find flow.
+- **Redaction tuning** — exclude `LOCATION`, raise fuzzy ML thresholds, so notices
+  full of dates/town names aren't over-masked.
+
+### Out of scope / follow-ups
+
+- Worker behind HTTPS (currently reachable over the VPS; front with Caddy/Traefik
+  - a `worker.` subdomain for TLS).
+- Regenerate `src/lib/database.types.ts` from the live schema (currently a
+  hand-authored stub).
+- A native (Capacitor) shell — revisit store-privacy "Permissions"/"Identifiers".

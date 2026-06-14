@@ -149,6 +149,7 @@ export default async function FeedPage() {
           {list.map((post) => (
             <FeedCard
               key={post.id}
+              isAdmin={isAdmin}
               post={{
                 id: post.id,
                 title: post.title,

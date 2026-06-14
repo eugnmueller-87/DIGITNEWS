@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
+import { takedownPost } from "@/app/(app)/review/actions";
 import { BottomSheet } from "@/components/bottom-sheet";
 import {
   CategoryChip,
@@ -10,6 +11,7 @@ import {
 } from "@/components/category-chip";
 import { Icon } from "@/components/icons";
 import { PostDetail } from "@/components/post-detail";
+import { Alert } from "@/components/ui";
 import { maskPlaceholders } from "@/lib/content/mask";
 
 export interface FeedCardData {
@@ -30,8 +32,18 @@ export interface FeedCardData {
  * body in hand — no extra fetch). Event posts get a "Im Kalender" hint so the
  * member knows the date also lives in their subscribed calendar.
  */
-export function FeedCard({ post }: { post: FeedCardData }) {
+export function FeedCard({
+  post,
+  isAdmin = false,
+}: {
+  post: FeedCardData;
+  isAdmin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [removed, setRemoved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const isEvent = post.content_type === "event_notice";
   const cat: ChipCategory = isEvent ? "event_notice" : "info";
 
@@ -41,6 +53,23 @@ export function FeedCard({ post }: { post: FeedCardData }) {
         month: "2-digit",
       })
     : null;
+
+  function takedown() {
+    setError(null);
+    startTransition(async () => {
+      const res = await takedownPost(post.id);
+      if (res.ok) {
+        setRemoved(true);
+        setOpen(false);
+      } else {
+        setError(res.message);
+        setConfirming(false);
+      }
+    });
+  }
+
+  // After a successful take-down, drop the card from the list immediately.
+  if (removed) return null;
 
   return (
     <>
@@ -104,6 +133,45 @@ export function FeedCard({ post }: { post: FeedCardData }) {
           >
             <Icon name="calendar" size={18} /> Im Kalender ansehen
           </a>
+        )}
+
+        {/* Admin-only: take this published post down (depublish). */}
+        {isAdmin && (
+          <div className="mt-4 border-t border-border pt-4">
+            {error && (
+              <div className="mb-2">
+                <Alert variant="error">{error}</Alert>
+              </div>
+            )}
+            {confirming ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={takedown}
+                  disabled={pending}
+                  className="press h-11 flex-1 rounded-full bg-tomato font-bold text-white disabled:opacity-50"
+                >
+                  {pending ? "Wird entfernt …" : "Wirklich entfernen"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  disabled={pending}
+                  className="press h-11 rounded-full border border-border px-5 font-bold text-ink-soft"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="press flex w-full items-center justify-center gap-2 rounded-full border border-border py-2.5 font-bold text-tomato"
+              >
+                Aushang entfernen
+              </button>
+            )}
+          </div>
         )}
       </BottomSheet>
     </>

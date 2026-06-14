@@ -110,6 +110,38 @@ export async function discardDraft(postId: string): Promise<ReviewActionState> {
 }
 
 /**
+ * Take down (depublish) an already-PUBLISHED post — removes it from the feed +
+ * its sections, and cancels its calendar events (so they leave /kalender and
+ * are actively removed from subscribed ICS calendars). takedown_post re-checks
+ * org + admin + that the post is published; the post is scoped to the session
+ * org here too. Used by the admin control in the feed detail sheet.
+ */
+export async function takedownPost(postId: string): Promise<ReviewActionState> {
+  const session = await requireAdmin();
+  const admin = createAdminClient();
+  const { data: post } = await admin
+    .from("posts")
+    .select("org_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post || post.org_id !== session.orgId) {
+    return { ok: false, message: "Aushang nicht gefunden." };
+  }
+  const { error } = await admin.rpc("takedown_post", {
+    p_actor_id: session.userId,
+    p_post_id: postId,
+  });
+  if (error) return { ok: false, message: "Entfernen fehlgeschlagen." };
+  revalidatePath("/feed");
+  revalidatePath("/kalender");
+  revalidatePath("/essensplan");
+  revalidatePath("/rueckblick");
+  revalidatePath("/info");
+  revalidatePath("/gesundheit");
+  return { ok: true, message: "Aushang entfernt." };
+}
+
+/**
  * Notify an org's members when a post is published: web push to all subscribers,
  * and an email to members who opted into the digest. Best-effort; never throws.
  */

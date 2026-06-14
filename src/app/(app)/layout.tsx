@@ -45,6 +45,7 @@ export default async function AppLayout({
     { href: "/essensplan", label: "Essensplan" },
     { href: "/rueckblick", label: "Rückblick" },
     { href: "/kalender", label: "Kalender" },
+    { href: "/bereiche", label: "Bereiche" },
   ];
 
   const adminNav: NavItem[] = [];

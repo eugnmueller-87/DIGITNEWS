@@ -26,6 +26,12 @@ export default async function MehrPage() {
       <Group title="Für dich">
         <Row
           first
+          href="/bereiche"
+          glyph="feed"
+          title="Bereiche"
+          subtitle="Aushänge nach Kategorie"
+        />
+        <Row
           href="/rueckblick"
           glyph="sun"
           title="Rückblick"

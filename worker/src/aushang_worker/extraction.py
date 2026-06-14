@@ -45,6 +45,32 @@ CONTENT_TYPES = [
 # as a JSON STRING the model fills with a JSON object, then parse it ourselves
 # (see `extract`). This keeps the schema strict-mode-valid while preserving the
 # open payload contract.
+# A single calendar event. Strict-mode-valid (additionalProperties:false, every
+# field required — nullable via type unions). Mirrors EventNoticeItem in
+# src/lib/content/types.ts; publish_post inserts these into the events table.
+_EVENT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "category": {"type": "string", "enum": ["closure", "event", "deadline"]},
+        "title": {"type": "string"},
+        "starts_on": {"type": "string", "description": "ISO Datum JJJJ-MM-TT"},
+        "ends_on": {"type": ["string", "null"], "description": "ISO oder null"},
+        "all_day": {"type": "boolean"},
+        "time_start": {"type": ["string", "null"], "description": "HH:MM oder null"},
+        "time_end": {"type": ["string", "null"], "description": "HH:MM oder null"},
+    },
+    "required": [
+        "category",
+        "title",
+        "starts_on",
+        "ends_on",
+        "all_day",
+        "time_start",
+        "time_end",
+    ],
+}
+
 _OUTPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -53,6 +79,11 @@ _OUTPUT_SCHEMA = {
         "confidence": {"type": "number"},
         "title": {"type": "string"},
         "summary": {"type": "string"},
+        # Calendar events — REQUIRED to be filled for event_notice (every concrete
+        # date/Schließtag/Frist), otherwise an empty array. Drives /kalender + ICS.
+        "events": {"type": "array", "items": _EVENT_SCHEMA},
+        # Other type-specific detail as a JSON-object STRING (strict mode forbids
+        # an open object); parsed server-side. Events live in `events`, not here.
         "payload_json": {
             "type": "string",
             "description": (
@@ -66,6 +97,7 @@ _OUTPUT_SCHEMA = {
         "confidence",
         "title",
         "summary",
+        "events",
         "payload_json",
     ],
 }
@@ -97,8 +129,17 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
         "(Termine/Schließtage), info (Sonstiges). Löse relative Daten gegen das "
         f"Aufnahmedatum {capture_date} auf (Zeitzone Europe/Berlin); bei "
         "Unsicherheit Datum null lassen, niemals erfinden. Felder: "
-        "content_type_suggested, confidence (0-1), title, summary, payload_json "
-        '(typ-spezifische Details als JSON-Objekt-String, z.B. "{}").'
+        "content_type_suggested, confidence (0-1), title, summary, events, "
+        'payload_json (typ-spezifische Details als JSON-Objekt-String, z.B. "{}"). '
+        "WICHTIG für den Kalender: 'events' ist eine Liste. Wenn der Aushang "
+        "konkrete Termine, Schließtage oder Fristen nennt (content_type "
+        "event_notice, aber auch sonst), lege für JEDES Datum einen Eintrag an: "
+        "category ('closure'=Schließtag, 'event'=Termin/Fest, 'deadline'=Frist), "
+        "title (kurz), starts_on (JJJJ-MM-TT), ends_on (oder null), all_day "
+        "(true wenn keine Uhrzeit), time_start/time_end (HH:MM oder null). "
+        "Mehrtägige Schließungen entweder als ein Eintrag mit ends_on ODER als "
+        "einzelne Tageseinträge. Gibt es keine Termine, ist events eine leere "
+        "Liste []."
     )
 
 
@@ -153,9 +194,16 @@ def extract(
         payload_json = raw.pop("payload_json", "{}")
         try:
             parsed = json.loads(payload_json) if payload_json else {}
-            raw["payload"] = parsed if isinstance(parsed, dict) else {}
+            payload = parsed if isinstance(parsed, dict) else {}
         except (json.JSONDecodeError, TypeError):
-            raw["payload"] = {}
+            payload = {}
+        # The calendar events come back as a top-level structured array (strict
+        # schema). Fold them into payload.events — the shape the app + the
+        # publish_post RPC read to create calendar rows.
+        events = raw.pop("events", [])
+        if isinstance(events, list) and events:
+            payload["events"] = events
+        raw["payload"] = payload
         return ExtractionEnvelope.model_validate(raw).normalized()
     except (json.JSONDecodeError, ValidationError, ValueError) as e:
         raise ValueError(f"extraction validation failed: {e}") from e

@@ -43,6 +43,35 @@ def test_no_pii_passes_through() -> None:
     assert r.redactions == []
 
 
+def test_dates_not_masked_as_phone() -> None:
+    # The over-masking bug: a notice full of closure dates must come through
+    # untouched. The regex phone pattern excludes dotted dates, and the ML
+    # phone recognizer is held to a high threshold (tested via the regex path
+    # here, which runs without spaCy installed).
+    text = (
+        "Schließtage 2026: 11.02.2026- 12.02.2026, 20.07.2026- 10.08.2026, "
+        "24.12.2026- 01.01.2027. Frist endet am 31.01.2026."
+    )
+    r = redact(text)
+    assert r.redacted_text == text
+    assert r.redactions == []
+
+
+def test_times_not_masked() -> None:
+    text = "Bringzeit 8:00 - 8:30, Abholung 15:00 - 16:00 Uhr."
+    r = redact(text)
+    assert r.redacted_text == text
+    assert r.redactions == []
+
+
+def test_real_phone_still_masked_despite_dates_around_it() -> None:
+    # A genuine German number is still caught deterministically (regex, conf 1.0).
+    r = redact("Am 20.07.2026 erreichbar unter 030 1234567 im Büro.")
+    assert "030 1234567" not in r.redacted_text
+    assert "[TEL_1]" in r.redacted_text
+    assert "20.07.2026" in r.redacted_text  # the date stays
+
+
 def test_empty() -> None:
     r = redact("")
     assert r.redacted_text == ""

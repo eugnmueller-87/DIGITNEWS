@@ -25,8 +25,25 @@ except ImportError:  # pragma: no cover
     _PRESIDIO_AVAILABLE = False
 
 
-# Confidence at/above which a detection is masked (fail-closed; low on purpose).
+# Confidence at/above which an ML detection is masked (fail-closed; low on
+# purpose for high-signal types). Per-entity overrides below raise the bar for
+# fuzzy types (PERSON) that otherwise over-mask ordinary words on a notice.
 REDACTION_THRESHOLD = 0.4
+
+# Per-entity minimum confidence (overrides REDACTION_THRESHOLD when present).
+# PERSON from spaCy fires on capitalised non-name words ("Bergfalke", "Fasching")
+# at 0.85, so we require higher confidence — real names in context still clear it,
+# but a notice's headings/festival names no longer get masked. (Empirically the
+# false positives and the true positives both score ~0.85, so this is a partial
+# guard; the admin review remains the backstop, and deterministic PII — phone,
+# email, IBAN, birthdate — is caught by the regex pack regardless.)
+_ENTITY_THRESHOLD: dict[str, float] = {
+    "PERSON": 0.6,
+    # spaCy's ML phone guesses fire on dates/times ("20.07.2026", "8:30") at the
+    # floor score; real phones are caught deterministically by the regex above,
+    # so only trust a high-confidence ML phone hit.
+    "PHONE_NUMBER": 0.85,
+}
 
 
 @dataclass
@@ -54,7 +71,10 @@ class RedactionResult:
 _REGEX_PATTERNS: list[tuple[str, str]] = [
     # email
     ("EMAIL", r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
-    # German phone numbers (loose): +49..., 0..., with spaces/slashes/dashes
+    # German phone numbers (deterministic, confidence 1.0): +49... or 0... with
+    # spaces/slashes/dashes/parens. This is the reliable phone detector; the ML
+    # PhoneRecognizer is held to a high threshold (see _ENTITY_THRESHOLD) because
+    # it fires on dates/times that fill a notice (e.g. "20.07.2026", "8:30").
     ("PHONE", r"(?:\+49|0)[\d\s/\-()]{6,}\d"),
     # IBAN (DE + generic)
     ("IBAN", r"\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b"),
@@ -100,13 +120,16 @@ def _get_analyzer() -> object | None:
     return _analyzer
 
 
-# Presidio entity types we treat as PII to mask.
+# Presidio entity types we treat as PII to mask. LOCATION is deliberately NOT
+# here: on a public notice the "locations" are the org's own name, its town, or
+# its provider ("Kita Bergfalke", "Berlin und Brandenburg") — public info, not
+# PII — and masking them mangled real notices. A genuine private address would
+# still be caught contextually (and the admin reviews every draft).
 _PRESIDIO_ENTITIES = [
     "PERSON",
     "PHONE_NUMBER",
     "EMAIL_ADDRESS",
     "IBAN_CODE",
-    "LOCATION",
     "CREDIT_CARD",
     "IP_ADDRESS",
 ]
@@ -164,7 +187,10 @@ def redact(text: str) -> RedactionResult:
     for entity_type, start, end in _regex_hits(text):
         spans.append((entity_type, start, end, 1.0))
     for entity_type, start, end, score in _presidio_hits(text):
-        if score >= REDACTION_THRESHOLD:
+        # Per-entity floor (fuzzy types like PERSON/PHONE_NUMBER need a higher
+        # bar); falls back to the global threshold for the high-signal types.
+        floor = _ENTITY_THRESHOLD.get(entity_type, REDACTION_THRESHOLD)
+        if score >= floor:
             spans.append((entity_type, start, end, score))
 
     merged = _merge_spans(spans)

@@ -21,13 +21,14 @@ Status: `[ ]` todo · `[x]` done · `[~]` in progress.
 
 ## 🔜 Next steps — do these in order
 
-### 1. Get the first installable Android build ← start here
+### 1. Android build ← DONE
 
-- [ ] Actions tab → **"Android build"** → Run workflow → download `app-debug.aab`.
-      Proves the project builds; gives you something to install on a phone.
-- [ ] Install it on an Android device and **test native camera** end-to-end
-      (photograph a board → it uploads → appears in `/review`). This is the one
-      thing that can't be verified without a device.
+- [x] Cloud AAB build works (`.github/workflows/android.yml`); a green run
+      produces `app-debug.apk` + the AABs as artifacts. Re-runnable any time via
+      **Run workflow** on `main`.
+- [ ] Native-camera device test rolls into the **closed test** (step 3) — the 12
+      testers are the device fleet. No personal Android needed to ship. (If an
+      Android turns up, do a 30-sec camera sanity-check then.)
 
 ### 2. Verify the reflection-delete works on prod (5 min, no code)
 
@@ -38,11 +39,14 @@ Status: `[ ]` todo · `[x]` done · `[~]` in progress.
 ### 3. Open the Google Play account — the launch long-pole
 
 The 14-day / 12-tester closed test cannot be compressed, so start it early.
-Full checklist: `docs/PLAY_LAUNCH.md`.
+Process: `docs/PLAY_LAUNCH.md`. **Paste-ready listing copy, Data Safety answers,
+reviewer demo-account plan, and screenshot shot-list: `docs/PLAY_LISTING.md`.**
 
 - [ ] Create the Play Developer account ($25) + identity verification.
 - [ ] Recruit **≥12 testers** with real Google accounts (pilot-Kita staff/parents).
 - [ ] Decide account type (personal = faster; org = needs D-U-N-S).
+- [ ] Set up the **reviewer demo org + member login** (`docs/PLAY_LISTING.md §3`)
+      — required because the app is invite-only.
 
 ### 4. Sign + ship the AAB to Play
 

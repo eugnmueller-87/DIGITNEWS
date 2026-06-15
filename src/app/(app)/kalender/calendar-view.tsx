@@ -15,6 +15,8 @@ import {
 } from "@/lib/calendar";
 import { clsx } from "@/lib/clsx";
 import { maskPlaceholders } from "@/lib/content/mask";
+import { formatDate } from "@/lib/i18n/format";
+import { useLocale, useT } from "@/lib/i18n/provider";
 
 import type { CalEvent } from "./page";
 
@@ -32,29 +34,11 @@ const CATEGORY_CHIP: Record<CalEvent["category"], string> = {
   event: "bg-sky-soft text-sky",
   deadline: "bg-sun-soft text-sun-deep",
 };
-const CATEGORY_LABEL: Record<CalEvent["category"], string> = {
-  closure: "Schließtag",
-  event: "Fest",
-  deadline: "Frist",
-};
-
-const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-const MONTHS = [
-  "Januar",
-  "Februar",
-  "März",
-  "April",
-  "Mai",
-  "Juni",
-  "Juli",
-  "August",
-  "September",
-  "Oktober",
-  "November",
-  "Dezember",
-];
-
 export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
+  const t = useT();
+  const locale = useLocale();
+  const WEEKDAYS = t.calendar.weekdaysShort;
+  const MONTHS = t.calendar.months;
   // Strip any leftover [NAME_x]-style redaction placeholders from titles so the
   // calendar reads cleanly (same one-way mask the feed uses). Done once here so
   // every render site (grid dots, day sheet, list) is covered.
@@ -81,14 +65,24 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
       ? [sheetEvent]
       : [];
   const sheetTitle = sheetDay
-    ? (() => {
-        const [y, m, d] = sheetDay.split("-");
-        return `${d}.${m}.${y}`;
-      })()
-    : "Termin";
+    ? formatDate(sheetDay, locale, t)
+    : t.calendar.eventSheetTitle;
   const closeSheet = () => {
     setSheetDay(null);
     setSheetEvent(null);
+  };
+
+  // Localized date+time range for an event row (replaces the old German helper).
+  const rangeOf = (e: CalEvent): string => {
+    const base =
+      e.ends_on && e.ends_on !== e.starts_on
+        ? `${formatDate(e.starts_on, locale, t)} – ${formatDate(e.ends_on, locale, t)}`
+        : formatDate(e.starts_on, locale, t);
+    if (!e.all_day && e.time_start) {
+      const suffix = t.calendar.oClock ? ` ${t.calendar.oClock}` : "";
+      return `${base}, ${e.time_start}${e.time_end ? `–${e.time_end}` : ""}${suffix}`;
+    }
+    return base;
   };
 
   return (
@@ -114,7 +108,7 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
                 view === v ? "text-ink" : "text-ink-soft",
               )}
             >
-              {v === "month" ? "Monat" : "Liste"}
+              {v === "month" ? t.calendar.viewMonth : t.calendar.viewList}
             </button>
           ))}
         </div>
@@ -123,7 +117,7 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
           <div className="font-display flex items-center gap-1.5">
             <button
               type="button"
-              aria-label="Vorheriger Monat"
+              aria-label={t.calendar.prevMonth}
               onClick={() => setCursor(prevMonth)}
               className="press flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg leading-none text-ink"
             >
@@ -134,7 +128,7 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
             </span>
             <button
               type="button"
-              aria-label="Nächster Monat"
+              aria-label={t.calendar.nextMonth}
               onClick={() => setCursor(nextMonth)}
               className="press flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg leading-none text-ink"
             >
@@ -204,7 +198,7 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
               onClick={() => setSheetEvent(e)}
               className="press flex w-full items-center gap-3.5 rounded-[16px] border border-border bg-paper p-3.5 text-left"
             >
-              <DateTile iso={e.starts_on} />
+              <DateTile iso={e.starts_on} dict={t} />
               <div className="min-w-0 flex-1">
                 <span
                   className={clsx(
@@ -212,12 +206,12 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
                     CATEGORY_CHIP[e.category],
                   )}
                 >
-                  {CATEGORY_LABEL[e.category]}
+                  {t.calendar.category[e.category]}
                 </span>
                 <h3 className="mt-1 text-[17px] font-bold text-ink">
                   {e.title}
                 </h3>
-                <p className="text-sm text-ink-soft">{formatRange(e)}</p>
+                <p className="text-sm text-ink-soft">{rangeOf(e)}</p>
               </div>
             </button>
           ))}
@@ -242,36 +236,19 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
                   CATEGORY_CHIP[e.category],
                 )}
               >
-                {CATEGORY_LABEL[e.category]}
+                {t.calendar.category[e.category]}
               </span>
               <h3 className="mt-1.5 text-[17px] font-bold text-ink">
                 {e.title}
               </h3>
-              <p className="mt-0.5 text-sm text-ink-soft">{formatRange(e)}</p>
+              <p className="mt-0.5 text-sm text-ink-soft">{rangeOf(e)}</p>
             </div>
           ))}
           {dayEvents.length === 0 && (
-            <p className="text-sm text-ink-soft">
-              Keine Termine an diesem Tag.
-            </p>
+            <p className="text-sm text-ink-soft">{t.calendar.noEventsOnDay}</p>
           )}
         </div>
       </BottomSheet>
     </div>
   );
-}
-
-function formatRange(e: CalEvent): string {
-  const fmt = (iso: string) => {
-    const [y, m, d] = iso.split("-");
-    return `${d}.${m}.${y}`;
-  };
-  const base =
-    e.ends_on && e.ends_on !== e.starts_on
-      ? `${fmt(e.starts_on)} – ${fmt(e.ends_on)}`
-      : fmt(e.starts_on);
-  if (!e.all_day && e.time_start) {
-    return `${base}, ${e.time_start}${e.time_end ? `–${e.time_end}` : ""} Uhr`;
-  }
-  return base;
 }

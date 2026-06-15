@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { PageShell, Alert } from "@/components/ui";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 import { SetPasswordForm } from "./set-password-form";
@@ -24,16 +25,16 @@ export default async function SetPasswordPage() {
 
   if (!user) redirect("/registrieren");
 
+  const t = await getDict();
+
   return (
     <PageShell
-      title="Passwort festlegen"
-      subtitle="Wähle ein Passwort für deinen Zugang. Danach meldest du dich damit an."
+      title={t.auth.setPasswordTitle}
+      subtitle={t.auth.setPasswordSubtitle}
     >
-      <SetPasswordForm />
+      <SetPasswordForm dict={t.auth} />
       <div className="mt-4">
-        <Alert variant="info">
-          Mindestens 8 Zeichen. Bewahre dein Passwort sicher auf.
-        </Alert>
+        <Alert variant="info">{t.auth.setPasswordHint}</Alert>
       </div>
     </PageShell>
   );

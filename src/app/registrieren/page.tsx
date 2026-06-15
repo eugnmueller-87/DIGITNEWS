@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
 import { PageShell } from "@/components/ui";
+import { getDict } from "@/lib/i18n/server";
 
 import { RegisterForm } from "./register-form";
 
-export const metadata: Metadata = { title: "Anmelden mit Code" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDict();
+  return { title: t.auth.registerMetaTitle };
+}
 
 /**
  * Registration / first-login landing. The user enters their email + the 6-digit
@@ -18,16 +22,13 @@ export default async function RegistrierenPage({
   searchParams: Promise<{ email?: string }>;
 }) {
   const { email } = await searchParams;
+  const t = await getDict();
 
   return (
-    <PageShell
-      title="Konto einrichten"
-      subtitle="Schritt 1 von 2: E-Mail + Code aus der Einladungs-E-Mail eingeben. Dein Passwort legst du danach selbst fest."
-    >
-      <RegisterForm presetEmail={email} />
+    <PageShell title={t.auth.registerTitle} subtitle={t.auth.registerSubtitle}>
+      <RegisterForm presetEmail={email} dict={t.auth} />
       <p className="mt-6 text-center text-xs text-ink-faint">
-        Zugänge werden von deiner Organisation vergeben. Es gibt keine
-        Selbstregistrierung.
+        {t.auth.noSelfSignup}
       </p>
     </PageShell>
   );

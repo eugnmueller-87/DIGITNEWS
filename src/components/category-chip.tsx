@@ -22,7 +22,6 @@ export type ChipCategory =
   | "health_urgent";
 
 interface ChipStyle {
-  label: string;
   fill: string; // chip background
   text: string; // chip text
   disc: string; // glyph-disc bg + text
@@ -31,42 +30,36 @@ interface ChipStyle {
 
 const STYLES: Record<ChipCategory, ChipStyle> = {
   info: {
-    label: "Info",
     fill: "bg-surface-2",
     text: "text-ink-soft",
     disc: "bg-surface-2 text-ink-soft",
     glyph: "info",
   },
   event_notice: {
-    label: "Termin",
     fill: "bg-sky-soft",
     text: "text-sky",
     disc: "bg-sky-soft text-sky",
     glyph: "calendar",
   },
   meal_plan: {
-    label: "Speiseplan",
     fill: "bg-sage-soft",
     text: "text-sage",
     disc: "bg-sage-soft text-sage",
     glyph: "meal",
   },
   reflection: {
-    label: "Rückblick",
     fill: "bg-sun-soft",
     text: "text-sun-deep",
     disc: "bg-sun-soft text-sun-deep",
     glyph: "sun",
   },
   health_advisory: {
-    label: "Hinweis",
     fill: "bg-sun-soft",
     text: "text-sun-deep",
     disc: "bg-sun-soft text-sun-deep",
     glyph: "warning",
   },
   health_urgent: {
-    label: "Wichtig",
     fill: "bg-tomato",
     text: "text-white",
     disc: "bg-tomato text-white",
@@ -96,7 +89,13 @@ export function CategoryGlyph({
   );
 }
 
-export function CategoryChip({ category }: { category: ChipCategory }) {
+export function CategoryChip({
+  category,
+  label,
+}: {
+  category: ChipCategory;
+  label: string;
+}) {
   const s = STYLES[category];
   return (
     <span
@@ -107,11 +106,7 @@ export function CategoryChip({ category }: { category: ChipCategory }) {
       )}
     >
       <Icon name={s.glyph} size={13} />
-      {s.label}
+      {label}
     </span>
   );
-}
-
-export function chipLabel(category: ChipCategory): string {
-  return STYLES[category].label;
 }

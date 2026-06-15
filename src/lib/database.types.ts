@@ -49,6 +49,8 @@ export interface Profile {
   email_digest_opt_in: boolean;
   /** Member opt-in to seeing the CLEAR (original) photo where the admin released it (0020). */
   photo_consent: boolean;
+  /** Preferred UI language (0022); 'de' default. */
+  language: "de" | "en";
   created_at: string;
 }
 

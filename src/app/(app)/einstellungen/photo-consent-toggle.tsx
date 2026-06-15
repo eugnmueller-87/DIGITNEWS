@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { Card } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import { setPhotoConsent } from "./actions";
 
@@ -13,6 +14,7 @@ import { setPhotoConsent } from "./actions";
  * on the board and never leaves the app.
  */
 export function PhotoConsentToggle({ initial }: { initial: boolean }) {
+  const t = useT();
   const [on, setOn] = useState(initial);
   const [pending, start] = useTransition();
 
@@ -30,14 +32,9 @@ export function PhotoConsentToggle({ initial }: { initial: boolean }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-base font-bold text-ink">
-            Klare Fotos anzeigen
+            {t.settings.photoHeading}
           </h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            Zeigt das unverpixelte Originalfoto bei Aushängen, die deine
-            Einrichtung dafür freigegeben hat. Es ist dasselbe Foto wie am
-            Aushangbrett und verlässt die App nicht. Ohne Zustimmung siehst du
-            die unkenntlich gemachte Version.
-          </p>
+          <p className="mt-1 text-sm text-ink-soft">{t.settings.photoDesc}</p>
         </div>
         <button
           type="button"

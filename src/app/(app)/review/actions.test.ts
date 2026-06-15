@@ -20,6 +20,12 @@ let publishError: { message: string } | null;
 const rpc = vi.fn();
 
 vi.mock("@/lib/auth", () => ({ requireAdmin: () => requireAdmin() }));
+// Actions resolve a dictionary for their messages; return the real `de` dict so
+// they don't reach cookies()/session in the node test env.
+vi.mock("@/lib/i18n/server", async () => {
+  const { de } = await import("@/lib/i18n/dictionaries");
+  return { getDict: async () => de, getLocale: async () => "de" };
+});
 vi.mock("next/cache", () => ({
   revalidatePath: (p: string) => revalidatePath(p),
 }));

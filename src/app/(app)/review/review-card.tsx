@@ -5,8 +5,10 @@ import { useActionState, useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { Card, Button, Input, Field, Label, Alert } from "@/components/ui";
 import { clsx } from "@/lib/clsx";
-import { CONTENT_TYPES, CONTENT_TYPE_LABELS } from "@/lib/content/types";
+import { CONTENT_TYPES } from "@/lib/content/types";
 import type { ContentType } from "@/lib/content/types";
+import { fmt } from "@/lib/i18n/format";
+import { useT } from "@/lib/i18n/provider";
 
 import { publishDraft, discardDraft, type ReviewActionState } from "./actions";
 
@@ -38,6 +40,7 @@ export function ReviewCard({
   clearPhotoAllowed?: boolean;
   failed?: boolean;
 }) {
+  const t = useT();
   const [state, formAction, publishing] = useActionState(publishDraft, initial);
   const [discarding, startDiscard] = useTransition();
   const [discardError, setDiscardError] = useState<string | null>(null);
@@ -68,10 +71,7 @@ export function ReviewCard({
     <Card>
       {failed && (
         <div className="mb-3">
-          <Alert variant="error">
-            Dieser Aushang konnte nicht automatisch ausgelesen werden. Du kannst
-            ihn verwerfen und erneut fotografieren.
-          </Alert>
+          <Alert variant="error">{t.review.failedAlert}</Alert>
         </div>
       )}
 
@@ -80,11 +80,11 @@ export function ReviewCard({
           {/* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */}
           <img
             src={imageUrl}
-            alt="Ausschnitt des Aushangs (maskiert)"
+            alt={t.review.maskedAlt}
             className="max-h-72 w-full rounded-[12px] border border-border bg-surface-2 object-contain"
           />
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink/70 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">
-            <Icon name="check" size={12} /> Maskiert
+            <Icon name="check" size={12} /> {t.review.maskedBadge}
           </span>
         </div>
       )}
@@ -103,15 +103,17 @@ export function ReviewCard({
         {!failed && (
           <div className="space-y-1.5">
             <Label>
-              Art{" "}
+              {t.review.artLabel}{" "}
               {suggested ? (
                 <span className="font-normal text-ink-faint">
-                  · Vorschlag der KI: {CONTENT_TYPE_LABELS[suggested]} — tippe
-                  zum Ändern
+                  ·{" "}
+                  {fmt(t.review.aiSuggestion, {
+                    label: t.contentTypes[suggested],
+                  })}
                 </span>
               ) : (
                 <span className="font-normal text-ink-faint">
-                  · tippe die passende Art an
+                  · {t.review.pickArt}
                 </span>
               )}
             </Label>
@@ -132,7 +134,7 @@ export function ReviewCard({
                     )}
                   >
                     {active && <Icon name="check" size={14} />}
-                    {CONTENT_TYPE_LABELS[ct]}
+                    {t.contentTypes[ct]}
                   </button>
                 );
               })}
@@ -140,7 +142,7 @@ export function ReviewCard({
           </div>
         )}
 
-        <Field label="Titel" htmlFor={`title-${id}`}>
+        <Field label={t.review.titleLabel} htmlFor={`title-${id}`}>
           <Input
             id={`title-${id}`}
             name="title"
@@ -151,7 +153,7 @@ export function ReviewCard({
         </Field>
 
         <div className="space-y-1.5">
-          <Label htmlFor={`body-${id}`}>Text</Label>
+          <Label htmlFor={`body-${id}`}>{t.review.textLabel}</Label>
           <textarea
             id={`body-${id}`}
             name="body"
@@ -166,12 +168,10 @@ export function ReviewCard({
           <div className="flex items-start justify-between gap-4 rounded-[12px] border border-border bg-surface-2 px-4 py-3">
             <div>
               <p className="text-sm font-bold text-ink">
-                Originalfoto freigeben
+                {t.review.releaseOriginal}
               </p>
               <p className="mt-0.5 text-[13px] leading-relaxed text-ink-soft">
-                Mitglieder, die klare Fotos aktiviert haben, sehen dann das
-                unverpixelte Originalfoto statt der maskierten Version. Nur
-                freigeben, wenn keine fremden Klarnamen darauf zu lesen sind.
+                {t.review.releaseOriginalHelp}
               </p>
             </div>
             <button
@@ -203,7 +203,7 @@ export function ReviewCard({
               type="submit"
               disabled={publishing || discarding || selected == null}
             >
-              {publishing ? "Wird veröffentlicht …" : "Veröffentlichen"}
+              {publishing ? t.review.publishing : t.review.publish}
             </Button>
           )}
           <button
@@ -212,7 +212,7 @@ export function ReviewCard({
             disabled={publishing || discarding}
             className="press inline-flex h-12 shrink-0 items-center justify-center rounded-full border border-border bg-paper px-5 text-base font-bold text-ink-soft transition-colors hover:bg-surface-2 disabled:opacity-50"
           >
-            {discarding ? "…" : "Verwerfen"}
+            {discarding ? "…" : t.review.discard}
           </button>
         </div>
       </form>

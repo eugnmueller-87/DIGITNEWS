@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 
 import { Card, Alert, MiniButton } from "@/components/ui";
+import { fmt } from "@/lib/i18n/format";
+import { useT } from "@/lib/i18n/provider";
 
 import {
   approveApplicationAction,
@@ -32,6 +34,7 @@ export function ApplicationRow({
   group: string | null;
   awaitingEmail: boolean;
 }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +58,7 @@ export function ApplicationRow({
           <div className="mt-0.5 space-y-0.5 text-xs font-semibold text-ink-soft">
             {childName && (
               <div>
-                Kind: {childName}
+                {fmt(t.members.child, { name: childName })}
                 {group ? ` · ${group}` : ""}
               </div>
             )}
@@ -63,7 +66,7 @@ export function ApplicationRow({
           </div>
           {awaitingEmail && (
             <div className="mt-1 text-xs font-semibold text-tomato">
-              wartet auf E-Mail-Bestätigung
+              {t.members.awaitingEmail}
             </div>
           )}
         </div>
@@ -74,14 +77,14 @@ export function ApplicationRow({
               disabled={pending}
               onClick={() => act(rejectApplicationAction)}
             >
-              Ablehnen
+              {t.members.reject}
             </MiniButton>
             <MiniButton
               tone="primary"
               disabled={pending}
               onClick={() => act(approveApplicationAction)}
             >
-              Freigeben
+              {t.members.approve}
             </MiniButton>
           </div>
         )}

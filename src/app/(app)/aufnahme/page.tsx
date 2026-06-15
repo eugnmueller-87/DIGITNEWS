@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { requireAdmin } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
 
 import { CapturePanel } from "./capture-panel";
 
@@ -13,15 +14,15 @@ export const metadata: Metadata = { title: "Aushang fotografieren" };
  */
 export default async function AufnahmePage() {
   await requireAdmin();
+  const t = await getDict();
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
-          Aushang fotografieren
+          {t.aufnahme.title}
         </h1>
         <p className="mx-auto mt-1 max-w-sm text-[15px] text-ink-soft">
-          Wir lesen ihn aus, maskieren persönliche Daten und legen dir einen
-          Entwurf zum Prüfen an.
+          {t.aufnahme.subtitle}
         </p>
       </div>
       <CapturePanel />

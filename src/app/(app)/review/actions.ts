@@ -8,6 +8,7 @@ import type { ContentType } from "@/lib/content/types";
 import { sendEmail } from "@/lib/email/client";
 import { publishNotificationEmail } from "@/lib/email/templates";
 import { publicEnv } from "@/lib/env";
+import { getDict } from "@/lib/i18n/server";
 import { pushToOrg } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -31,6 +32,7 @@ export async function publishDraft(
   formData: FormData,
 ): Promise<ReviewActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   const postId = String(formData.get("postId") ?? "");
   const contentType = String(formData.get("contentType") ?? "");
   const title = String(formData.get("title") ?? "")
@@ -44,10 +46,10 @@ export async function publishDraft(
   const clearPhotoAllowed = formData.get("clearPhotoAllowed") === "1";
 
   if (!isContentType(contentType)) {
-    return { ok: false, message: "Bitte wähle eine Art." };
+    return { ok: false, message: dict.review.pickArtError };
   }
   if (!title) {
-    return { ok: false, message: "Titel darf nicht leer sein." };
+    return { ok: false, message: dict.review.emptyTitleError };
   }
 
   const admin = createAdminClient();
@@ -58,7 +60,7 @@ export async function publishDraft(
     .eq("id", postId)
     .maybeSingle();
   if (!post || post.org_id !== session.orgId) {
-    return { ok: false, message: "Entwurf nicht gefunden." };
+    return { ok: false, message: dict.review.notFound };
   }
 
   const { error } = await admin.rpc("publish_post", {
@@ -76,12 +78,10 @@ export async function publishDraft(
     if (error.message?.includes("duplicate_title")) {
       return {
         ok: false,
-        message:
-          "Ein Aushang mit diesem Titel wurde bereits veröffentlicht. " +
-          "Verwirf diesen Entwurf oder ändere den Titel, wenn es ein anderer ist.",
+        message: dict.review.duplicateTitleBlock,
       };
     }
-    return { ok: false, message: "Veröffentlichen fehlgeschlagen." };
+    return { ok: false, message: dict.review.publishFailed };
   }
 
   // Fire notifications (best-effort; never block/fail the publish).
@@ -89,12 +89,13 @@ export async function publishDraft(
 
   revalidatePath("/review");
   revalidatePath("/feed");
-  return { ok: true, message: "Veröffentlicht." };
+  return { ok: true, message: dict.review.published };
 }
 
 /** Discard a draft (archived, not published). */
 export async function discardDraft(postId: string): Promise<ReviewActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   const admin = createAdminClient();
   const { data: post } = await admin
     .from("posts")
@@ -102,15 +103,15 @@ export async function discardDraft(postId: string): Promise<ReviewActionState> {
     .eq("id", postId)
     .maybeSingle();
   if (!post || post.org_id !== session.orgId) {
-    return { ok: false, message: "Entwurf nicht gefunden." };
+    return { ok: false, message: dict.review.notFound };
   }
   const { error } = await admin.rpc("discard_post", {
     p_actor_id: session.userId,
     p_post_id: postId,
   });
-  if (error) return { ok: false, message: "Verwerfen fehlgeschlagen." };
+  if (error) return { ok: false, message: dict.review.discardFailed };
   revalidatePath("/review");
-  return { ok: true, message: "Verworfen." };
+  return { ok: true, message: dict.review.discarded };
 }
 
 /**
@@ -122,6 +123,7 @@ export async function discardDraft(postId: string): Promise<ReviewActionState> {
  */
 export async function takedownPost(postId: string): Promise<ReviewActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   const admin = createAdminClient();
   const { data: post } = await admin
     .from("posts")
@@ -129,20 +131,20 @@ export async function takedownPost(postId: string): Promise<ReviewActionState> {
     .eq("id", postId)
     .maybeSingle();
   if (!post || post.org_id !== session.orgId) {
-    return { ok: false, message: "Aushang nicht gefunden." };
+    return { ok: false, message: dict.review.takedownNotFound };
   }
   const { error } = await admin.rpc("takedown_post", {
     p_actor_id: session.userId,
     p_post_id: postId,
   });
-  if (error) return { ok: false, message: "Entfernen fehlgeschlagen." };
+  if (error) return { ok: false, message: dict.review.takedownFailed };
   revalidatePath("/feed");
   revalidatePath("/kalender");
   revalidatePath("/essensplan");
   revalidatePath("/rueckblick");
   revalidatePath("/info");
   revalidatePath("/gesundheit");
-  return { ok: true, message: "Aushang entfernt." };
+  return { ok: true, message: dict.review.takenDown };
 }
 
 /**

@@ -16,54 +16,41 @@ import type {
   ReflectionPayload,
   Weekday,
 } from "@/lib/content/types";
+import type { Dict } from "@/lib/i18n/dictionaries";
+import { formatDate } from "@/lib/i18n/format";
+import type { Locale } from "@/lib/i18n/types";
 
 /**
  * Per-content-type detail renderer. Renders the structured `payload` of a post
  * inside the existing detail bottom sheets — turning the typed extraction into a
- * clean, scannable German layout instead of a wall of body text.
+ * clean, scannable layout instead of a wall of body text. Localized via a
+ * prop-drilled `dict` + `locale` (it's rendered from both server pages and the
+ * client feed-card, so it takes them as props rather than using a hook).
  *
  * DEFENSIVE BY DESIGN: the worker's payload schema is being migrated, so legacy
  * posts may carry free-form keys (tagesablauf, bildungsbereiche, …) that don't
  * match the typed shapes here. Every branch narrows `payload: unknown` with a
  * small type guard and FALLS BACK to the body text on any mismatch — so a post
- * never crashes the sheet and never shows raw JSON. The body fallback is the
- * critical path for those legacy payloads.
+ * never crashes the sheet and never shows raw JSON.
  */
 
 // --- weekday + date helpers -------------------------------------------------
 
-const WEEKDAY_LABEL: Record<Weekday, string> = {
-  mon: "Mo",
-  tue: "Di",
-  wed: "Mi",
-  thu: "Do",
-  fri: "Fr",
-};
-
-/**
- * Format an ISO yyyy-mm-dd date as dd.mm.yyyy by SPLITTING the string. Never
- * `new Date(iso)` — that parses as UTC midnight and renders the day before in
- * timezones west of UTC (the same bug <DateTile> avoids).
- */
-function formatIsoDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}.${m}.${y}`;
-}
-
-/** A date range "dd.mm.yyyy" or "dd.mm.yyyy – dd.mm.yyyy" (ends optional). */
-function formatDateRange(start: string | null, end: string | null): string {
-  if (!start) return end ? formatIsoDate(end) : "";
-  if (!end || end === start) return formatIsoDate(start);
-  return `${formatIsoDate(start)} – ${formatIsoDate(end)}`;
+/** A date range using the locale-aware formatter (ends optional). */
+function formatRange(
+  start: string | null,
+  end: string | null,
+  locale: Locale,
+  dict: Dict,
+): string {
+  if (!start) return end ? formatDate(end, locale, dict) : "";
+  if (!end || end === start) return formatDate(start, locale, dict);
+  return `${formatDate(start, locale, dict)} – ${formatDate(end, locale, dict)}`;
 }
 
 // --- shared fallback --------------------------------------------------------
 
-/**
- * The universal fallback: render the post body as readable paragraphs. Used for
- * `info` without notes, the DEFAULT branch, and any payload that fails its guard.
- */
+/** The universal fallback: render the post body as readable paragraphs. */
 function BodyText({ body }: { body: string | null }) {
   const clean = maskPlaceholders(body);
   if (!clean) return null;
@@ -178,30 +165,43 @@ function NutriBadge({ score }: { score: NutriScore }) {
 }
 
 /** The "weekday · date" label for a meal/reflection day row. */
-function dayLabel(day: Weekday | null, date: string | null): string | null {
-  const wd = isWeekday(day) ? WEEKDAY_LABEL[day] : null;
-  const ds = date ? formatIsoDate(date) : null;
+function dayLabel(
+  day: Weekday | null,
+  date: string | null,
+  locale: Locale,
+  dict: Dict,
+): string | null {
+  const wd = isWeekday(day) ? dict.postDetail.weekdaysShort[day] : null;
+  const ds = date ? formatDate(date, locale, dict) : null;
   if (wd && ds) return `${wd} · ${ds}`;
   return wd ?? ds;
 }
 
 // --- per-type sections ------------------------------------------------------
 
-function MealPlanDetail({ payload }: { payload: MealPlanPayload }) {
+function MealPlanDetail({
+  payload,
+  locale,
+  dict,
+}: {
+  payload: MealPlanPayload;
+  locale: Locale;
+  dict: Dict;
+}) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <CategoryChip category="meal_plan" />
+        <CategoryChip category="meal_plan" label={dict.chip.meal_plan} />
         {payload.week_of && (
           <span className="font-display text-[13px] font-bold uppercase tracking-wide text-ink-faint">
-            Woche ab {formatIsoDate(payload.week_of)}
+            {dict.postDetail.weekOf} {formatDate(payload.week_of, locale, dict)}
           </span>
         )}
       </div>
 
       <ul className="space-y-3">
         {payload.days.map((d, i) => {
-          const label = dayLabel(d.day, d.date);
+          const label = dayLabel(d.day, d.date, locale, dict);
           return (
             <li key={i} className="rounded-[12px] bg-surface-2 p-3.5">
               <div className="flex items-center gap-2">
@@ -214,7 +214,7 @@ function MealPlanDetail({ payload }: { payload: MealPlanPayload }) {
                   <span className="ml-auto flex items-center gap-1.5">
                     <NutriBadge score={d.nutri_score} />
                     <span className="text-[12px] font-semibold text-ink-faint">
-                      Schätzung
+                      {dict.postDetail.estimate}
                     </span>
                   </span>
                 )}
@@ -243,10 +243,10 @@ function MealPlanDetail({ payload }: { payload: MealPlanPayload }) {
         <div className="flex items-center gap-2 rounded-[12px] bg-accent-soft px-3.5 py-2.5">
           <NutriBadge score={payload.nutri_score_week} />
           <span className="text-[14px] font-semibold text-ink">
-            Nutri-Score der Woche
+            {dict.postDetail.nutriWeek}
           </span>
           <span className="ml-auto text-[12px] font-semibold text-ink-faint">
-            Schätzung
+            {dict.postDetail.estimate}
           </span>
         </div>
       )}
@@ -254,21 +254,29 @@ function MealPlanDetail({ payload }: { payload: MealPlanPayload }) {
   );
 }
 
-function ReflectionDetail({ payload }: { payload: ReflectionPayload }) {
+function ReflectionDetail({
+  payload,
+  locale,
+  dict,
+}: {
+  payload: ReflectionPayload;
+  locale: Locale;
+  dict: Dict;
+}) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <CategoryChip category="reflection" />
+        <CategoryChip category="reflection" label={dict.chip.reflection} />
         {payload.week_of && (
           <span className="font-display text-[13px] font-bold uppercase tracking-wide text-ink-faint">
-            Woche ab {formatIsoDate(payload.week_of)}
+            {dict.postDetail.weekOf} {formatDate(payload.week_of, locale, dict)}
           </span>
         )}
       </div>
 
       <ul className="space-y-3">
         {payload.days.map((d, i) => {
-          const label = dayLabel(d.day, d.date);
+          const label = dayLabel(d.day, d.date, locale, dict);
           return (
             <li key={i} className="rounded-[12px] bg-surface-2 p-3.5">
               {label && (
@@ -322,9 +330,17 @@ const SEVERITY_STYLE: Record<
   },
 };
 
-function HealthNoticeDetail({ payload }: { payload: HealthNoticePayload }) {
+function HealthNoticeDetail({
+  payload,
+  locale,
+  dict,
+}: {
+  payload: HealthNoticePayload;
+  locale: Locale;
+  dict: Dict;
+}) {
   const s = SEVERITY_STYLE[payload.severity];
-  const dateRange = formatDateRange(payload.date, payload.ends_on);
+  const dateRange = formatRange(payload.date, payload.ends_on, locale, dict);
   return (
     <div className={clsx("rounded-[16px] p-4", s.block)}>
       <div className={clsx("flex items-center gap-2", s.heading)}>
@@ -337,7 +353,7 @@ function HealthNoticeDetail({ payload }: { payload: HealthNoticePayload }) {
       {payload.action_required && (
         <div className="mt-3">
           <p className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">
-            Was zu tun ist:
+            {dict.postDetail.whatToDo}
           </p>
           <p className="mt-0.5 text-[15px] leading-relaxed text-ink">
             {maskPlaceholders(payload.action_required)}
@@ -354,40 +370,47 @@ function HealthNoticeDetail({ payload }: { payload: HealthNoticePayload }) {
   );
 }
 
-const EVENT_CATEGORY_LABEL: Record<EventNoticeItem["category"], string> = {
-  closure: "Schließtag",
-  event: "Termin",
-  deadline: "Frist",
-};
-
-function eventTimeRange(ev: EventNoticeItem): string | null {
+function eventTimeRange(ev: EventNoticeItem, dict: Dict): string | null {
   if (ev.all_day) return null;
+  const suffix = dict.calendar.oClock ? ` ${dict.calendar.oClock}` : "";
   if (ev.time_start && ev.time_end)
-    return `${ev.time_start} – ${ev.time_end} Uhr`;
-  if (ev.time_start) return `ab ${ev.time_start} Uhr`;
+    return `${ev.time_start} – ${ev.time_end}${suffix}`;
+  if (ev.time_start) return `${dict.postDetail.from} ${ev.time_start}${suffix}`;
   return null;
 }
 
-function EventNoticeDetail({ payload }: { payload: EventNoticePayload }) {
+function EventNoticeDetail({
+  payload,
+  locale,
+  dict,
+}: {
+  payload: EventNoticePayload;
+  locale: Locale;
+  dict: Dict;
+}) {
   return (
     <ul className="space-y-3">
       {payload.events.map((ev, i) => {
-        const time = eventTimeRange(ev);
+        const time = eventTimeRange(ev, dict);
         return (
           <li key={i} className="flex gap-3">
-            <DateTile iso={ev.starts_on} />
+            <DateTile iso={ev.starts_on} dict={dict} />
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-bold uppercase tracking-wide text-ink-faint">
-                {EVENT_CATEGORY_LABEL[ev.category] ?? "Termin"}
+                {dict.postDetail.eventCategory[ev.category] ??
+                  dict.calendar.eventSheetTitle}
               </p>
               <h3 className="mt-0.5 text-[16px] font-bold leading-snug text-ink">
                 {maskPlaceholders(ev.title)}
               </h3>
               <p className="mt-0.5 text-[14px] font-semibold text-ink-soft">
-                {formatDateRange(ev.starts_on, ev.ends_on)}
+                {formatRange(ev.starts_on, ev.ends_on, locale, dict)}
                 {time && <span className="text-ink-faint"> · {time}</span>}
                 {ev.all_day && (
-                  <span className="text-ink-faint"> · ganztägig</span>
+                  <span className="text-ink-faint">
+                    {" "}
+                    · {dict.calendar.allDay}
+                  </span>
                 )}
               </p>
             </div>
@@ -497,25 +520,37 @@ export function PostDetail({
   contentType,
   body,
   payload,
+  dict,
+  locale,
 }: {
   contentType: string | null;
   body: string | null;
   payload: unknown;
+  dict: Dict;
+  locale: Locale;
 }) {
   switch (contentType) {
     case "meal_plan":
-      if (isMealPlan(payload)) return <MealPlanDetail payload={payload} />;
+      if (isMealPlan(payload))
+        return <MealPlanDetail payload={payload} locale={locale} dict={dict} />;
       break;
     case "reflection":
-      if (isReflection(payload)) return <ReflectionDetail payload={payload} />;
+      if (isReflection(payload))
+        return (
+          <ReflectionDetail payload={payload} locale={locale} dict={dict} />
+        );
       break;
     case "health_notice":
       if (isHealthNotice(payload))
-        return <HealthNoticeDetail payload={payload} />;
+        return (
+          <HealthNoticeDetail payload={payload} locale={locale} dict={dict} />
+        );
       break;
     case "event_notice":
       if (isEventNotice(payload))
-        return <EventNoticeDetail payload={payload} />;
+        return (
+          <EventNoticeDetail payload={payload} locale={locale} dict={dict} />
+        );
       break;
     case "info":
       if (isInfo(payload)) return <InfoDetail payload={payload} body={body} />;

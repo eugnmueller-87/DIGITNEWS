@@ -10,6 +10,7 @@ import {
   assignGroup,
   setMemberRole,
 } from "@/lib/groups";
+import { getDict } from "@/lib/i18n/server";
 import { parseNonEmpty } from "@/lib/validation";
 
 export interface MemberActionState {
@@ -23,6 +24,7 @@ export async function createGroupAction(
   formData: FormData,
 ): Promise<MemberActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   let name: string;
   try {
     name = parseNonEmpty(formData.get("name"), "Gruppenname", 80);
@@ -34,12 +36,12 @@ export async function createGroupAction(
   } catch (e) {
     const msg = (e as Error).message?.toLowerCase() ?? "";
     if (msg.includes("duplicate") || msg.includes("unique")) {
-      return { ok: false, message: "Diese Gruppe gibt es schon." };
+      return { ok: false, message: dict.actions.groupExists };
     }
-    return { ok: false, message: "Konnte Gruppe nicht anlegen." };
+    return { ok: false, message: dict.actions.groupCreateFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Gruppe angelegt." };
+  return { ok: true, message: dict.actions.groupCreated };
 }
 
 /** Admin: rename a group. */
@@ -48,15 +50,16 @@ export async function renameGroupAction(
   name: string,
 ): Promise<MemberActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   const trimmed = name.trim();
-  if (!trimmed) return { ok: false, message: "Name darf nicht leer sein." };
+  if (!trimmed) return { ok: false, message: dict.actions.nameEmpty };
   try {
     await renameGroup(session.userId, groupId, trimmed.slice(0, 80));
   } catch {
-    return { ok: false, message: "Konnte Gruppe nicht umbenennen." };
+    return { ok: false, message: dict.actions.groupRenameFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Umbenannt." };
+  return { ok: true, message: dict.actions.groupRenamed };
 }
 
 /** Admin: delete a group (members in it are simply un-grouped). */
@@ -64,13 +67,14 @@ export async function deleteGroupAction(
   groupId: string,
 ): Promise<MemberActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     await deleteGroup(session.userId, groupId);
   } catch {
-    return { ok: false, message: "Konnte Gruppe nicht löschen." };
+    return { ok: false, message: dict.actions.groupDeleteFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Gelöscht." };
+  return { ok: true, message: dict.actions.groupDeleted };
 }
 
 /** Admin: assign a person to a group (or clear with empty string). */
@@ -79,13 +83,14 @@ export async function assignGroupAction(
   groupId: string,
 ): Promise<MemberActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     await assignGroup(session.userId, targetUserId, groupId || null);
   } catch {
-    return { ok: false, message: "Konnte Gruppe nicht zuweisen." };
+    return { ok: false, message: dict.actions.groupAssignFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Gruppe zugewiesen." };
+  return { ok: true, message: dict.actions.groupAssigned };
 }
 
 /** Admin: promote/demote a member in their own org. */
@@ -94,6 +99,7 @@ export async function setMemberRoleAction(
   makeAdmin: boolean,
 ): Promise<MemberActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     await setMemberRole(session.userId, targetUserId, makeAdmin);
   } catch (e) {
@@ -101,16 +107,16 @@ export async function setMemberRoleAction(
     if (msg.includes("last admin")) {
       return {
         ok: false,
-        message: "Die letzte Administrator:in kann nicht herabgestuft werden.",
+        message: dict.actions.lastAdminDemote,
       };
     }
     if (msg.includes("own role")) {
       return {
         ok: false,
-        message: "Du kannst deine eigene Rolle nicht ändern.",
+        message: dict.actions.selfRoleChange,
       };
     }
-    return { ok: false, message: "Konnte Rolle nicht ändern." };
+    return { ok: false, message: dict.actions.roleChangeFailed };
   }
   revalidatePath("/admin/mitglieder");
   return {

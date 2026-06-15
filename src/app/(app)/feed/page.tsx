@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
 import { maskPlaceholders } from "@/lib/content/mask";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
+import { getDict } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,6 +25,7 @@ export const metadata: Metadata = { title: "Pinnwand" };
  */
 export default async function FeedPage() {
   const session = await requireSession();
+  const t = await getDict();
   const supabase = await createClient();
 
   const [alertResult, postResult, profileResult] = await Promise.all([
@@ -83,22 +85,19 @@ export default async function FeedPage() {
     <div>
       <MarkSeen category="feed" />
       <h1 className="font-display mb-4 text-[26px] font-bold leading-tight text-ink">
-        Pinnwand
+        {t.feed.title}
       </h1>
 
       {loadFailed && (
         <div className="mb-4">
-          <Alert variant="error">
-            Die Pinnwand konnte gerade nicht geladen werden. Bitte lade die
-            Seite neu.
-          </Alert>
+          <Alert variant="error">{t.feed.loadError}</Alert>
         </div>
       )}
 
       {/* Pinned health alerts — the only cards that break the monochrome calm. */}
       {alertList.length > 0 && (
         <section className="mb-5 space-y-3">
-          <SectionHeader>Wichtig</SectionHeader>
+          <SectionHeader>{t.feed.important}</SectionHeader>
           {alertList.map((a) => {
             const urgent = a.health_severity === "urgent";
             return (
@@ -113,6 +112,7 @@ export default async function FeedPage() {
               >
                 <CategoryChip
                   category={urgent ? "health_urgent" : "health_advisory"}
+                  label={urgent ? t.chip.health_urgent : t.chip.health_advisory}
                 />
                 <h3 className="mt-2 text-[17px] font-bold text-ink">
                   {a.title}
@@ -131,17 +131,13 @@ export default async function FeedPage() {
       {list.length === 0 ? (
         loadFailed ? null : (
           <EmptyState
-            title="Noch keine Aushänge."
-            hint={
-              isAdmin
-                ? "Tippe auf die Kamera, um einen Aushang aufzunehmen — nach dem Prüfen erscheint er hier."
-                : "Sobald deine Einrichtung etwas veröffentlicht, siehst du es hier."
-            }
+            title={t.feed.emptyTitle}
+            hint={isAdmin ? t.feed.emptyHintAdmin : t.feed.emptyHintMember}
             action={
               isAdmin ? (
                 // Quiet hint; the FAB is the real entry point.
                 <a href="/aufnahme">
-                  <Button>Aushang aufnehmen</Button>
+                  <Button>{t.feed.captureCta}</Button>
                 </a>
               ) : undefined
             }

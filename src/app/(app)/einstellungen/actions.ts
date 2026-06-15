@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requireSession } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
+import { LOCALE_COOKIE, isLocale, type Locale } from "@/lib/i18n/types";
 import { createIcsToken, revokeIcsTokens } from "@/lib/ics";
 import { saveSubscription, removeSubscription, type PushSub } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,28 +17,59 @@ export interface SettingsState {
   message: string | null;
 }
 
+/**
+ * Set the caller's UI language (RLS-governed self-update). Also writes the
+ * `locale` cookie so the root <html lang> + any pre-session render match
+ * immediately, and revalidates the whole layout so the shell re-renders in the
+ * new language without a full reload.
+ */
+export async function setLanguage(locale: Locale): Promise<SettingsState> {
+  const dict = await getDict();
+  if (!isLocale(locale)) {
+    return { ok: false, message: dict.settings.languageInvalid };
+  }
+  const session = await requireSession();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ language: locale })
+    .eq("id", session.userId);
+  if (error) {
+    return { ok: false, message: dict.common.saveFailed };
+  }
+  (await cookies()).set(LOCALE_COOKIE, locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+  revalidatePath("/", "layout");
+  return { ok: true, message: null };
+}
+
 /** Create (or rotate) the caller's calendar subscription token. */
 export async function enableCalendarSub(): Promise<SettingsState> {
   const session = await requireSession();
+  const dict = await getDict();
   try {
     await createIcsToken(session.userId);
   } catch {
-    return { ok: false, message: "Konnte Kalender-Abo nicht erstellen." };
+    return { ok: false, message: dict.actions.calSubCreateFailed };
   }
   revalidatePath("/einstellungen");
-  return { ok: true, message: "Kalender-Abo aktiviert." };
+  return { ok: true, message: null };
 }
 
 /** Revoke the caller's calendar tokens (unsubscribe / rotate). */
 export async function disableCalendarSub(): Promise<SettingsState> {
   const session = await requireSession();
+  const dict = await getDict();
   try {
     await revokeIcsTokens(session.userId);
   } catch {
-    return { ok: false, message: "Konnte Abo nicht widerrufen." };
+    return { ok: false, message: dict.actions.calSubRevokeFailed };
   }
   revalidatePath("/einstellungen");
-  return { ok: true, message: "Abo widerrufen." };
+  return { ok: true, message: dict.actions.calSubRevoked };
 }
 
 /** Toggle the email-digest opt-in on the caller's own profile (RLS-governed). */
@@ -109,6 +143,7 @@ export async function unsubscribePush(
  */
 export async function deleteOwnAccount(): Promise<SettingsState> {
   const session = await requireSession();
+  const dict = await getDict();
   const admin = createAdminClient();
   const { error } = await admin.rpc("delete_own_account", {
     p_user_id: session.userId,
@@ -116,13 +151,9 @@ export async function deleteOwnAccount(): Promise<SettingsState> {
   if (error) {
     const msg = error.message?.toLowerCase() ?? "";
     if (msg.includes("last admin")) {
-      return {
-        ok: false,
-        message:
-          "Du bist die letzte Administrator:in. Übergib zuerst die Rolle oder lösche die Organisation.",
-      };
+      return { ok: false, message: dict.settings.deleteLastAdminError };
     }
-    return { ok: false, message: "Konnte das Konto nicht löschen." };
+    return { ok: false, message: dict.settings.deleteFailed };
   }
   // Clear the now-orphaned session and leave.
   const supabase = await createClient();

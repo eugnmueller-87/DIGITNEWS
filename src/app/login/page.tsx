@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { PageShell, Alert } from "@/components/ui";
 import { brand } from "@/config/brand";
 import { getSessionProfile } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
 
 import { LoginForm } from "./login-form";
 
@@ -18,27 +19,22 @@ export default async function LoginPage({
   const session = await getSessionProfile();
   if (session) redirect("/feed");
 
+  const t = await getDict();
   const sp = await searchParams;
 
   const notice =
     sp.error === "notprovisioned"
-      ? "Dein Zugang wurde noch nicht freigeschaltet. Bitte deine Organisation, dich hinzuzufügen."
+      ? t.auth.notProvisioned
       : sp.error === "auth"
-        ? "Der Link war ungültig oder abgelaufen. Bitte fordere einen neuen an."
+        ? t.auth.linkInvalid
         : sp.error === "passwortgesetzt"
           ? null // handled as a success notice below
           : null;
 
-  const success =
-    sp.error === "passwortgesetzt"
-      ? "Passwort gesetzt. Du kannst dich jetzt anmelden."
-      : null;
+  const success = sp.error === "passwortgesetzt" ? t.auth.passwordSet : null;
 
   return (
-    <PageShell
-      title={brand.name}
-      subtitle="Melde dich mit deiner E-Mail und deinem Passwort an."
-    >
+    <PageShell title={brand.name} subtitle={t.auth.loginSubtitle}>
       {notice && (
         <div className="mb-4">
           <Alert variant="error">{notice}</Alert>
@@ -49,16 +45,15 @@ export default async function LoginPage({
           <Alert variant="success">{success}</Alert>
         </div>
       )}
-      <LoginForm />
+      <LoginForm dict={t.auth} />
       <p className="mt-6 text-center text-sm font-semibold text-ink-soft">
-        Neu hier?{" "}
+        {t.auth.newHere}{" "}
         <a href="/registrieren" className="underline">
-          Mit Einladungs-Code anmelden
+          {t.auth.withCode}
         </a>
       </p>
       <p className="mt-3 text-center text-xs text-zinc-400">
-        Zugänge werden von deiner Organisation vergeben. Es gibt keine
-        Selbstregistrierung.
+        {t.auth.noSelfSignup}
       </p>
     </PageShell>
   );

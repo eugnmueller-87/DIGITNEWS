@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Card, EmptyState, SectionHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import type { ContentType } from "@/lib/content/types";
+import { fmt, formatDateTime } from "@/lib/i18n/format";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { ReviewCard } from "./review-card";
@@ -30,6 +32,8 @@ interface DraftRow {
 export default async function ReviewPage() {
   const session = await requireAdmin();
   const admin = createAdminClient();
+  const t = await getDict();
+  const locale = await getLocale();
 
   const { data } = await admin
     .from("posts")
@@ -63,19 +67,18 @@ export default async function ReviewPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
-        Prüfen
+        {t.review.title}
       </h1>
 
       {nothing && (
-        <EmptyState
-          title="Nichts zu prüfen."
-          hint="Tippe auf die Kamera, um einen Aushang aufzunehmen."
-        />
+        <EmptyState title={t.review.empty} hint={t.review.emptyHint} />
       )}
 
       {drafts.length > 0 && (
         <section className="space-y-3">
-          <SectionHeader>Zu prüfen · {drafts.length}</SectionHeader>
+          <SectionHeader>
+            {fmt(t.review.toCheck, { count: drafts.length })}
+          </SectionHeader>
           {drafts.map((d) => (
             <ReviewCard
               key={d.id}
@@ -92,12 +95,15 @@ export default async function ReviewPage() {
 
       {processing.length > 0 && (
         <section className="space-y-2">
-          <SectionHeader>Wird ausgelesen · {processing.length}</SectionHeader>
+          <SectionHeader>
+            {fmt(t.review.processing, { count: processing.length })}
+          </SectionHeader>
           {processing.map((p) => (
             <Card key={p.id}>
               <p className="text-sm text-ink-soft">
-                Aufnahme vom {new Date(p.created_at).toLocaleString("de-DE")}{" "}
-                wird verarbeitet …
+                {fmt(t.review.processingCard, {
+                  date: formatDateTime(p.created_at, locale),
+                })}
               </p>
             </Card>
           ))}
@@ -106,7 +112,9 @@ export default async function ReviewPage() {
 
       {failed.length > 0 && (
         <section className="space-y-3">
-          <SectionHeader>Fehlgeschlagen · {failed.length}</SectionHeader>
+          <SectionHeader>
+            {fmt(t.review.failedSection, { count: failed.length })}
+          </SectionHeader>
           {failed.map((f) => (
             <ReviewCard
               key={f.id}

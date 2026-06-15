@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Group, Row } from "@/components/grouped-list";
 import { NewBadge } from "@/components/new-badge";
 import { requireSession } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Bereiche" };
@@ -16,6 +17,7 @@ export const metadata: Metadata = { title: "Bereiche" };
  */
 export default async function BereichePage() {
   await requireSession();
+  const t = await getDict();
   const supabase = await createClient();
 
   // Per-category "new since last visit" counts for the calling member.
@@ -29,44 +31,44 @@ export default async function BereichePage() {
   return (
     <div>
       <h1 className="font-display mb-5 text-[26px] font-bold leading-tight text-ink">
-        Bereiche
+        {t.bereiche.title}
       </h1>
 
-      <Group title="Kategorien">
+      <Group title={t.bereiche.categories}>
         <Row
           first
           href="/essensplan"
           glyph="meal"
-          title="Essensplan"
-          subtitle="Was die Kinder essen"
+          title={t.bereiche.essensplanTitle}
+          subtitle={t.bereiche.essensplanSubtitle}
           trailing={badge("meal_plan")}
         />
         <Row
           href="/kalender"
           glyph="calendar"
-          title="Termine"
-          subtitle="Feste, Schließtage, Fristen"
+          title={t.bereiche.termineTitle}
+          subtitle={t.bereiche.termineSubtitle}
           trailing={badge("event_notice")}
         />
         <Row
           href="/rueckblick"
           glyph="sun"
-          title="Rückblick"
-          subtitle="Was die Kinder gemacht haben"
+          title={t.bereiche.rueckblickTitle}
+          subtitle={t.bereiche.rueckblickSubtitle}
           trailing={badge("reflection")}
         />
         <Row
           href="/info"
           glyph="info"
-          title="Infos"
-          subtitle="Allgemeine Mitteilungen"
+          title={t.bereiche.infosTitle}
+          subtitle={t.bereiche.infosSubtitle}
           trailing={badge("info")}
         />
         <Row
           href="/gesundheit"
           glyph="warning"
-          title="Gesundheit"
-          subtitle="Krankheits- & Gesundheitshinweise"
+          title={t.bereiche.gesundheitTitle}
+          subtitle={t.bereiche.gesundheitSubtitle}
           trailing={badge("health_notice")}
         />
       </Group>

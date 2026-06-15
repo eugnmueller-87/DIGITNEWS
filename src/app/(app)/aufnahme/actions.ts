@@ -6,6 +6,7 @@ import {
   startProcessing,
   DuplicateImageError,
 } from "@/lib/capture";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 /** Get a signed upload target so the browser can upload the raw image directly. */
@@ -16,11 +17,12 @@ export async function getUploadTarget(): Promise<{
   message?: string;
 }> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     const { path, token } = await createRawUploadTarget(session.orgId);
     return { ok: true, path, token };
   } catch {
-    return { ok: false, message: "Upload konnte nicht vorbereitet werden." };
+    return { ok: false, message: dict.actions.uploadPrepFailed };
   }
 }
 
@@ -40,6 +42,7 @@ export async function finalizeCapture(
   message?: string;
 }> {
   const session = await requireAdmin();
+  const dict = await getDict();
 
   // Resolve the org_type for the worker prompt hint.
   const supabase = await createClient();
@@ -63,12 +66,12 @@ export async function finalizeCapture(
       return {
         ok: false,
         duplicate: true,
-        message: "Dieser Aushang wurde bereits aufgenommen.",
+        message: dict.actions.duplicatePhoto,
       };
     }
     return {
       ok: false,
-      message: "Verarbeitung konnte nicht gestartet werden.",
+      message: dict.actions.processingStartFailed,
     };
   }
 }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import type { Role, MembershipStatus } from "@/lib/database.types";
+import { type Locale, isLocale, DEFAULT_LOCALE } from "@/lib/i18n/types";
 import { createClient } from "@/lib/supabase/server";
 
 export type { Role } from "@/lib/database.types";
@@ -15,6 +16,7 @@ export interface SessionProfile {
   role: Role;
   membershipStatus: MembershipStatus;
   displayName: string | null;
+  language: Locale;
 }
 
 /**
@@ -45,7 +47,7 @@ export const getSessionProfile = cache(
 
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("org_id, role, membership_status, display_name")
+      .select("org_id, role, membership_status, display_name, language")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -58,6 +60,7 @@ export const getSessionProfile = cache(
       role: profile.role as Role,
       membershipStatus: profile.membership_status as MembershipStatus,
       displayName: profile.display_name,
+      language: isLocale(profile.language) ? profile.language : DEFAULT_LOCALE,
     };
   },
 );

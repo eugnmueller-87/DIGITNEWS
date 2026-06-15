@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { Card, Button, Alert, MiniButton } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import { createJoinCodeAction } from "./qr-actions";
 
@@ -21,6 +22,7 @@ export function JoinCodePanel({
   qrSvg: string | null;
   url: string | null;
 }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -51,11 +53,10 @@ export function JoinCodePanel({
   return (
     <Card>
       <h2 className="font-display text-base font-semibold text-ink">
-        QR-Zugang
+        {t.members.qrHeading}
       </h2>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
-        Häng diesen QR-Code am Aushang aus. Eltern scannen ihn, beantragen
-        Zugang, und du gibst sie hier frei.
+        {t.members.qrDesc}
       </p>
 
       {hasCode && qrSvg ? (
@@ -75,7 +76,7 @@ export function JoinCodePanel({
                 className="h-11 min-w-0 flex-1 rounded-[12px] border border-border bg-white px-3 text-sm font-semibold text-ink-soft"
               />
               <MiniButton tone={copied ? "primary" : "neutral"} onClick={copy}>
-                {copied ? "Kopiert ✓" : "Link kopieren"}
+                {copied ? t.common.copied : t.members.copyLink}
               </MiniButton>
             </div>
           )}
@@ -83,7 +84,7 @@ export function JoinCodePanel({
       ) : (
         <div className="mt-3">
           <Button onClick={create} disabled={pending}>
-            {pending ? "Wird erstellt …" : "QR-Code erstellen"}
+            {pending ? t.members.qrCreating : t.members.qrCreate}
           </Button>
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { parseEmail } from "@/lib/validation";
 
@@ -21,6 +22,7 @@ export async function verifyCode(
   _prev: RegisterState,
   formData: FormData,
 ): Promise<RegisterState> {
+  const dict = await getDict();
   let email: string;
   try {
     email = parseEmail(formData.get("email"));
@@ -32,7 +34,7 @@ export async function verifyCode(
     .replace(/\s/g, "")
     .trim();
   if (!/^[0-9A-Za-z]{6,10}$/.test(token)) {
-    return { ok: false, message: "Bitte gib den Code aus der E-Mail ein." };
+    return { ok: false, message: dict.actions.enterCode };
   }
 
   const supabase = await createClient();
@@ -45,7 +47,7 @@ export async function verifyCode(
   if (error) {
     return {
       ok: false,
-      message: "Code ist ungültig oder abgelaufen. Fordere einen neuen an.",
+      message: dict.actions.codeInvalid,
     };
   }
 

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { Icon } from "@/components/icons";
 import { Alert } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import { enableCalendarSub, disableCalendarSub } from "./actions";
 
@@ -19,6 +20,7 @@ import { enableCalendarSub, disableCalendarSub } from "./actions";
  * (revoking rotates it). Reused by the /kalender hero sheet AND Einstellungen.
  */
 export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
+  const t = useT();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -35,8 +37,7 @@ export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
     return (
       <div className="space-y-3">
         <p className="text-[15px] text-ink-soft">
-          Alle bestätigten Termine deiner Einrichtung landen automatisch in
-          deinem Kalender — jederzeit widerrufbar.
+          {t.settings.calendarSubPanelDesc}
         </p>
         <button
           type="button"
@@ -44,7 +45,7 @@ export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
           onClick={() => run(enableCalendarSub)}
           className="press flex h-12 w-full items-center justify-center rounded-full bg-accent font-bold text-white disabled:opacity-50"
         >
-          {pending ? "…" : "Kalender-Abo aktivieren"}
+          {pending ? "…" : t.settings.calendarSubEnable}
         </button>
         {error && <Alert variant="error">{error}</Alert>}
       </div>
@@ -74,7 +75,7 @@ export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
       href={webcal}
       className="press flex h-12 items-center justify-center gap-2 rounded-full bg-accent font-bold text-white"
     >
-      <Icon name="calendarPlus" size={18} /> Apple Kalender
+      <Icon name="calendarPlus" size={18} /> {t.settings.appleCalendar}
     </a>
   );
   const goog = (
@@ -85,8 +86,8 @@ export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
       rel="noopener noreferrer"
       className="press flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-paper font-bold text-ink"
     >
-      <Icon name="calendarPlus" size={18} className="text-ink-soft" /> Google
-      Kalender
+      <Icon name="calendarPlus" size={18} className="text-ink-soft" />{" "}
+      {t.settings.googleCalendar}
     </a>
   );
   // Elevate the platform default first.
@@ -104,7 +105,7 @@ export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
         onClick={copy}
         className="press flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border bg-paper font-bold text-ink"
       >
-        {copied ? "Kopiert ✓" : "Andere App (URL kopieren)"}
+        {copied ? t.common.copied : t.settings.otherApp}
       </button>
       <div className="rounded-[12px] bg-surface-2 px-3 py-2">
         <p className="truncate text-xs text-ink-faint" title={icsUrl}>
@@ -117,7 +118,7 @@ export function CalendarSubPanel({ icsUrl }: { icsUrl: string | null }) {
         onClick={() => run(disableCalendarSub)}
         className="mx-auto block text-xs font-semibold text-ink-soft underline disabled:opacity-50"
       >
-        Abo widerrufen
+        {t.settings.revokeSub}
       </button>
       {error && <Alert variant="error">{error}</Alert>}
     </div>

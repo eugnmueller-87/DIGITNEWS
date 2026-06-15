@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { Card, Alert, MiniButton } from "@/components/ui";
 import type { Role } from "@/lib/database.types";
+import { useT } from "@/lib/i18n/provider";
 
 import { deleteOwnAccount } from "./actions";
 
@@ -18,6 +19,7 @@ export function DeleteAccountPanel({
   role: Role;
   warnLastAdmin: boolean;
 }) {
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -26,10 +28,10 @@ export function DeleteAccountPanel({
     return (
       <Card>
         <h2 className="font-display text-base font-semibold text-ink">
-          Konto löschen
+          {t.settings.deleteHeading}
         </h2>
         <p className="mt-1 text-sm font-semibold text-ink-soft">
-          Operator-Konten können hier nicht gelöscht werden.
+          {t.settings.deleteOperatorBlocked}
         </p>
       </Card>
     );
@@ -50,13 +52,11 @@ export function DeleteAccountPanel({
   return (
     <Card className="border-tomato">
       <h2 className="font-display text-base font-semibold text-tomato">
-        Konto löschen
+        {t.settings.deleteHeading}
       </h2>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
-        Dein Konto und deine persönlichen Daten werden dauerhaft gelöscht. Dies
-        kann nicht rückgängig gemacht werden.
-        {warnLastAdmin &&
-          " Als Administrator:in kannst du dich nicht löschen, wenn du die einzige bist."}
+        {t.settings.deleteWarning}
+        {warnLastAdmin && ` ${t.settings.deleteLastAdmin}`}
       </p>
 
       {error && (
@@ -69,15 +69,15 @@ export function DeleteAccountPanel({
         {confirming ? (
           <div className="flex gap-2">
             <MiniButton tone="danger" disabled={pending} onClick={remove}>
-              {pending ? "Wird gelöscht …" : "Endgültig löschen"}
+              {pending ? t.settings.deleting : t.settings.deleteConfirm}
             </MiniButton>
             <MiniButton disabled={pending} onClick={() => setConfirming(false)}>
-              Abbrechen
+              {t.common.cancel}
             </MiniButton>
           </div>
         ) : (
           <MiniButton onClick={() => setConfirming(true)}>
-            Konto löschen
+            {t.settings.deleteHeading}
           </MiniButton>
         )}
       </div>

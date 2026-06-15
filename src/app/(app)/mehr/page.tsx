@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Group, Row } from "@/components/grouped-list";
 import { requireSession } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Mehr" };
 
@@ -15,58 +16,59 @@ export const metadata: Metadata = { title: "Mehr" };
  */
 export default async function MehrPage() {
   const session = await requireSession();
+  const t = await getDict();
   const isAdmin = session.role === "admin" || session.role === "superadmin";
   const isSuperadmin = session.role === "superadmin";
 
   return (
     <div>
       <h1 className="font-display mb-5 text-[26px] font-bold leading-tight text-ink">
-        Mehr
+        {t.mehr.title}
       </h1>
 
-      <Group title="Für dich">
+      <Group title={t.mehr.forYou}>
         <Row
           first
           href="/rueckblick"
           glyph="sun"
-          title="Rückblick"
-          subtitle="Wochenrückblicke"
+          title={t.bereiche.rueckblickTitle}
+          subtitle={t.mehr.rueckblickSubtitle}
         />
         <Row
           href="/kalender"
           glyph="calendarPlus"
-          title="Kalender abonnieren"
-          subtitle="Termine automatisch in deinem Kalender"
+          title={t.mehr.calendarSubTitle}
+          subtitle={t.mehr.calendarSubSubtitle}
         />
         <Row
           href="/einstellungen"
           glyph="settings"
-          title="Einstellungen"
-          subtitle="Benachrichtigungen, Konto"
+          title={t.mehr.settingsTitle}
+          subtitle={t.mehr.settingsSubtitle}
         />
       </Group>
 
       {isAdmin && (
-        <Group title="Verwaltung">
+        <Group title={t.mehr.admin}>
           <Row
             first
             href="/aufnahme"
             glyph="capture"
-            title="Aufnahme"
-            subtitle="Aushang fotografieren"
+            title={t.mehr.aufnahmeTitle}
+            subtitle={t.mehr.aufnahmeSubtitle}
           />
           <Row
             href="/admin/mitglieder"
             glyph="members"
-            title="Mitglieder"
-            subtitle="Eltern & Team verwalten"
+            title={t.mehr.mitgliederTitle}
+            subtitle={t.mehr.mitgliederSubtitle}
           />
           {isSuperadmin && (
             <Row
               href="/operator"
               glyph="operator"
-              title="Operator"
-              subtitle="Organisationen verwalten"
+              title={t.mehr.operatorTitle}
+              subtitle={t.mehr.operatorSubtitle}
             />
           )}
         </Group>

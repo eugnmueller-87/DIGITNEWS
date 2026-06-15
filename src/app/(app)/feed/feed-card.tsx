@@ -13,6 +13,8 @@ import { Icon } from "@/components/icons";
 import { PostDetail } from "@/components/post-detail";
 import { Alert } from "@/components/ui";
 import { maskPlaceholders } from "@/lib/content/mask";
+import { formatDate } from "@/lib/i18n/format";
+import { useLocale, useT } from "@/lib/i18n/provider";
 
 export interface FeedCardData {
   id: string;
@@ -39,6 +41,8 @@ export function FeedCard({
   post: FeedCardData;
   isAdmin?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [removed, setRemoved] = useState(false);
@@ -55,12 +59,10 @@ export function FeedCard({
     info: "info",
   };
   const cat: ChipCategory = CHIP_BY_TYPE[post.content_type ?? ""] ?? "info";
+  const chipLabel = t.chip[cat];
 
   const dateLabel = post.published_at
-    ? new Date(post.published_at).toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-      })
+    ? formatDate(post.published_at, locale, t, { noYear: true })
     : null;
 
   function takedown() {
@@ -89,7 +91,7 @@ export function FeedCard({
       >
         <div className="flex items-center gap-2.5">
           <CategoryGlyph category={cat} />
-          <CategoryChip category={cat} />
+          <CategoryChip category={cat} label={chipLabel} />
           {dateLabel && (
             <span className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
               {dateLabel}
@@ -109,7 +111,7 @@ export function FeedCard({
       <BottomSheet open={open} onClose={() => setOpen(false)}>
         <div className="flex items-center gap-2.5">
           <CategoryGlyph category={cat} />
-          <CategoryChip category={cat} />
+          <CategoryChip category={cat} label={chipLabel} />
           {dateLabel && (
             <span className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
               {dateLabel}
@@ -124,7 +126,7 @@ export function FeedCard({
             /* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */
             <img
               src={post.imageUrl}
-              alt={post.title ?? "Aushang"}
+              alt={post.title ?? t.feed.title}
               loading="lazy"
               className="mb-3 w-full rounded-[12px] border border-border bg-surface-2 object-contain"
             />
@@ -133,6 +135,8 @@ export function FeedCard({
             contentType={post.content_type}
             body={post.body}
             payload={post.payload}
+            dict={t}
+            locale={locale}
           />
         </div>
         {isEvent && (
@@ -140,7 +144,7 @@ export function FeedCard({
             href="/kalender"
             className="press mt-4 flex items-center justify-center gap-2 rounded-full bg-accent-soft py-3 font-bold text-accent-deep"
           >
-            <Icon name="calendar" size={18} /> Im Kalender ansehen
+            <Icon name="calendar" size={18} /> {t.feed.inCalendar}
           </a>
         )}
 
@@ -160,7 +164,7 @@ export function FeedCard({
                   disabled={pending}
                   className="press h-11 flex-1 rounded-full bg-tomato font-bold text-white disabled:opacity-50"
                 >
-                  {pending ? "Wird entfernt …" : "Wirklich entfernen"}
+                  {pending ? t.feed.takingDown : t.feed.confirmTakedown}
                 </button>
                 <button
                   type="button"
@@ -168,7 +172,7 @@ export function FeedCard({
                   disabled={pending}
                   className="press h-11 rounded-full border border-border px-5 font-bold text-ink-soft"
                 >
-                  Abbrechen
+                  {t.common.cancel}
                 </button>
               </div>
             ) : (
@@ -177,7 +181,7 @@ export function FeedCard({
                 onClick={() => setConfirming(true)}
                 className="press flex w-full items-center justify-center gap-2 rounded-full border border-border py-2.5 font-bold text-tomato"
               >
-                Aushang entfernen
+                {t.feed.takedown}
               </button>
             )}
           </div>

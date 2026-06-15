@@ -4,6 +4,7 @@ import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { EmptyState } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
+import { getDict } from "@/lib/i18n/server";
 import { getActiveIcsToken } from "@/lib/ics";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,6 +33,7 @@ export interface CalEvent {
  */
 export default async function KalenderPage() {
   const session = await requireSession();
+  const t = await getDict();
   const supabase = await createClient();
 
   const [eventsResult, token] = await Promise.all([
@@ -53,16 +55,13 @@ export default async function KalenderPage() {
     <div className="space-y-4">
       <MarkSeen category="event_notice" />
       <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
-        Kalender
+        {t.calendar.title}
       </h1>
 
       <CalendarSubBanner icsUrl={icsUrl} hasSub={token != null} />
 
       {events.length === 0 ? (
-        <EmptyState
-          title="Noch keine Termine."
-          hint="Sobald deine Einrichtung Termine veröffentlicht, erscheinen sie hier — und in deinem abonnierten Kalender."
-        />
+        <EmptyState title={t.calendar.emptyTitle} hint={t.calendar.emptyHint} />
       ) : (
         <CalendarView events={events} />
       )}

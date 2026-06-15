@@ -8,6 +8,7 @@ import {
   rejectApplication,
 } from "@/lib/applications";
 import { requireAdmin } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
 
 export interface QrActionState {
   ok: boolean;
@@ -17,13 +18,14 @@ export interface QrActionState {
 /** Admin: create a join code (QR) for their org. */
 export async function createJoinCodeAction(): Promise<QrActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     await createJoinCode(session.userId, session.orgId, null);
   } catch {
-    return { ok: false, message: "Konnte QR-Code nicht erstellen." };
+    return { ok: false, message: dict.actions.qrCreateFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "QR-Code erstellt." };
+  return { ok: true, message: dict.actions.qrCreated };
 }
 
 /**
@@ -36,23 +38,24 @@ export async function approveApplicationAction(
   appId: string,
 ): Promise<QrActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     await approveApplication(session.userId, appId, session.orgId);
   } catch (e) {
     const msg = (e as Error).message?.toLowerCase() ?? "";
     if (msg.includes("not verified")) {
-      return { ok: false, message: "Anfrage ist noch nicht bestätigt." };
+      return { ok: false, message: dict.actions.requestNotVerified };
     }
     if (msg.includes("already belongs")) {
       return {
         ok: false,
-        message: "Diese Person gehört bereits zu einer Organisation.",
+        message: dict.actions.alreadyInOrg,
       };
     }
-    return { ok: false, message: "Freigabe fehlgeschlagen." };
+    return { ok: false, message: dict.actions.approveFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Freigegeben. Login-Link verschickt." };
+  return { ok: true, message: dict.actions.approved };
 }
 
 /** Admin: reject an application (purges child data). */
@@ -60,11 +63,12 @@ export async function rejectApplicationAction(
   appId: string,
 ): Promise<QrActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
   try {
     await rejectApplication(session.userId, appId);
   } catch {
-    return { ok: false, message: "Ablehnen fehlgeschlagen." };
+    return { ok: false, message: dict.actions.rejectFailed };
   }
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Anfrage abgelehnt." };
+  return { ok: true, message: dict.actions.rejected };
 }

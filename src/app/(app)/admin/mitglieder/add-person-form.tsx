@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 
 import { Icon } from "@/components/icons";
 import { Card, Button, Input, Field, Label, Alert } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import { addPerson, type ActionState } from "./actions";
 
@@ -53,6 +54,7 @@ export function AddPersonForm({
   canAddAdmins: boolean;
   groups: { id: string; name: string }[];
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(addPerson, initial);
   // Clear the fields after a successful add (so the admin can add the next
   // person without an accidental duplicate). A DOM reset — no render cascade.
@@ -71,34 +73,34 @@ export function AddPersonForm({
         </div>
       )}
       <form ref={formRef} action={formAction} className="space-y-4">
-        <Field label="E-Mail-Adresse" htmlFor="email">
+        <Field label={t.members.email} htmlFor="email">
           <Input
             id="email"
             name="email"
             type="email"
             autoComplete="off"
             inputMode="email"
-            placeholder="person@beispiel.de"
+            placeholder={t.members.emailPlaceholder}
             required
           />
         </Field>
 
-        <Field label="Name (optional)" htmlFor="displayName">
+        <Field label={t.members.nameOptional} htmlFor="displayName">
           <Input
             id="displayName"
             name="displayName"
             type="text"
             maxLength={80}
-            placeholder="z. B. Anna Müller"
+            placeholder={t.members.namePlaceholder}
           />
         </Field>
 
         {canAddAdmins && (
           <div className="space-y-1.5">
-            <Label htmlFor="role">Rolle</Label>
+            <Label htmlFor="role">{t.members.role}</Label>
             <Select id="role" name="role" defaultValue="member">
-              <option value="member">Mitglied (nur lesen)</option>
-              <option value="admin">Administrator:in</option>
+              <option value="member">{t.members.roleMember}</option>
+              <option value="admin">{t.members.roleAdmin}</option>
             </Select>
           </div>
         )}
@@ -106,9 +108,9 @@ export function AddPersonForm({
 
         {groups.length > 0 && (
           <div className="space-y-1.5">
-            <Label htmlFor="groupId">Gruppe (optional)</Label>
+            <Label htmlFor="groupId">{t.members.groupOptional}</Label>
             <Select id="groupId" name="groupId" defaultValue="">
-              <option value="">Keine Gruppe</option>
+              <option value="">{t.members.noGroup}</option>
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}
@@ -119,7 +121,7 @@ export function AddPersonForm({
         )}
 
         <Button type="submit" disabled={pending}>
-          {pending ? "Wird hinzugefügt …" : "Person hinzufügen"}
+          {pending ? t.members.adding : t.members.addPerson}
         </Button>
       </form>
     </Card>

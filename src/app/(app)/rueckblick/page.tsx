@@ -5,6 +5,8 @@ import { CategoryChip } from "@/components/category-chip";
 import { PostDetail } from "@/components/post-detail";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { formatDate } from "@/lib/i18n/format";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,6 +31,8 @@ interface ReflectionRow {
  */
 export default async function RueckblickPage() {
   const session = await requireSession();
+  const t = await getDict();
+  const locale = await getLocale();
   const supabase = await createClient();
 
   const [{ data }, profileResult] = await Promise.all([
@@ -59,13 +63,10 @@ export default async function RueckblickPage() {
   return (
     <div className="space-y-4">
       <MarkSeen category="reflection" />
-      <PageHeader
-        title="Rückblick"
-        subtitle="Was die Kinder unter der Woche gemacht haben."
-      />
+      <PageHeader title={t.rueckblick.title} subtitle={t.rueckblick.subtitle} />
 
       {list.length === 0 ? (
-        <EmptyState title="Noch kein Rückblick veröffentlicht." />
+        <EmptyState title={t.rueckblick.empty} />
       ) : (
         <div className="space-y-4">
           {list.map((p) => {
@@ -73,13 +74,13 @@ export default async function RueckblickPage() {
             return (
               <Card key={p.id}>
                 <div className="flex items-center justify-between gap-2">
-                  <CategoryChip category="reflection" />
+                  <CategoryChip
+                    category="reflection"
+                    label={t.chip.reflection}
+                  />
                   {p.published_at && (
                     <time className="shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
-                      {new Date(p.published_at).toLocaleDateString("de-DE", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      })}
+                      {formatDate(p.published_at, locale, t, { noYear: true })}
                     </time>
                   )}
                 </div>
@@ -90,7 +91,7 @@ export default async function RueckblickPage() {
                   /* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */
                   <img
                     src={imageUrl}
-                    alt={p.title ?? "Rückblick"}
+                    alt={p.title ?? t.rueckblick.fallbackAlt}
                     loading="lazy"
                     className="mt-3 w-full rounded-[12px] border border-border bg-surface-2 object-contain"
                   />
@@ -100,6 +101,8 @@ export default async function RueckblickPage() {
                     contentType="reflection"
                     body={p.body}
                     payload={p.extraction?.payload}
+                    dict={t}
+                    locale={locale}
                   />
                 </div>
               </Card>

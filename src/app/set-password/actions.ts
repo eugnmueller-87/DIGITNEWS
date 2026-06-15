@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { fmt } from "@/lib/i18n/format";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export interface SetPasswordState {
@@ -22,20 +24,21 @@ export async function setPassword(
   _prev: SetPasswordState,
   formData: FormData,
 ): Promise<SetPasswordState> {
+  const dict = await getDict();
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
   if (password.length < MIN_LEN) {
     return {
       ok: false,
-      message: `Das Passwort muss mindestens ${MIN_LEN} Zeichen lang sein.`,
+      message: fmt(dict.actions.passwordTooShort, { min: MIN_LEN }),
     };
   }
   if (password.length > 200) {
-    return { ok: false, message: "Das Passwort ist zu lang." };
+    return { ok: false, message: dict.actions.passwordTooLong };
   }
   if (password !== confirm) {
-    return { ok: false, message: "Die Passwörter stimmen nicht überein." };
+    return { ok: false, message: dict.actions.passwordsMismatch };
   }
 
   const supabase = await createClient();
@@ -45,16 +48,12 @@ export async function setPassword(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return {
-      ok: false,
-      message:
-        "Deine Sitzung ist abgelaufen. Bitte öffne den Einladungs-Link erneut.",
-    };
+    return { ok: false, message: dict.actions.sessionExpired };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { ok: false, message: "Passwort konnte nicht gesetzt werden." };
+    return { ok: false, message: dict.actions.passwordSetFailed };
   }
 
   // Sign out so they log in fresh with the new password (clean state), then

@@ -21,6 +21,12 @@ const startProcessing = vi.fn();
 const createRawUploadTarget = vi.fn();
 
 vi.mock("@/lib/auth", () => ({ requireAdmin: () => requireAdmin() }));
+// The actions now resolve a dictionary for their messages; return the real `de`
+// dict directly so they don't pull in cookies()/session in the node test env.
+vi.mock("@/lib/i18n/server", async () => {
+  const { de } = await import("@/lib/i18n/dictionaries");
+  return { getDict: async () => de, getLocale: async () => "de" };
+});
 vi.mock("@/lib/capture", () => ({
   DuplicateImageError,
   startProcessing: (...a: unknown[]) => startProcessing(...a),

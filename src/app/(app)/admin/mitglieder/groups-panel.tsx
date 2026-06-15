@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 
 import { Card, Button, Input, Alert, MiniButton } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import {
   createGroupAction,
@@ -20,6 +21,7 @@ interface GroupItem {
 
 /** Admin panel to manage the org's groups (e.g. "Kita 1", "Kita 2"). */
 export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(
     createGroupAction,
     initial,
@@ -27,11 +29,10 @@ export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
 
   return (
     <Card>
-      <h2 className="font-display text-base font-bold text-ink">Gruppen</h2>
-      <p className="mt-1 text-sm text-ink-soft">
-        Lege die Gruppen deiner Einrichtung an (z. B. „Kita 1“, „Kita 2“) und
-        weise Personen unten einer Gruppe zu.
-      </p>
+      <h2 className="font-display text-base font-bold text-ink">
+        {t.members.groupsHeading}
+      </h2>
+      <p className="mt-1 text-sm text-ink-soft">{t.members.groupsDesc}</p>
 
       {groups.length > 0 && (
         <ul className="mt-3 space-y-2">
@@ -44,7 +45,7 @@ export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
       <form action={formAction} className="mt-3 flex flex-wrap gap-2">
         <Input
           name="name"
-          placeholder="Neue Gruppe, z. B. Kita 1"
+          placeholder={t.members.newGroupPlaceholder}
           maxLength={80}
           required
           className="min-w-40 flex-1"
@@ -54,7 +55,7 @@ export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
           disabled={pending}
           className="w-auto min-w-32 px-5"
         >
-          {pending ? "Wird angelegt …" : "Hinzufügen"}
+          {pending ? t.members.creatingGroup : t.common.add}
         </Button>
       </form>
       {state.message && (
@@ -69,6 +70,7 @@ export function GroupsPanel({ groups }: { groups: GroupItem[] }) {
 }
 
 function GroupRow({ id, name }: { id: string; name: string }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
   const [pending, start] = useTransition();
@@ -108,7 +110,7 @@ function GroupRow({ id, name }: { id: string; name: string }) {
                 disabled={pending}
                 onClick={save}
               >
-                Speichern
+                {t.common.save}
               </MiniButton>
               <MiniButton
                 type="button"
@@ -117,7 +119,7 @@ function GroupRow({ id, name }: { id: string; name: string }) {
                   setValue(name);
                 }}
               >
-                Abbrechen
+                {t.common.cancel}
               </MiniButton>
             </div>
           </>
@@ -128,7 +130,7 @@ function GroupRow({ id, name }: { id: string; name: string }) {
             </span>
             <div className="flex gap-2">
               <MiniButton type="button" onClick={() => setEditing(true)}>
-                Umbenennen
+                {t.common.rename}
               </MiniButton>
               <MiniButton
                 type="button"
@@ -136,7 +138,7 @@ function GroupRow({ id, name }: { id: string; name: string }) {
                 disabled={pending}
                 onClick={remove}
               >
-                Löschen
+                {t.common.delete}
               </MiniButton>
             </div>
           </>

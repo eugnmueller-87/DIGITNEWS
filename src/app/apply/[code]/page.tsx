@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { PageShell, Alert } from "@/components/ui";
 import { brand } from "@/config/brand";
 import { previewJoinCode } from "@/lib/applications";
+import { fmt } from "@/lib/i18n/format";
+import { getDict } from "@/lib/i18n/server";
 import { parseJoinCode } from "@/lib/validation";
 
 import { ApplyForm } from "./apply-form";
@@ -31,21 +33,25 @@ export default async function ApplyPage({
   }
 
   const preview = await previewJoinCode(code);
+  const t = await getDict();
 
   return (
     <PageShell
-      title={preview.valid && preview.orgName ? preview.orgName : "Zugang"}
+      title={
+        preview.valid && preview.orgName
+          ? preview.orgName
+          : t.auth.applyFallbackTitle
+      }
       subtitle={
-        preview.valid ? `Zugang zu ${brand.name} beantragen.` : undefined
+        preview.valid
+          ? fmt(t.auth.applySubtitle, { brand: brand.name })
+          : undefined
       }
     >
       {preview.valid ? (
-        <ApplyForm code={code} />
+        <ApplyForm code={code} dict={t.auth} />
       ) : (
-        <Alert variant="error">
-          Dieser Zugangs-Code ist ungültig oder nicht mehr aktiv. Bitte wende
-          dich an deine Einrichtung.
-        </Alert>
+        <Alert variant="error">{t.auth.applyInvalid}</Alert>
       )}
     </PageShell>
   );

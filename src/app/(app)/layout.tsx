@@ -4,6 +4,8 @@ import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { SunLogo } from "@/components/sun-logo";
 import { brand } from "@/config/brand";
 import { requireSession } from "@/lib/auth";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -25,6 +27,9 @@ export default async function AppLayout({
   const isAdmin = session.role === "admin" || session.role === "superadmin";
   const isSuperadmin = session.role === "superadmin";
 
+  const [locale, dict] = await Promise.all([getLocale(), getDict()]);
+  const t = dict;
+
   const supabase = await createClient();
   // Org name + (for admins) the pending-draft count for the Prüfen tab badge.
   // RLS scopes the posts read to the caller's own org.
@@ -40,22 +45,22 @@ export default async function AppLayout({
   const draftCount = draftCountResult.count ?? 0;
 
   const memberNav: NavItem[] = [
-    { href: "/bereiche", label: "Bereiche" },
-    { href: "/essensplan", label: "Essensplan" },
-    { href: "/rueckblick", label: "Rückblick" },
-    { href: "/kalender", label: "Kalender" },
+    { href: "/bereiche", label: t.nav.bereiche },
+    { href: "/essensplan", label: t.nav.essensplan },
+    { href: "/rueckblick", label: t.nav.rueckblick },
+    { href: "/kalender", label: t.nav.kalender },
   ];
 
   const adminNav: NavItem[] = [];
   if (isAdmin) {
     adminNav.push(
-      { href: "/aufnahme", label: "Aufnahme" },
-      { href: "/review", label: "Prüfen" },
-      { href: "/admin/mitglieder", label: "Mitglieder" },
+      { href: "/aufnahme", label: t.nav.aufnahme },
+      { href: "/review", label: t.nav.pruefen },
+      { href: "/admin/mitglieder", label: t.nav.mitglieder },
     );
   }
   if (isSuperadmin) {
-    adminNav.push({ href: "/operator", label: "Operator" });
+    adminNav.push({ href: "/operator", label: t.nav.operator });
   }
 
   // Phone bottom bar: exactly FOUR thumb-sized tabs per role; secondary
@@ -67,51 +72,58 @@ export default async function AppLayout({
   //   Team:   Bereiche · Prüfen · Mitglieder · Mehr
   const bottomNav: BottomNavItem[] = isAdmin
     ? [
-        { href: "/bereiche", label: "Bereiche", icon: "feed" },
-        { href: "/review", label: "Prüfen", icon: "review", badge: draftCount },
-        { href: "/admin/mitglieder", label: "Mitglieder", icon: "members" },
-        { href: "/mehr", label: "Mehr", icon: "more" },
+        { href: "/bereiche", label: t.nav.bereiche, icon: "feed" },
+        {
+          href: "/review",
+          label: t.nav.pruefen,
+          icon: "review",
+          badge: draftCount,
+        },
+        { href: "/admin/mitglieder", label: t.nav.mitglieder, icon: "members" },
+        { href: "/mehr", label: t.nav.mehr, icon: "more" },
       ]
     : [
-        { href: "/bereiche", label: "Bereiche", icon: "feed" },
-        { href: "/essensplan", label: "Essen", icon: "meal" },
-        { href: "/kalender", label: "Kalender", icon: "calendar" },
-        { href: "/mehr", label: "Mehr", icon: "more" },
+        { href: "/bereiche", label: t.nav.bereiche, icon: "feed" },
+        { href: "/essensplan", label: t.nav.essen, icon: "meal" },
+        { href: "/kalender", label: t.nav.kalender, icon: "calendar" },
+        { href: "/mehr", label: t.nav.mehr, icon: "more" },
       ];
 
   return (
-    <div className="relative z-[1] flex min-h-full flex-col">
-      <header className="pt-safe sticky top-0 z-10 border-b border-border bg-paper/85 backdrop-blur-xl">
-        <div className="px-content mx-auto w-full max-w-3xl">
-          <div className="flex items-center justify-between gap-3 py-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <SunLogo className="h-9 w-9 shrink-0" />
-              <span className="font-display min-w-0 truncate text-[17px] font-bold leading-tight text-ink">
-                {org?.name ?? brand.name}
-              </span>
+    <I18nProvider locale={locale} dict={dict}>
+      <div className="relative z-[1] flex min-h-full flex-col">
+        <header className="pt-safe sticky top-0 z-10 border-b border-border bg-paper/85 backdrop-blur-xl">
+          <div className="px-content mx-auto w-full max-w-3xl">
+            <div className="flex items-center justify-between gap-3 py-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <SunLogo className="h-9 w-9 shrink-0" />
+                <span className="font-display min-w-0 truncate text-[17px] font-bold leading-tight text-ink">
+                  {org?.name ?? brand.name}
+                </span>
+              </div>
+              <AccountMenu role={session.role} />
             </div>
-            <AccountMenu role={session.role} />
+            {/* Desktop primary nav only — phone uses the bottom bar. */}
+            <div className="hidden pb-2 sm:block">
+              <AppNav items={memberNav} adminItems={adminNav} />
+            </div>
           </div>
-          {/* Desktop primary nav only — phone uses the bottom bar. */}
-          <div className="hidden pb-2 sm:block">
-            <AppNav items={memberNav} adminItems={adminNav} />
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="px-content mx-auto w-full max-w-3xl flex-1 py-6">
-        {children}
-      </main>
+        <main className="px-content mx-auto w-full max-w-3xl flex-1 py-6">
+          {children}
+        </main>
 
-      {/* Reserve space on phones so the fixed bottom bar never covers content.
+        {/* Reserve space on phones so the fixed bottom bar never covers content.
           ~64px bar + the home-indicator inset. Zero on >=sm. */}
-      <div
-        aria-hidden
-        className="pb-safe h-16 sm:hidden"
-        style={{ contain: "strict" }}
-      />
+        <div
+          aria-hidden
+          className="pb-safe h-16 sm:hidden"
+          style={{ contain: "strict" }}
+        />
 
-      <BottomNav items={bottomNav} />
-    </div>
+        <BottomNav items={bottomNav} ariaLabel={t.nav.primaryNav} />
+      </div>
+    </I18nProvider>
   );
 }

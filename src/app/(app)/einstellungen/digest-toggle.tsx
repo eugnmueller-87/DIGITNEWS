@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 
 import { Card } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import { setDigestOptIn } from "./actions";
 
 /** Email-digest opt-in toggle for the caller's own profile. */
 export function DigestToggle({ initial }: { initial: boolean }) {
+  const t = useT();
   const [on, setOn] = useState(initial);
   const [pending, start] = useTransition();
 
@@ -25,11 +27,9 @@ export function DigestToggle({ initial }: { initial: boolean }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-base font-bold text-ink">
-            E-Mail-Benachrichtigungen
+            {t.settings.digestHeading}
           </h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            Erhalte eine E-Mail, wenn deine Einrichtung etwas veröffentlicht.
-          </p>
+          <p className="mt-1 text-sm text-ink-soft">{t.settings.digestDesc}</p>
         </div>
         <button
           type="button"

@@ -4,6 +4,7 @@ import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { CategoryChip } from "@/components/category-chip";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Essensplan" };
@@ -17,6 +18,7 @@ export const metadata: Metadata = { title: "Essensplan" };
  */
 export default async function EssensplanPage() {
   await requireSession();
+  const t = await getDict();
   const supabase = await createClient();
 
   const { data: posts } = await supabase
@@ -31,15 +33,15 @@ export default async function EssensplanPage() {
   return (
     <div className="space-y-4">
       <MarkSeen category="meal_plan" />
-      <PageHeader title="Essensplan" subtitle="Was die Kinder essen." />
+      <PageHeader title={t.essensplan.title} subtitle={t.essensplan.subtitle} />
 
       {list.length === 0 ? (
-        <EmptyState title="Noch kein Essensplan veröffentlicht." />
+        <EmptyState title={t.essensplan.empty} />
       ) : (
         <div className="space-y-3">
           {list.map((p) => (
             <Card key={p.id}>
-              <CategoryChip category="meal_plan" />
+              <CategoryChip category="meal_plan" label={t.chip.meal_plan} />
               <h2 className="mt-2 text-[17px] font-bold text-ink">{p.title}</h2>
               {/* Phase 3 renders the day/dish grid + estimated Nutri-Score from
                   post_details here, with a "Schätzung" label. */}

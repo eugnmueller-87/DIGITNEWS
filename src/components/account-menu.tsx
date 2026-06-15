@@ -5,18 +5,18 @@ import { useEffect, useRef, useState } from "react";
 
 import { signOut } from "@/app/(app)/actions";
 import { clsx } from "@/lib/clsx";
+import { fmt } from "@/lib/i18n/format";
+import { useT } from "@/lib/i18n/provider";
 
-const ROLE_LABEL: Record<string, string> = {
-  superadmin: "Operator",
-  admin: "Admin",
-  member: "Mitglied",
-};
+type RoleKey = "superadmin" | "admin" | "member";
 
 /**
  * Top-right account menu: shows the user's role, with Einstellungen + Abmelden.
  * Keeps these out of the primary nav so it stays uncluttered.
  */
 export function AccountMenu({ role }: { role: string }) {
+  const t = useT();
+  const roleLabel = t.account.roles[role as RoleKey] ?? t.account.roles.member;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,9 +38,9 @@ export function AccountMenu({ role }: { role: string }) {
         className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-sm font-bold text-ink"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Konto"
+        aria-label={t.account.label}
       >
-        {ROLE_LABEL[role]?.[0] ?? "U"}
+        {roleLabel[0] ?? "U"}
       </button>
 
       {open && (
@@ -49,10 +49,10 @@ export function AccountMenu({ role }: { role: string }) {
           className="absolute right-0 z-20 mt-2 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[14px] border border-border bg-paper py-1 shadow-float"
         >
           <div className="px-3 py-2 text-xs font-bold text-ink-soft">
-            Angemeldet als {ROLE_LABEL[role] ?? "Nutzer"}
+            {fmt(t.account.loggedInAs, { role: roleLabel })}
           </div>
           <MenuLink href="/einstellungen" onClick={() => setOpen(false)}>
-            Einstellungen
+            {t.account.settings}
           </MenuLink>
           <form action={signOut}>
             <button
@@ -60,7 +60,7 @@ export function AccountMenu({ role }: { role: string }) {
               role="menuitem"
               className="block w-full px-3 py-2 text-left text-sm font-semibold text-ink hover:bg-sun-soft"
             >
-              Abmelden
+              {t.account.logout}
             </button>
           </form>
         </div>

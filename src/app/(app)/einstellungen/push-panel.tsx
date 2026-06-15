@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 
 import { Card, Button, Alert, MiniButton } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 
 import { subscribePush, unsubscribePush } from "./actions";
 
@@ -23,6 +24,7 @@ function urlBase64ToBuffer(base64: string): ArrayBuffer {
  * push isn't configured (no VAPID public key) or unsupported by the browser.
  */
 export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
+  const t = useT();
   const [subscribed, setSubscribed] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
       try {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
-          setError("Benachrichtigungen wurden nicht erlaubt.");
+          setError(t.settings.pushDenied);
           return;
         }
         const reg = await navigator.serviceWorker.ready;
@@ -77,7 +79,7 @@ export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
         if (!res.ok) setError(res.message);
         else setSubscribed(true);
       } catch {
-        setError("Konnte Push nicht aktivieren.");
+        setError(t.settings.pushEnableFailed);
       }
     });
   }
@@ -94,7 +96,7 @@ export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
         }
         setSubscribed(false);
       } catch {
-        setError("Konnte Push nicht deaktivieren.");
+        setError(t.settings.pushDisableFailed);
       }
     });
   }
@@ -104,12 +106,9 @@ export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-base font-bold text-ink">
-            Push-Benachrichtigungen
+            {t.settings.pushHeading}
           </h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            Erhalte eine Push-Nachricht auf diesem Gerät, wenn etwas
-            veröffentlicht wird.
-          </p>
+          <p className="mt-1 text-sm text-ink-soft">{t.settings.pushDesc}</p>
         </div>
         {subscribed ? (
           <MiniButton
@@ -118,12 +117,12 @@ export function PushPanel({ vapidPublicKey }: { vapidPublicKey: string }) {
             onClick={disable}
             className="shrink-0"
           >
-            Aus
+            {t.settings.pushOff}
           </MiniButton>
         ) : (
           <div className="shrink-0">
             <Button onClick={enable} disabled={pending} className="w-auto px-4">
-              {pending ? "…" : "Aktivieren"}
+              {pending ? "…" : t.settings.pushEnable}
             </Button>
           </div>
         )}

@@ -17,6 +17,12 @@ const redirect = vi.fn((path: string) => {
 });
 
 vi.mock("next/navigation", () => ({ redirect: (p: string) => redirect(p) }));
+// verifyCode resolves a dictionary for its messages; return the real `de` dict
+// so it doesn't reach cookies()/session in the node test env.
+vi.mock("@/lib/i18n/server", async () => {
+  const { de } = await import("@/lib/i18n/dictionaries");
+  return { getDict: async () => de, getLocale: async () => "de" };
+});
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { verifyOtp: (a: unknown) => verifyOtp(a) },

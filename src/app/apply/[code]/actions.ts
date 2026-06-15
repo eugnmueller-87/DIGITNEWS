@@ -1,6 +1,7 @@
 "use server";
 
 import { submitApplication } from "@/lib/applications";
+import { getDict } from "@/lib/i18n/server";
 import { parseEmail, parseNonEmpty, parseJoinCode } from "@/lib/validation";
 
 export interface ActionState {
@@ -22,6 +23,7 @@ export async function submitApply(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const dict = await getDict();
   let code: string;
   let email: string;
   let parentName: string;
@@ -55,12 +57,12 @@ export async function submitApply(
     if (msg.includes("invalid")) {
       return {
         ok: false,
-        message: "Dieser Zugangs-Code ist ungültig oder nicht mehr aktiv.",
+        message: dict.actions.applyCodeInvalid,
       };
     }
     return {
       ok: false,
-      message: "Etwas ist schiefgelaufen. Bitte versuche es später erneut.",
+      message: dict.actions.applyError,
     };
   }
 

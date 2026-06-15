@@ -3,12 +3,14 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
+import { getDict } from "@/lib/i18n/server";
 import { getActiveIcsToken } from "@/lib/ics";
 import { createClient } from "@/lib/supabase/server";
 
 import { CalendarSubPanel } from "./calendar-sub-panel";
 import { DeleteAccountPanel } from "./delete-account-panel";
 import { DigestToggle } from "./digest-toggle";
+import { LanguageSelect } from "./language-select";
 import { PhotoConsentToggle } from "./photo-consent-toggle";
 import { PushPanel } from "./push-panel";
 
@@ -21,6 +23,7 @@ export const metadata: Metadata = { title: "Einstellungen" };
 export default async function EinstellungenPage() {
   const session = await requireSession();
   const supabase = await createClient();
+  const t = await getDict();
 
   const [{ data: profile }, token] = await Promise.all([
     supabase
@@ -37,21 +40,22 @@ export default async function EinstellungenPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
-        Einstellungen
+        {t.settings.title}
       </h1>
 
       <Card>
         <h2 className="font-display mb-1 text-base font-bold text-ink">
-          Kalender abonnieren
+          {t.settings.calendarSubHeading}
         </h2>
         <p className="mb-3 text-sm text-ink-soft">
-          Aushang-Termine automatisch in deiner Kalender-App.
+          {t.settings.calendarSubDesc}
         </p>
         <CalendarSubPanel icsUrl={icsUrl} />
       </Card>
       <PushPanel vapidPublicKey={publicEnv.vapidPublicKey} />
       <DigestToggle initial={profile?.email_digest_opt_in ?? true} />
       <PhotoConsentToggle initial={profile?.photo_consent ?? false} />
+      <LanguageSelect />
       <DeleteAccountPanel role={session.role} warnLastAdmin={isLastAdminRisk} />
     </div>
   );

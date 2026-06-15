@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { provisionPerson, removePerson } from "@/lib/auth-flows";
 import { assignGroup } from "@/lib/groups";
+import { getDict } from "@/lib/i18n/server";
 import {
   parseEmail,
   parseNonEmpty,
@@ -29,6 +30,7 @@ export async function addPerson(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
 
   let email: string;
   let displayName: string | null;
@@ -77,11 +79,11 @@ export async function addPerson(
   } catch (e) {
     const msg = (e as Error).message?.toLowerCase() ?? "";
     if (msg.includes("not authorized")) {
-      return { ok: false, message: "Dazu bist du nicht berechtigt." };
+      return { ok: false, message: dict.actions.notAuthorized };
     }
     return {
       ok: false,
-      message: "Konnte die Person nicht hinzufügen. Bitte erneut versuchen.",
+      message: dict.actions.addPersonFailed,
     };
   }
 
@@ -101,6 +103,7 @@ export async function removePersonAction(
   targetUserId: string,
 ): Promise<ActionState> {
   const session = await requireAdmin();
+  const dict = await getDict();
 
   try {
     await removePerson(session.userId, targetUserId);
@@ -109,21 +112,21 @@ export async function removePersonAction(
     if (msg.includes("last admin")) {
       return {
         ok: false,
-        message: "Die letzte Administrator:in kann nicht entfernt werden.",
+        message: dict.actions.lastAdminRemove,
       };
     }
     if (msg.includes("not authorized") || msg.includes("members only")) {
-      return { ok: false, message: "Dazu bist du nicht berechtigt." };
+      return { ok: false, message: dict.actions.notAuthorized };
     }
     if (msg.includes("yourself")) {
       return {
         ok: false,
-        message: "Du kannst dich hier nicht selbst entfernen.",
+        message: dict.actions.selfRemove,
       };
     }
-    return { ok: false, message: "Konnte die Person nicht entfernen." };
+    return { ok: false, message: dict.actions.removeFailed };
   }
 
   revalidatePath("/admin/mitglieder");
-  return { ok: true, message: "Entfernt." };
+  return { ok: true, message: dict.actions.removed };
 }

@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 
 import { PageShell, Alert } from "@/components/ui";
 import { verifyApplication } from "@/lib/applications";
+import { getDict } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Bestätigung" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDict();
+  return { title: t.verify.title };
+}
 
 /**
  * Email verification landing for a QR application. The link carries ?id & ?token
@@ -25,20 +29,14 @@ export default async function VerifyPage({
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
   const ok = isUuid && token.length > 0 && (await verifyApplication(id, token));
+  const t = await getDict();
 
   return (
-    <PageShell title="Bestätigung">
+    <PageShell title={t.verify.title}>
       {ok ? (
-        <Alert variant="success">
-          Danke! Deine E-Mail ist bestätigt. Die Einrichtung prüft deine Anfrage
-          und schaltet dich frei. Du bekommst dann eine E-Mail mit deinem
-          Login-Link.
-        </Alert>
+        <Alert variant="success">{t.verify.success}</Alert>
       ) : (
-        <Alert variant="error">
-          Dieser Bestätigungs-Link ist ungültig oder abgelaufen. Bitte beantrage
-          den Zugang erneut.
-        </Alert>
+        <Alert variant="error">{t.verify.invalid}</Alert>
       )}
     </PageShell>
   );

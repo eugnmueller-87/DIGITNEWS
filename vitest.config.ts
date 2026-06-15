@@ -13,6 +13,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // `server-only` is a Next.js build-time guard with no runtime export; in
+      // the Vitest node env it has nothing to resolve, so stub it to empty.
+      "server-only": fileURLToPath(
+        new URL("./src/test/server-only-stub.ts", import.meta.url),
+      ),
     },
   },
   test: {

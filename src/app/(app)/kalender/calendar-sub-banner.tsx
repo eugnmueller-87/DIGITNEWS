@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CalendarSubPanel } from "@/app/(app)/einstellungen/calendar-sub-panel";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { Icon } from "@/components/icons";
+import { useT } from "@/lib/i18n/provider";
 
 /**
  * The first-class "subscribe to the calendar" surface on /kalender: a pinned
@@ -19,6 +20,7 @@ export function CalendarSubBanner({
   icsUrl: string | null;
   hasSub: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,12 +35,10 @@ export function CalendarSubBanner({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-bold text-ink">
-            {hasSub ? "Kalender-Abo aktiv" : "Alle Termine in deinem Kalender"}
+            {hasSub ? t.calendar.subActiveTitle : t.calendar.subInactiveTitle}
           </span>
           <span className="block text-sm text-ink-soft">
-            {hasSub
-              ? "Tippen, um die Verknüpfung erneut zu öffnen"
-              : "Einmal abonnieren — neue Termine kommen automatisch"}
+            {hasSub ? t.calendar.subActiveHint : t.calendar.subInactiveHint}
           </span>
         </span>
         {hasSub && (
@@ -49,7 +49,7 @@ export function CalendarSubBanner({
       <BottomSheet
         open={open}
         onClose={() => setOpen(false)}
-        title="Kalender abonnieren"
+        title={t.calendar.subSheetTitle}
       >
         <CalendarSubPanel icsUrl={icsUrl} />
       </BottomSheet>

@@ -9,6 +9,7 @@ import {
   setAdmin,
   deleteOrg,
 } from "@/lib/auth-flows";
+import { getDict } from "@/lib/i18n/server";
 import {
   parseEmail,
   parseNonEmpty,
@@ -31,6 +32,7 @@ export async function createOrgWithAdmin(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await requireSuperadmin();
+  const dict = await getDict();
 
   let orgName: string, adminEmail: string;
   let adminName: string | null;
@@ -55,7 +57,7 @@ export async function createOrgWithAdmin(
     // Every org is a Kita in v1 — org_type hardcoded.
     orgId = await createOrg(session.userId, orgName, "kita");
   } catch {
-    return { ok: false, message: "Konnte die Organisation nicht anlegen." };
+    return { ok: false, message: dict.actions.orgCreateFailed };
   }
 
   // Provision the first person. If the email already belongs to another org (or
@@ -74,22 +76,21 @@ export async function createOrgWithAdmin(
       await deleteOrg(session.userId, orgId).catch(() => {});
       return {
         ok: false,
-        message:
-          "Diese E-Mail gehört bereits zu einer Organisation. Bitte eine andere wählen.",
+        message: dict.actions.orgEmailInUse,
       };
     }
   } catch {
     await deleteOrg(session.userId, orgId).catch(() => {});
     return {
       ok: false,
-      message: "Konnte die Person nicht anlegen. Bitte erneut versuchen.",
+      message: dict.actions.orgPersonFailed,
     };
   }
 
   revalidatePath("/operator");
   return {
     ok: true,
-    message: "Organisation angelegt. Die Person hat einen Login-Link erhalten.",
+    message: dict.actions.orgCreated,
   };
 }
 
@@ -99,6 +100,7 @@ export async function setAdminAction(
   makeAdmin: boolean,
 ): Promise<ActionState> {
   const session = await requireSuperadmin();
+  const dict = await getDict();
   try {
     await setAdmin(session.userId, targetUserId, makeAdmin);
   } catch (e) {
@@ -106,10 +108,10 @@ export async function setAdminAction(
     if (msg.includes("last admin")) {
       return {
         ok: false,
-        message: "Die letzte Administrator:in kann nicht herabgestuft werden.",
+        message: dict.actions.lastAdminDemote,
       };
     }
-    return { ok: false, message: "Konnte die Rolle nicht ändern." };
+    return { ok: false, message: dict.actions.roleChangeFailedOrg };
   }
   revalidatePath("/operator");
   return {

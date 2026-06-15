@@ -4,6 +4,7 @@ import { Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { brand } from "@/config/brand";
+import { getLocale } from "@/lib/i18n/server";
 
 // Kita theme fonts: Fredoka (display/headings) + Nunito (body).
 const fredoka = Fredoka({
@@ -44,14 +45,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Resolve the UI locale once on the server; the (app) provider derives the same
+  // value, so the <html lang> and client hydration agree.
+  const locale = await getLocale();
   return (
     <html
-      lang="de"
+      lang={locale}
       className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col text-ink">

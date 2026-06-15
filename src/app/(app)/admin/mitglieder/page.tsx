@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/ui";
 import { joinCodeQrSvg, applyUrl } from "@/lib/applications";
 import { requireAdmin } from "@/lib/auth";
 import type { Group, Profile } from "@/lib/database.types";
+import { fmt } from "@/lib/i18n/format";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 import { AddPersonForm } from "./add-person-form";
@@ -21,6 +23,7 @@ export const metadata: Metadata = { title: "Mitglieder" };
  */
 export default async function MitgliederPage() {
   const session = await requireAdmin();
+  const t = await getDict();
   const supabase = await createClient();
 
   const [{ data: members }, { data: codes }, { data: apps }, { data: grps }] =
@@ -93,10 +96,7 @@ export default async function MitgliederPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Mitglieder"
-        subtitle="Personen hinzufügen, Gruppen verwalten, Rollen vergeben."
-      />
+      <PageHeader title={t.members.title} subtitle={t.members.subtitle} />
 
       <AddPersonForm canAddAdmins={canAddAdmins} groups={groups} />
 
@@ -108,7 +108,8 @@ export default async function MitgliederPage() {
       {(verifiedApps.length > 0 || pendingApps.length > 0) && (
         <section className="space-y-2">
           <h2 className="font-display text-base font-bold text-ink">
-            Anfragen{verifiedApps.length > 0 && ` (${verifiedApps.length})`}
+            {t.members.requests}
+            {verifiedApps.length > 0 && ` (${verifiedApps.length})`}
           </h2>
           <div className="space-y-2">
             {verifiedApps.map((a) => (
@@ -139,7 +140,7 @@ export default async function MitgliederPage() {
 
       <section className="space-y-2">
         <h2 className="font-display text-base font-bold text-ink">
-          Mitglieder ({memberList.length})
+          {fmt(t.members.listTitle, { count: memberList.length })}
         </h2>
         <div className="space-y-2">
           {memberList.map((m) => (

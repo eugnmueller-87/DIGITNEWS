@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { parseEmail, safeNextPath } from "@/lib/validation";
 
@@ -27,6 +28,7 @@ export async function signIn(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const dict = await getDict();
   let email: string;
   try {
     email = parseEmail(formData.get("email"));
@@ -36,7 +38,7 @@ export async function signIn(
 
   const password = String(formData.get("password") ?? "");
   if (password.length === 0) {
-    return { ok: false, message: "Bitte gib dein Passwort ein." };
+    return { ok: false, message: dict.actions.enterPassword };
   }
 
   const next = safeNextPath(String(formData.get("next") ?? "/feed"));
@@ -49,7 +51,7 @@ export async function signIn(
     // password" (no enumeration oracle).
     return {
       ok: false,
-      message: "E-Mail oder Passwort ist nicht korrekt.",
+      message: dict.actions.loginInvalid,
     };
   }
 

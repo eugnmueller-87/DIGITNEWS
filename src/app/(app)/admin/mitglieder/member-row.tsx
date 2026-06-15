@@ -4,15 +4,10 @@ import { useState, useTransition } from "react";
 
 import { Card, Alert, MiniButton } from "@/components/ui";
 import type { Role, MembershipStatus } from "@/lib/database.types";
+import { useT } from "@/lib/i18n/provider";
 
 import { removePersonAction } from "./actions";
 import { setMemberRoleAction, assignGroupAction } from "./member-actions";
-
-const ROLE_LABEL: Record<Role, string> = {
-  superadmin: "Operator",
-  admin: "Admin",
-  member: "Mitglied",
-};
 
 export interface GroupOption {
   id: string;
@@ -47,6 +42,7 @@ export function MemberRow({
   canManage: boolean;
   groups: GroupOption[];
 }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -69,12 +65,16 @@ export function MemberRow({
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-ink">
-            {displayName ?? "—"}
-            {isSelf && <span className="ml-2 text-xs text-ink-soft">(du)</span>}
+            {displayName ?? t.common.none}
+            {isSelf && (
+              <span className="ml-2 text-xs text-ink-soft">
+                {t.members.self}
+              </span>
+            )}
           </div>
           {status === "invited" && (
             <div className="text-xs font-semibold text-tomato">
-              eingeladen – noch nicht angemeldet
+              {t.members.invited}
             </div>
           )}
         </div>
@@ -90,16 +90,14 @@ export function MemberRow({
                   : "rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-bold text-ink-soft"
               }
               title={
-                photoConsent
-                  ? "Sieht freigegebene Originalfotos"
-                  : "Sieht nur maskierte Fotos"
+                photoConsent ? t.members.photoYesTitle : t.members.photoNoTitle
               }
             >
-              {photoConsent ? "Foto: frei" : "Foto: nein"}
+              {photoConsent ? t.members.photoYes : t.members.photoNo}
             </span>
           )}
           <span className="rounded-full bg-sun-soft px-2.5 py-0.5 text-xs font-bold text-ink">
-            {ROLE_LABEL[role]}
+            {t.account.roles[role]}
           </span>
           {canRemove &&
             (confirming ? (
@@ -109,18 +107,18 @@ export function MemberRow({
                   disabled={pending}
                   onClick={() => run(() => removePersonAction(id))}
                 >
-                  {pending ? "…" : "Entfernen"}
+                  {pending ? "…" : t.members.remove}
                 </MiniButton>
                 <MiniButton
                   disabled={pending}
                   onClick={() => setConfirming(false)}
                 >
-                  Abbrechen
+                  {t.common.cancel}
                 </MiniButton>
               </span>
             ) : (
               <MiniButton onClick={() => setConfirming(true)}>
-                Entfernen
+                {t.members.remove}
               </MiniButton>
             ))}
         </div>
@@ -131,7 +129,7 @@ export function MemberRow({
           {/* Group assignment */}
           {groups.length > 0 && (
             <label className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft">
-              Gruppe:
+              {t.members.group}
               <select
                 defaultValue={groupId ?? ""}
                 disabled={pending}
@@ -140,7 +138,7 @@ export function MemberRow({
                 }
                 className="h-11 rounded-[12px] border border-border bg-white px-3 text-sm font-semibold text-ink outline-none focus:border-sun-deep disabled:opacity-50"
               >
-                <option value="">—</option>
+                <option value="">{t.common.none}</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -156,14 +154,14 @@ export function MemberRow({
               disabled={pending}
               onClick={() => run(() => setMemberRoleAction(id, true))}
             >
-              → Admin
+              {t.members.promote}
             </MiniButton>
           ) : (
             <MiniButton
               disabled={pending}
               onClick={() => run(() => setMemberRoleAction(id, false))}
             >
-              → Mitglied
+              {t.members.demote}
             </MiniButton>
           )}
         </div>

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui";
 import { requireSuperadmin } from "@/lib/auth";
 import type { Org, Profile } from "@/lib/database.types";
+import { fmt } from "@/lib/i18n/format";
+import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 import { CreateOrgForm } from "./create-org-form";
@@ -16,6 +18,7 @@ export const metadata: Metadata = { title: "Operator" };
  */
 export default async function OperatorPage() {
   await requireSuperadmin();
+  const t = await getDict();
   const supabase = await createClient();
 
   // Cross-org reads (superadmin RLS). Exclude the operator's own anchor org from
@@ -52,23 +55,21 @@ export default async function OperatorPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-[26px] font-bold leading-tight text-ink">
-          Operator
+          {t.operator.title}
         </h1>
-        <p className="text-[15px] text-ink-soft">
-          Organisationen anlegen und Admin-Rechte verwalten.
-        </p>
+        <p className="text-[15px] text-ink-soft">{t.operator.subtitle}</p>
       </div>
 
       <section className="space-y-2">
         <h2 className="font-display text-base font-bold text-ink">
-          Neue Organisation
+          {t.operator.newOrg}
         </h2>
         <CreateOrgForm />
       </section>
 
       <section className="space-y-2">
         <h2 className="font-display text-base font-bold text-ink">
-          Organisationen ({orgList.length})
+          {fmt(t.operator.orgs, { count: orgList.length })}
         </h2>
         {orgList.map((org) => {
           const people = byOrg.get(org.id) ?? [];
@@ -79,7 +80,7 @@ export default async function OperatorPage() {
                 <h3 className="font-bold text-ink">{org.name}</h3>
                 <span className="text-sm text-ink-soft">
                   {org.org_type} · {memberCount}{" "}
-                  {memberCount === 1 ? "Person" : "Personen"}
+                  {memberCount === 1 ? t.operator.person : t.operator.persons}
                 </span>
               </div>
               <OrgAdmins

@@ -23,14 +23,20 @@ export interface BottomNavItem {
  * state mirrors AppNav's prefix matching. The capture FAB is rendered
  * separately by CaptureLauncher.
  */
-export function BottomNav({ items }: { items: BottomNavItem[] }) {
+export function BottomNav({
+  items,
+  ariaLabel,
+}: {
+  items: BottomNavItem[];
+  ariaLabel: string;
+}) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
   return (
     <nav
-      aria-label="Hauptnavigation"
+      aria-label={ariaLabel}
       className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t border-border bg-paper/85 backdrop-blur-xl sm:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around">

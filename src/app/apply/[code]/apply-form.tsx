@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { Card, Button, Input, Field, Alert } from "@/components/ui";
+import type { Dict } from "@/lib/i18n/dictionaries";
 
 import { submitApply, type ActionState } from "./actions";
 
@@ -10,9 +11,16 @@ const initial: ActionState = { ok: false, message: null };
 
 /**
  * Public application form. Collects parent name, group, child name, email. On
- * success shows the "check your email" confirmation.
+ * success shows the "check your email" confirmation. Outside the I18nProvider —
+ * strings arrive via the `dict` prop resolved by the server page (getDict).
  */
-export function ApplyForm({ code }: { code: string }) {
+export function ApplyForm({
+  code,
+  dict,
+}: {
+  code: string;
+  dict: Dict["auth"];
+}) {
   const [state, formAction, pending] = useActionState(submitApply, initial);
 
   if (state.ok) {
@@ -24,7 +32,7 @@ export function ApplyForm({ code }: { code: string }) {
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="code" value={code} />
 
-        <Field label="Dein Name (Elternteil)" htmlFor="parentName">
+        <Field label={dict.applyParentName} htmlFor="parentName">
           <Input
             id="parentName"
             name="parentName"
@@ -36,18 +44,18 @@ export function ApplyForm({ code }: { code: string }) {
           />
         </Field>
 
-        <Field label="Gruppe" htmlFor="group">
+        <Field label={dict.applyGroup} htmlFor="group">
           <Input
             id="group"
             name="group"
             type="text"
             maxLength={80}
-            placeholder="z. B. Sonnengruppe"
+            placeholder={dict.applyGroupPlaceholder}
             required
           />
         </Field>
 
-        <Field label="Name des Kindes" htmlFor="childName">
+        <Field label={dict.applyChildName} htmlFor="childName">
           <Input
             id="childName"
             name="childName"
@@ -57,14 +65,14 @@ export function ApplyForm({ code }: { code: string }) {
           />
         </Field>
 
-        <Field label="Deine E-Mail-Adresse" htmlFor="email">
+        <Field label={dict.applyEmail} htmlFor="email">
           <Input
             id="email"
             name="email"
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder="du@beispiel.de"
+            placeholder={dict.emailPlaceholder}
             required
           />
         </Field>
@@ -72,11 +80,9 @@ export function ApplyForm({ code }: { code: string }) {
         {state.message && <Alert variant="error">{state.message}</Alert>}
 
         <Button type="submit" disabled={pending}>
-          {pending ? "Wird gesendet …" : "Zugang beantragen"}
+          {pending ? dict.sending : dict.applySubmit}
         </Button>
-        <p className="text-center text-xs text-zinc-400">
-          Deine Anfrage wird von der Einrichtung geprüft und freigegeben.
-        </p>
+        <p className="text-center text-xs text-zinc-400">{dict.applyNote}</p>
       </form>
     </Card>
   );

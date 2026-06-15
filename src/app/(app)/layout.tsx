@@ -103,17 +103,8 @@ export default async function AppLayout({
         {children}
       </main>
 
-      <footer className="pb-safe px-content relative mt-10 border-t border-border bg-paper py-6 text-ink-soft">
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
-          <span className="font-display text-lg font-bold text-ink">
-            {brand.name}
-          </span>
-          <span className="text-sm font-semibold">{brand.footerPitch}</span>
-        </div>
-      </footer>
-
-      {/* Reserve space on phones so the fixed bottom bar never covers the
-          footer. ~64px bar + the home-indicator inset. Zero on >=sm. */}
+      {/* Reserve space on phones so the fixed bottom bar never covers content.
+          ~64px bar + the home-indicator inset. Zero on >=sm. */}
       <div
         aria-hidden
         className="pb-safe h-16 sm:hidden"

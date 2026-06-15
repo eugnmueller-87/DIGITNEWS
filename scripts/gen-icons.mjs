@@ -39,6 +39,55 @@ const TARGETS = [
   { file: "apple-icon.png", size: 180, scale: 0.74, bg: "paper" },
 ];
 
+// Android launcher densities. base = the px size of ic_launcher / round at that
+// density; the adaptive `foreground` is rendered on a larger 108dp canvas where
+// the system crops to the inner ~66dp, so the sun uses a smaller safe-zone scale.
+const ANDROID_RES = join(ROOT, "android", "app", "src", "main", "res");
+const ANDROID_DENSITIES = [
+  { dir: "mipmap-mdpi", base: 48, fg: 108 },
+  { dir: "mipmap-hdpi", base: 72, fg: 162 },
+  { dir: "mipmap-xhdpi", base: 96, fg: 216 },
+  { dir: "mipmap-xxhdpi", base: 144, fg: 324 },
+  { dir: "mipmap-xxxhdpi", base: 192, fg: 432 },
+];
+
+/** Composite the sun mark onto a square canvas. scale = sun fraction of canvas. */
+async function renderIcon(masterSvg, size, scale, bg) {
+  const inner = Math.round(size * scale);
+  const sun = await sharp(masterSvg, { density: 384 })
+    .resize(inner, inner, {
+      fit: "contain",
+      background: { ...PAPER, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+  const offset = Math.round((size - inner) / 2);
+  return sharp({
+    create: { width: size, height: size, channels: 4, background: bg },
+  })
+    .composite([{ input: sun, top: offset, left: offset }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
+
+async function genAndroid(masterSvg) {
+  const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+  for (const d of ANDROID_DENSITIES) {
+    await mkdir(join(ANDROID_RES, d.dir), { recursive: true });
+    // Square + round launcher icons: full paper ground, sun fills ~74%.
+    const square = await renderIcon(masterSvg, d.base, 0.74, PAPER);
+    await writeFile(join(ANDROID_RES, d.dir, "ic_launcher.png"), square);
+    await writeFile(join(ANDROID_RES, d.dir, "ic_launcher_round.png"), square);
+    // Adaptive foreground: transparent ground (the XML supplies the bg colour),
+    // sun ~46% so it survives the system's center-crop on the 108dp canvas.
+    const fg = await renderIcon(masterSvg, d.fg, 0.46, transparent);
+    await writeFile(join(ANDROID_RES, d.dir, "ic_launcher_foreground.png"), fg);
+    console.log(
+      `✓ android/${d.dir} (launcher ${d.base}px, foreground ${d.fg}px)`,
+    );
+  }
+}
+
 async function main() {
   const masterSvg = await readFile(MASTER);
   await mkdir(OUT_DIR, { recursive: true });
@@ -76,7 +125,19 @@ async function main() {
     console.log(`✓ ${t.file} (${t.size}px, sun ${inner}px, ${t.bg})`);
   }
 
-  console.log(`\nGenerated ${TARGETS.length} icons from ${MASTER}`);
+  console.log(`\nGenerated ${TARGETS.length} PWA icons from ${MASTER}`);
+
+  // Android launcher icons (only when the native project exists).
+  try {
+    await genAndroid(masterSvg);
+    console.log(`Generated Android launcher icons from ${MASTER}`);
+  } catch (err) {
+    if (err?.code === "ENOENT") {
+      console.log("(skipped Android icons — no android/ project)");
+    } else {
+      throw err;
+    }
+  }
 }
 
 main().catch((err) => {

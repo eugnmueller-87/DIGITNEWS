@@ -13,6 +13,7 @@
 [![i18n](https://img.shields.io/badge/i18n-DE%20%C2%B7%20EN-informational)](#)
 [![Deploy: Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 [![Privacy by construction](https://img.shields.io/badge/Privacy-by%20construction-2EA043)](SECURITY.md)
+[![Self-host](https://img.shields.io/badge/Self--host-npm%20run%20setup-0d9488?logo=gnubash&logoColor=white)](#self-host-run-your-own-copy)
 
 > Digitalisierung ohne Prozessänderung.
 
@@ -22,6 +23,9 @@
   </a>
   <br />
   <em><a href="docs/media/demo.mp4">▶ Watch the full video (with sound)</a></em>
+  <br /><br />
+  <strong><a href="#self-host-run-your-own-copy">⚙️ Run your own copy → <code>npm run setup</code></a></strong>
+  — bring your own keys (Supabase + your LLM provider). No access to ours needed.
 </p>
 
 A digitization layer for old-school organizations (Kitas, Vereine,

@@ -11,6 +11,28 @@ An **optional, decorative cover illustration** generated for a post — a friend
 cartoon-style image shown next to the real notice in the feed. It is an
 **addition**, never a replacement for the photo of the board.
 
+## Decision: NO per-viewer consent to see the real reflection photo
+
+Considered and rejected (2026-06-15): "a parent signs an agreement at signup and
+then sees the real photo instead of the cartoon." It fails for reflections
+because of the **multiple-children problem**:
+
+- A Rückblick photo shows a GROUP of children, not just the viewer's own child.
+- The consent that legally matters for a child's image is each DEPICTED child's
+  parent's consent — NOT the viewer's. One parent opting in cannot authorize
+  them to see other people's children.
+
+So per-viewer consent does not scale to group images of minors. The shipped rule
+(delete the reflection original at publish → cartoon-only for everyone) sidesteps
+the whole "whose consent covers whom" tangle and is the legally clean answer.
+
+Outcome: reflections stay cartoon-only for all viewers. The existing 0020
+admin-release + viewer-consent path is left as-is for the OTHER content types
+(meal_plan/info/event/health — photos of paper notices, no children), where it is
+low-stakes. The lawful way to show real reflection group photos would be
+PER-CHILD consent collected at enrollment + an admin attestation that every child
+in a group is covered — a legal/operational change, deferred until a Kita asks.
+
 ## The one rule that makes it safe: text-to-image, never image-to-image
 
 The cover is generated **from the already-redacted, extracted content** — the

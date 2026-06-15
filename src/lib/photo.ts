@@ -57,33 +57,71 @@ export async function signPostImages(
     }
   }
 
-  await Promise.all(
-    posts.map(async (p) => {
-      const gate = gates.get(p.id);
-      const useClear =
-        viewerConsent &&
-        !!gate?.clear_photo_allowed &&
-        !!gate?.source_image_path;
+  // Decide which bucket + path each post needs, then sign in BATCHES (one
+  // createSignedUrls call per bucket — at most 2 round-trips total) instead of
+  // one createSignedUrl per post (N+1). Map each path back to its post id(s).
+  const rawPaths: string[] = [];
+  const redactedPaths: string[] = [];
+  const rawByPath = new Map<string, string[]>(); // path -> post ids
+  const redactedByPath = new Map<string, string[]>();
 
-      if (useClear) {
-        const { data } = await admin.storage
-          .from(RAW_BUCKET)
-          .createSignedUrl(gate.source_image_path as string, SIGN_TTL_SECONDS);
-        if (data?.signedUrl) {
-          urls.set(p.id, data.signedUrl);
-          return;
-        }
-        // Fall through to the redacted image if signing the original failed.
-      }
+  for (const p of posts) {
+    const gate = gates.get(p.id);
+    const useClear =
+      viewerConsent && !!gate?.clear_photo_allowed && !!gate?.source_image_path;
 
-      if (p.redacted_image_path) {
-        const { data } = await admin.storage
-          .from(REDACTED_BUCKET)
-          .createSignedUrl(p.redacted_image_path, SIGN_TTL_SECONDS);
-        if (data?.signedUrl) urls.set(p.id, data.signedUrl);
-      }
-    }),
-  );
+    if (useClear) {
+      const path = gate.source_image_path as string;
+      if (!rawByPath.has(path)) rawPaths.push(path);
+      (rawByPath.get(path) ?? rawByPath.set(path, []).get(path)!).push(p.id);
+    } else if (p.redacted_image_path) {
+      const path = p.redacted_image_path;
+      if (!redactedByPath.has(path)) redactedPaths.push(path);
+      (
+        redactedByPath.get(path) ?? redactedByPath.set(path, []).get(path)!
+      ).push(p.id);
+    }
+  }
+
+  const signBatch = async (
+    bucket: string,
+    paths: string[],
+    byPath: Map<string, string[]>,
+  ) => {
+    if (paths.length === 0) return;
+    const { data } = await admin.storage
+      .from(bucket)
+      .createSignedUrls(paths, SIGN_TTL_SECONDS);
+    for (const row of data ?? []) {
+      if (!row.signedUrl || !row.path) continue;
+      for (const id of byPath.get(row.path) ?? []) urls.set(id, row.signedUrl);
+    }
+  };
+
+  // Two independent batches (raw + redacted) run concurrently.
+  await Promise.all([
+    signBatch(RAW_BUCKET, rawPaths, rawByPath),
+    signBatch(REDACTED_BUCKET, redactedPaths, redactedByPath),
+  ]);
+
+  // Fallback: if signing a post's RAW original failed, fall back to its redacted
+  // image (preserves the prior behavior). Sign these stragglers in one more batch.
+  const fallbackPaths: string[] = [];
+  const fallbackByPath = new Map<string, string[]>();
+  for (const p of posts) {
+    if (
+      !urls.has(p.id) &&
+      p.redacted_image_path &&
+      !redactedByPath.has(p.redacted_image_path)
+    ) {
+      const path = p.redacted_image_path;
+      if (!fallbackByPath.has(path)) fallbackPaths.push(path);
+      (
+        fallbackByPath.get(path) ?? fallbackByPath.set(path, []).get(path)!
+      ).push(p.id);
+    }
+  }
+  await signBatch(REDACTED_BUCKET, fallbackPaths, fallbackByPath);
 
   return urls;
 }

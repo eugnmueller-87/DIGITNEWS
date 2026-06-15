@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import type { Role, MembershipStatus } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -27,32 +28,39 @@ export interface SessionProfile {
  *
  * This is the authoritative authorization primitive. Middleware is a coarse
  * gate; THIS is the boundary every protected route must pass through.
+ *
+ * Wrapped in React `cache()` so that the layout, the page, and any child server
+ * components that each call requireSession()/requireAdmin() within ONE request
+ * share a single getUser() + profiles lookup instead of repeating both 2–3×.
+ * cache() scopes per request render, so this never leaks across users/requests.
  */
-export async function getSessionProfile(): Promise<SessionProfile | null> {
-  const supabase = await createClient();
+export const getSessionProfile = cache(
+  async function getSessionProfile(): Promise<SessionProfile | null> {
+    const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("org_id, role, membership_status, display_name")
-    .eq("id", user.id)
-    .maybeSingle();
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("org_id, role, membership_status, display_name")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (error || !profile) return null;
+    if (error || !profile) return null;
 
-  return {
-    userId: user.id,
-    email: user.email ?? null,
-    orgId: profile.org_id,
-    role: profile.role as Role,
-    membershipStatus: profile.membership_status as MembershipStatus,
-    displayName: profile.display_name,
-  };
-}
+    return {
+      userId: user.id,
+      email: user.email ?? null,
+      orgId: profile.org_id,
+      role: profile.role as Role,
+      membershipStatus: profile.membership_status as MembershipStatus,
+      displayName: profile.display_name,
+    };
+  },
+);
 
 /**
  * Require an authenticated user WITH a profile. Redirects to /login if absent.

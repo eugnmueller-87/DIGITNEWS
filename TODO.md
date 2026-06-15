@@ -88,6 +88,10 @@ reviewer demo-account plan, and screenshot shot-list: `docs/PLAY_LISTING.md`.**
 - [ ] **Wire the AI cover feature** once an EU image endpoint is chosen: set
       `IMAGE_API_URL`/`IMAGE_API_KEY` on the worker; decide cover-vs-photo display
       in the member feed (`photo.ts`). `docs/COVER_IMAGES_SPEC.md`.
+- [ ] **Admin-defined custom categories** (makes the app multi-vertical: choirs,
+      clubs, churches define their own categories; AI files content into them;
+      members read-only). Custom names + fixed internal shapes so calendar/ICS/
+      alerts + strict schema stay intact. Phased build. `docs/CUSTOM_CATEGORIES.md`.
 
 ---
 

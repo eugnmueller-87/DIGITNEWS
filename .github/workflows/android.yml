@@ -64,6 +64,12 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      # gradlew was committed from Windows without the Unix execute bit, so
+      # `./gradlew` on the Linux runner fails with exit 126. Mark it executable.
+      - name: Make gradlew executable
+        working-directory: android
+        run: chmod +x gradlew
+
       - name: Gradle — build debug AAB (always)
         working-directory: android
         run: ./gradlew bundleDebug --no-daemon --stacktrace

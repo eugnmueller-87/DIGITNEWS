@@ -16,21 +16,24 @@ See `docs/CAPACITOR.md` for how the shell works (remote-URL mode) and
       `ANDROID_*` repo secrets (see the header of `android.yml`); re-run to get a
       signed `app-release.aab`.
 
-## 2. Native camera (highest-value code change)
+## 2. Native camera — DONE (Android)
 
-Swap the web `<input capture>` in the capture flow for `@capacitor/camera`
-(installed, not yet invoked). This is the biggest UX upgrade AND what lifts the
-eventual iOS app above Apple's "just a website" bar.
+Swapped the web `<input capture>` for `@capacitor/camera` inside the native
+shell. The biggest UX upgrade AND what lifts the eventual iOS app above Apple's
+"just a website" bar.
 
-- [ ] In the capture flow (`src/app/(app)/aufnahme/use-capture.ts` /
-      `capture-panel.tsx`), detect native (Capacitor) and use `Camera.getPhoto`
-      there; keep the web `<input>` path as the browser fallback.
-- [ ] Add `CAMERA` to `AndroidManifest.xml` ONLY once the plugin is actually
-      used (Play flags unused sensitive permissions).
-- [ ] Add the iOS usage strings later (already drafted in
-      `docs/STORE_PRIVACY.md §5`).
-- [ ] The compressed image still uploads to `raw-photos` exactly as today — the
-      privacy pipeline is unchanged; only the capture source differs.
+- [x] `src/app/(app)/aufnahme/native-camera.ts` — `isNativeApp()` +
+      `getNativePhoto()`; the photo is returned as a File and flows through the
+      EXACT same `processOne` pipeline (compress → hash → upload to `raw-photos` →
+      finalize). Privacy/redaction path unchanged.
+- [x] `use-capture.ts` — `openCamera`/`openGallery` branch native-vs-web; the
+      bridge is dynamically imported so `@capacitor/*` never weighs on the web
+      bundle.
+- [x] `CAMERA` added to `AndroidManifest.xml` (declared now that the plugin is
+      used). Gallery uses the system photo picker — no storage permission.
+- [ ] iOS: add the `NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription`
+      usage strings (already drafted in `docs/STORE_PRIVACY.md §5`) in the iOS
+      phase.
 
 ## 3. Deep links / Android App Links
 

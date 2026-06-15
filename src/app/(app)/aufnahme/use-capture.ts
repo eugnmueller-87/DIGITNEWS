@@ -39,13 +39,14 @@ export function useCapture() {
   const [notice, setNotice] = useState<string | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function handleFiles(files: FileList | File[] | null) {
+    const list = files ? Array.from(files) : [];
+    if (list.length === 0) return;
     setError(null);
     setNotice(null);
     setStatus("working");
 
-    for (const file of Array.from(files)) {
+    for (const file of list) {
       const shotId = crypto.randomUUID();
       setShots((s) => [...s, { id: shotId, state: "uploading" }]);
       try {
@@ -112,10 +113,28 @@ export function useCapture() {
     );
   }
 
-  // Expose callbacks (never the raw refs) so render code doesn't read
-  // `.current` during render — keeps the react-hooks/refs rule satisfied.
-  const openCamera = () => cameraInputRef.current?.click();
-  const openGallery = () => galleryInputRef.current?.click();
+  // Inside the native shell, use the Capacitor camera/picker (loaded lazily so
+  // @capacitor/* never weighs on the web bundle); the returned File flows through
+  // the SAME processOne pipeline. On the web, click the hidden <input>. Expose
+  // callbacks (never the raw refs) so render code doesn't read `.current` during
+  // render — keeps the react-hooks/refs rule satisfied.
+  async function openNativeOr(
+    source: "camera" | "gallery",
+    webFallback: () => void,
+  ) {
+    const { isNativeApp, getNativePhoto } = await import("./native-camera");
+    if (!isNativeApp()) {
+      webFallback();
+      return;
+    }
+    const files = await getNativePhoto(source);
+    if (files.length > 0) await handleFiles(files);
+  }
+
+  const openCamera = () =>
+    void openNativeOr("camera", () => cameraInputRef.current?.click());
+  const openGallery = () =>
+    void openNativeOr("gallery", () => galleryInputRef.current?.click());
 
   return {
     cameraInputRef,

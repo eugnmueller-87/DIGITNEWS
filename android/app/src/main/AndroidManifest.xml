@@ -38,4 +38,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Native camera capture (the core feature). Gallery uses the system photo
+         picker, which needs no storage permission on modern Android. -->
+    <uses-permission android:name="android.permission.CAMERA" />
 </manifest>

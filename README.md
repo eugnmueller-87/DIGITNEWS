@@ -3,6 +3,17 @@
 [![CI](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/ci.yml/badge.svg)](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/ci.yml)
 [![Android build](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/android.yml/badge.svg)](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/android.yml)
 
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Supabase](https://img.shields.io/badge/Supabase-EU-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Capacitor](https://img.shields.io/badge/Capacitor-Android-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com)
+[![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/explore/progressive-web-apps)
+[![i18n](https://img.shields.io/badge/i18n-DE%20%C2%B7%20EN-informational)](#)
+[![Deploy: Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
+[![Privacy by construction](https://img.shields.io/badge/Privacy-by%20construction-2EA043)](SECURITY.md)
+
 > Digitalisierung ohne Prozessänderung.
 
 A digitization layer for old-school organizations (Kitas, Vereine,

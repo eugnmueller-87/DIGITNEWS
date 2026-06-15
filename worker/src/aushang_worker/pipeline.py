@@ -8,6 +8,7 @@ import logging
 import httpx
 
 from .config import Settings
+from .cover import generate_cover
 from .extraction import extract
 from .models import ProcessRequest
 from .ocr import preprocess, run_ocr
@@ -73,8 +74,16 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
             capture_date=req.capture_date,
         )
 
-        # 7. Callback: write the draft.
-        _callback_draft(req, settings, ocr, red, redacted_image, envelope)
+        # 6.5 Decorative cover (text-to-image) from the SUGGESTED content_type —
+        # no PII, no people. FAIL-OPEN: None when unconfigured or on any error.
+        cover_image = generate_cover(
+            api_url=settings.image_api_url,
+            api_key=settings.image_api_key,
+            content_type=envelope.content_type_suggested,
+        )
+
+        # 7. Callback: write the draft (with the cover if we got one).
+        _callback_draft(req, settings, ocr, red, redacted_image, envelope, cover_image)
         log.info("job %s -> draft (%s)", req.post_id, envelope.content_type_suggested)
 
     except Exception as e:
@@ -87,9 +96,12 @@ def _callback_url(settings: Settings, path: str) -> str:
     return f"{base}{path}"
 
 
-def _callback_draft(req, settings, ocr, red, redacted_image, envelope) -> None:  # type: ignore[no-untyped-def]
-    # Upload the redacted image, then post the draft payload to the app callback.
-    # (The app route validates the shared secret and writes via worker_write_draft.)
+def _callback_draft(  # type: ignore[no-untyped-def]
+    req, settings, ocr, red, redacted_image, envelope, cover_image: bytes | None = None
+) -> None:
+    # Upload the redacted image (+ optional cover), then post the draft payload to
+    # the app callback. (The app route validates the shared secret and writes via
+    # worker_write_draft.)
     redactions_json = [
         {
             "placeholder": r.placeholder,
@@ -101,6 +113,8 @@ def _callback_draft(req, settings, ocr, red, redacted_image, envelope) -> None: 
     ]
     with httpx.Client(timeout=60) as client:
         files = {"redacted_image": ("redacted.jpg", redacted_image, "image/jpeg")}
+        if cover_image:
+            files["cover_image"] = ("cover.jpg", cover_image, "image/jpeg")
         data = {
             "post_id": req.post_id,
             "org_id": req.org_id,

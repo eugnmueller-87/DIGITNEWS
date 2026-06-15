@@ -73,6 +73,8 @@ export interface PublicPost {
   health_severity: HealthSeverity | null;
   nutri_score_hidden: boolean;
   redacted_image_path: string | null;
+  /** Generated decorative cover (text-to-image; non-PII). 0023. */
+  cover_image_path: string | null;
   extraction: unknown;
   published_at: string | null;
   created_at: string;

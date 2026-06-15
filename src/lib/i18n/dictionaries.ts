@@ -203,6 +203,10 @@ export const de = {
       "Dieser Aushang konnte nicht automatisch ausgelesen werden. Du kannst ihn verwerfen und erneut fotografieren.",
     maskedAlt: "Ausschnitt des Aushangs (maskiert)",
     maskedBadge: "Maskiert",
+    coverTitle: "Titelbild (automatisch erstellt)",
+    coverHelp:
+      "Eine dekorative Illustration, passend zur Art des Aushangs. Schalte sie aus, wenn sie nicht passt.",
+    coverAlt: "Automatisch erstelltes dekoratives Titelbild",
     artLabel: "Art",
     aiSuggestion: "Vorschlag der KI: {label} — tippe zum Ändern",
     pickArt: "tippe die passende Art an",
@@ -217,6 +221,8 @@ export const de = {
     duplicateTitleBlock:
       "Ein Aushang mit diesem Titel wurde bereits veröffentlicht. Verwirf diesen Entwurf oder ändere den Titel, wenn es ein anderer ist.",
     publishFailed: "Veröffentlichen fehlgeschlagen.",
+    originalDeleteFailed:
+      "Veröffentlicht, aber das Originalfoto konnte nicht gelöscht werden. Bitte erneut versuchen oder den Support kontaktieren.",
     pickArtError: "Bitte wähle eine Art.",
     emptyTitleError: "Titel darf nicht leer sein.",
     notFound: "Entwurf nicht gefunden.",
@@ -680,6 +686,10 @@ export const en: Dict = {
       "This notice couldn't be read automatically. You can discard it and photograph it again.",
     maskedAlt: "Excerpt of the notice (masked)",
     maskedBadge: "Masked",
+    coverTitle: "Cover image (auto-generated)",
+    coverHelp:
+      "A decorative illustration matching the notice type. Turn it off if it doesn't fit.",
+    coverAlt: "Auto-generated decorative cover image",
     artLabel: "Type",
     aiSuggestion: "AI suggestion: {label} — tap to change",
     pickArt: "tap the right type",
@@ -694,6 +704,8 @@ export const en: Dict = {
     duplicateTitleBlock:
       "A notice with this title was already published. Discard this draft or change the title if it's a different one.",
     publishFailed: "Publishing failed.",
+    originalDeleteFailed:
+      "Published, but the original photo could not be deleted. Please try again or contact support.",
     pickArtError: "Please choose a type.",
     emptyTitleError: "Title can't be empty.",
     notFound: "Draft not found.",

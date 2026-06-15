@@ -29,6 +29,7 @@ export function ReviewCard({
   body,
   suggested,
   imageUrl,
+  coverUrl = null,
   clearPhotoAllowed = false,
   failed = false,
 }: {
@@ -37,6 +38,7 @@ export function ReviewCard({
   body: string | null;
   suggested: ContentType | null;
   imageUrl: string | null;
+  coverUrl?: string | null;
   clearPhotoAllowed?: boolean;
   failed?: boolean;
 }) {
@@ -46,6 +48,9 @@ export function ReviewCard({
   const [discardError, setDiscardError] = useState<string | null>(null);
   // No pre-selection when there's no suggestion (forces a deliberate choice).
   const [selected, setSelected] = useState<ContentType | null>(suggested);
+  // Generated decorative cover: keep it by default; the admin can drop one they
+  // don't like (deterministic hidden field consumed by publishDraft).
+  const [keepCover, setKeepCover] = useState(true);
   // Per-post clear-photo release. Default OFF — members keep seeing the masked
   // image unless the admin deliberately releases the original here AND the
   // member opted into clear photos. Drives a deterministic hidden form field.
@@ -89,10 +94,53 @@ export function ReviewCard({
         </div>
       )}
 
+      {!failed && coverUrl && (
+        <div className="mb-4 rounded-[12px] border border-border bg-surface-2 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-ink">
+                {t.review.coverTitle}
+              </p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-ink-soft">
+                {t.review.coverHelp}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={keepCover}
+              onClick={() => setKeepCover((v) => !v)}
+              className={clsx(
+                "relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors",
+                keepCover ? "bg-accent" : "bg-border",
+              )}
+            >
+              <span
+                className={clsx(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+                  keepCover ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </button>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */}
+          <img
+            src={coverUrl}
+            alt={t.review.coverAlt}
+            className={clsx(
+              "mt-3 max-h-56 w-full rounded-[10px] border border-border object-contain transition-opacity",
+              keepCover ? "opacity-100" : "opacity-40",
+            )}
+          />
+        </div>
+      )}
+
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="postId" value={id} />
         {/* The chip selection drives this deterministic form field. */}
         <input type="hidden" name="contentType" value={selected ?? ""} />
+        {/* Drop the generated cover if the admin toggled it off. */}
+        <input type="hidden" name="removeCover" value={keepCover ? "" : "1"} />
         {/* Per-post clear-photo release (deterministic; default off). */}
         <input
           type="hidden"

@@ -25,6 +25,12 @@ class Settings:
     # or raw PII. Optional until the extraction step is wired.
     anthropic_api_key: str | None = None
 
+    # Text-to-image cover endpoint (provider-agnostic; point at an EU-hosted
+    # FLUX.1 [schnell] endpoint). Receives a no-PII decorative prompt only.
+    # Both optional: when unset, cover generation is skipped (fail-open).
+    image_api_url: str | None = None
+    image_api_key: str | None = None
+
 
 def load_settings() -> Settings:
     """Build Settings from the environment. Fails closed on a missing secret."""
@@ -39,4 +45,6 @@ def load_settings() -> Settings:
         worker_shared_secret=secret,
         app_callback_url=callback,
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
+        image_api_url=os.environ.get("IMAGE_API_URL") or None,
+        image_api_key=os.environ.get("IMAGE_API_KEY") or None,
     )

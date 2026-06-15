@@ -44,6 +44,8 @@ export async function publishDraft(
   // Per-post clear-photo release (default off). Only members who also opted into
   // clear photos will ever see the original; the visibility AND is server-side.
   const clearPhotoAllowed = formData.get("clearPhotoAllowed") === "1";
+  // The admin can drop the generated decorative cover before publishing.
+  const removeCover = formData.get("removeCover") === "1";
 
   if (!isContentType(contentType)) {
     return { ok: false, message: dict.review.pickArtError };
@@ -56,14 +58,16 @@ export async function publishDraft(
   // Confirm the draft belongs to the admin's org before acting.
   const { data: post } = await admin
     .from("posts")
-    .select("id, org_id, status")
+    .select("id, org_id, status, cover_image_path")
     .eq("id", postId)
     .maybeSingle();
   if (!post || post.org_id !== session.orgId) {
     return { ok: false, message: dict.review.notFound };
   }
 
-  const { error } = await admin.rpc("publish_post", {
+  // publish_post returns the post's source_image_path (the raw original), so we
+  // can delete it for reflections — see below.
+  const { data: sourcePath, error } = await admin.rpc("publish_post", {
     p_actor_id: session.userId,
     p_post_id: postId,
     p_content_type: contentType,
@@ -82,6 +86,43 @@ export async function publishDraft(
       };
     }
     return { ok: false, message: dict.review.publishFailed };
+  }
+
+  // Privacy policy: a reflection (Rückblick) is the type most likely to depict
+  // identifiable children, so its raw original is NOT retained. Delete the
+  // original bytes from raw-photos synchronously right after publish, then null
+  // the column. publish_post has already forced clear_photo_allowed=false for
+  // reflections, so the consent path can never reach a now-deleted original.
+  // Surface a delete failure: the admin must know if the original wasn't purged.
+  if (
+    contentType === "reflection" &&
+    typeof sourcePath === "string" &&
+    sourcePath
+  ) {
+    const { error: rmErr } = await admin.storage
+      .from("raw-photos")
+      .remove([sourcePath]);
+    if (rmErr) {
+      return { ok: false, message: dict.review.originalDeleteFailed };
+    }
+    await admin
+      .from("posts")
+      .update({ source_image_path: null })
+      .eq("id", postId);
+  }
+
+  // Admin dropped the generated cover: remove the bytes + null the column.
+  // Best-effort — a leftover cover is a decoration, never block the publish.
+  if (
+    removeCover &&
+    typeof post.cover_image_path === "string" &&
+    post.cover_image_path
+  ) {
+    await admin.storage.from("cover-photos").remove([post.cover_image_path]);
+    await admin
+      .from("posts")
+      .update({ cover_image_path: null })
+      .eq("id", postId);
   }
 
   // Fire notifications (best-effort; never block/fail the publish).

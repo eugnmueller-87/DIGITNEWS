@@ -58,6 +58,19 @@ export async function POST(request: NextRequest) {
     if (!upErr) redactedPath = path;
   }
 
+  // Optional decorative cover (text-to-image; non-PII). Upload to its own bucket.
+  // Best-effort: a failed cover never fails the draft (it's a decoration).
+  const cover = form.get("cover_image");
+  let coverPath: string | null = null;
+  if (cover instanceof File && isUuid(orgId)) {
+    const path = `${orgId}/${postId}.jpg`;
+    const bytes = new Uint8Array(await cover.arrayBuffer());
+    const { error: covErr } = await admin.storage
+      .from("cover-photos")
+      .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+    if (!covErr) coverPath = path;
+  }
+
   const { error } = await admin.rpc("worker_write_draft", {
     p_post_id: postId,
     p_redacted_path: redactedPath,
@@ -69,6 +82,7 @@ export async function POST(request: NextRequest) {
     p_body: String(form.get("summary") ?? "").slice(0, 4000),
     p_content_type_suggested: String(form.get("content_type_suggested") ?? "info"),
     p_health_severity: null,
+    p_cover_path: coverPath,
   });
   if (error) {
     return NextResponse.json({ error: "rpc" }, { status: 500 });

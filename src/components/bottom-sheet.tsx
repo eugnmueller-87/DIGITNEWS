@@ -2,13 +2,11 @@
 
 import { useEffect } from "react";
 
-import { clsx } from "@/lib/clsx";
-
 /**
- * An iOS-style bottom sheet: a scrim + a panel that rises from the bottom edge,
- * rounded top corners, safe-area padded, dismissible by scrim tap or Escape.
- * Mount/unmount controlled by the parent via `open`. Respects reduced motion
- * (the slide is a transition, killed globally for those users).
+ * A responsive dialog: a centered modal card on desktop, a bottom sheet on
+ * mobile. Scrim + panel; dismissible by scrim tap, the close button (desktop),
+ * or Escape. Rendered ONLY while `open` (unmounted when closed) so closed sheets
+ * can't paint/stack. Background scroll is locked while open.
  */
 export function BottomSheet({
   open,
@@ -36,36 +34,48 @@ export function BottomSheet({
     };
   }, [open, onClose]);
 
+  // Don't render anything when closed. Previously the overlay stayed mounted and,
+  // on desktop, the panel's hide transform was overridden by `sm:translate-y-0` —
+  // so every card's CLOSED sheet was painted at screen center, stacking them and
+  // blocking dismissal. Unmounting when closed removes that whole class of bug.
+  if (!open) return null;
+
   return (
     <div
-      className={clsx(
-        "fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center",
-        open ? "pointer-events-auto" : "pointer-events-none",
-      )}
-      aria-hidden={!open}
+      className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center"
+      aria-hidden={false}
     >
-      {/* Scrim */}
+      {/* Scrim — click to dismiss (works on mobile + desktop). */}
       <button
         type="button"
         aria-label="Schließen"
         onClick={onClose}
-        className={clsx(
-          "absolute inset-0 bg-ink/30 transition-opacity duration-200",
-          open ? "opacity-100" : "opacity-0",
-        )}
-        tabIndex={open ? 0 : -1}
+        className="absolute inset-0 bg-ink/30"
       />
-      {/* Panel */}
+      {/* Panel. On desktop it's a centered modal card; on mobile a bottom sheet.
+          max-h + overflow so a tall post scrolls inside the card instead of
+          overflowing the viewport. */}
       <div
         role="dialog"
         aria-modal="true"
-        className={clsx(
-          "pb-safe absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-[20px] bg-paper shadow-float transition-transform duration-300 [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)] sm:static sm:w-full sm:rounded-[20px] sm:pb-0",
-          open ? "translate-y-0" : "translate-y-full sm:translate-y-0",
-        )}
+        className="pb-safe absolute inset-x-0 bottom-0 mx-auto flex max-h-[92vh] max-w-md flex-col overflow-hidden rounded-t-[20px] bg-paper shadow-float sm:static sm:w-full sm:rounded-[20px] sm:pb-0"
       >
-        <div className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-ink/15" />
-        <div className="px-5 pb-5 pt-3">
+        {/* Mobile grabber (swipe affordance). */}
+        <div className="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-ink/15 sm:hidden" />
+        {/* Close button — the clear dismiss affordance on desktop (where there's
+            no swipe). Scrim-click and Escape also close. */}
+        <button
+          type="button"
+          aria-label="Schließen"
+          onClick={onClose}
+          className="press absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-ink-soft hover:bg-border sm:flex"
+        >
+          <span aria-hidden className="text-lg leading-none">
+            ×
+          </span>
+        </button>
+        {/* Scrollable content region (so a tall post scrolls inside the card). */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-3">
           {title && (
             <h2 className="font-display mb-3 text-lg font-bold text-ink">
               {title}

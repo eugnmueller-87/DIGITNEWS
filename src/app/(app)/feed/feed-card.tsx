@@ -121,7 +121,7 @@ export function FeedCard({
         <h2 className="mt-3 font-display text-xl font-bold text-ink">
           {post.title}
         </h2>
-        <div className="mt-2 max-h-[60vh] overflow-y-auto">
+        <div className="mt-2">
           {post.imageUrl && (
             /* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */
             <img

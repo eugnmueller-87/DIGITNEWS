@@ -44,9 +44,10 @@ jobs:
       # The app is REMOTE-URL mode (server.url = the live site), so no Next build
       # is needed for the shell — but we still install + cap sync so the native
       # project is regenerated from capacitor.config.ts and plugins are current.
+      # Capacitor 8's CLI requires Node >=22 (cap sync fails on 20).
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install JS deps

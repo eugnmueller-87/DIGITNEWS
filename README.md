@@ -1,14 +1,19 @@
 # Aushang
 
+[![CI](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/ci.yml/badge.svg)](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/ci.yml)
+[![Android build](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/android.yml/badge.svg)](https://github.com/eugnmueller-87/DIGITNEWS/actions/workflows/android.yml)
+
 > Digitalisierung ohne Prozessänderung.
 
 A digitization layer for old-school organizations (Kitas, Vereine,
 Kirchengemeinden, Kleingartenkolonien, small businesses) that does **not** change
 their processes. The org keeps pinning paper notices to its physical board; one
 admin photographs the board from inside the tool; the system OCRs and redacts the
-photo locally, extracts structured content and dates via an EU-hosted LLM, the
-admin reviews and confirms, and members get a private feed, browsable category
-libraries, a shared calendar, an ICS subscription, and an email digest.
+photo locally, extracts structured content and dates via an LLM (on the
+**redacted text only** — see the LLM note below), the admin reviews and confirms,
+and members get a private feed, browsable category libraries, a shared calendar,
+an ICS subscription, and an email digest. Available as a PWA and, now, a native
+**Android** app (Capacitor).
 
 > **Status: live & in real-world testing.** Phases 1–5 are built and the full
 > pipeline runs end-to-end in production — schema + RLS, auth, the capture → OCR →
@@ -17,10 +22,13 @@ libraries, a shared calendar, an ICS subscription, and an email digest.
 > app runs on Vercel at **[kita-connect.cloud](https://kita-connect.cloud)**; the
 > OCR/redaction worker (`worker/`) runs on a VPS. A first Kita is testing it, and
 > the app has since gained a clean mobile redesign ("Tafel"), post take-down,
-> duplicate prevention, opt-in clear-photo consent, and "new since last visit"
-> category counts (see **Post-launch** below). See
-> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and
-> [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md).
+> duplicate prevention, opt-in clear-photo consent, "new since last visit"
+> category counts, a native **Android** shell (Capacitor), reflection-original
+> deletion at publish, and (post-launch) AI cover illustrations (see
+> **Post-launch** below). See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
+> [`docs/GO_LIVE_CHECKLIST.md`](docs/GO_LIVE_CHECKLIST.md),
+> [`docs/CAPACITOR.md`](docs/CAPACITOR.md), and
+> [`docs/PLAY_LAUNCH.md`](docs/PLAY_LAUNCH.md).
 
 The working title is **Aushang**; final naming is TBD. All branding lives in one
 file — [`src/config/brand.ts`](src/config/brand.ts) — so a rename is a one-file
@@ -98,7 +106,7 @@ false`) — accounts are invite-only.
    (not the default `{{ .ConfirmationURL }}`). See `supabase/config.toml`.
 
 5. Apply **all** migrations in `supabase/migrations/` in numeric order (SQL editor
-   or `supabase db push`) — currently `0001` … `0021`. Highlights:
+   or `supabase db push`) — currently `0001` … `0023`. Highlights:
    - `0001`–`0004` — schema, helper functions, RLS, column-grant hardening
    - `0005`–`0007` — operator-provisioned three-role model + superadmin RLS
    - `0008` — content classification (`content_type` routing)
@@ -109,6 +117,8 @@ false`) — accounts are invite-only.
    - `0016`–`0019` — duplicate prevention, publish-creates-events, post take-down, re-publish restores events
    - `0020` — opt-in clear-photo consent (double-gated)
    - `0021` — per-member "new since last visit" category counts
+   - `0022` — per-user UI language (de/en)
+   - `0023` — reflection originals deleted at publish + `cover_image_path` (AI cover)
 6. Set `RESEND_API_KEY` + `EMAIL_FROM` (on a Resend-verified domain) so invite /
    password-reset emails are delivered. (Optionally also point Supabase's own
    SMTP at Resend for any mail Supabase sends directly.)
@@ -288,7 +298,7 @@ src/
     env.ts env.server.ts   # public vs server-only env (secret boundary)
   proxy.ts                 # deny-by-default middleware
 supabase/
-  migrations/              # 0001 … 0021 (see "Provision Supabase" above)
+  migrations/              # 0001 … 0023 (see "Provision Supabase" above)
   fixtures/two_orgs.sql    # isolation test fixture
   config.toml              # security-critical auth settings (version-controlled)
 worker/                    # FastAPI OCR + Presidio redaction + Claude extraction (VPS, Docker)
@@ -382,6 +392,25 @@ Kita began testing. Shipped since:
   address pinned to the verified domain; add-person create-or-find flow.
 - **Redaction tuning** — exclude `LOCATION`, raise fuzzy ML thresholds, so notices
   full of dates/town names aren't over-masked.
+- **Per-user language (de/en)** — members switch the app chrome between German and
+  English (`0022`); notice content stays in its German source.
+- **Reflection originals not retained** — a Rückblick (the type most likely to
+  depict children) has its raw original **deleted at publish**; members keep the
+  blurred image and the generated cover. `publish_post` force-blocks the
+  clear-photo release for reflections so the consent path can't reach a deleted
+  original (`0023`). _Per-viewer "see the real photo" was deliberately rejected
+  for reflections — see [`docs/COVER_IMAGES_SPEC.md`](docs/COVER_IMAGES_SPEC.md)
+  (the "multiple children" problem)._
+- **Native Android app (Capacitor)** — a remote-URL native shell so the
+  server-rendered app keeps its full security model; native camera capture
+  (`@capacitor/camera`) feeding the same redaction pipeline; brand launcher icons;
+  a cloud AAB build (`.github/workflows/android.yml`). iOS is added later from the
+  same project. See [`docs/CAPACITOR.md`](docs/CAPACITOR.md) /
+  [`docs/NATIVE_TODO.md`](docs/NATIVE_TODO.md).
+- **AI cover illustrations (post-launch, built/dormant)** — text-to-image covers
+  generated from the redacted extraction (FLUX.1 [schnell], EU-hosted), no PII, no
+  people, admin-confirmed. Inert until the worker + an EU image endpoint are
+  configured. See [`docs/COVER_IMAGES_SPEC.md`](docs/COVER_IMAGES_SPEC.md).
 
 ### Out of scope / follow-ups
 
@@ -389,4 +418,8 @@ Kita began testing. Shipped since:
   - a `worker.` subdomain for TLS).
 - Regenerate `src/lib/database.types.ts` from the live schema (currently a
   hand-authored stub).
-- A native (Capacitor) shell — revisit store-privacy "Permissions"/"Identifiers".
+- Native follow-ups (tracked in [`docs/NATIVE_TODO.md`](docs/NATIVE_TODO.md)):
+  deep links / `assetlinks.json`, native push (APNs/FCM), and the iOS phase
+  (needs a Mac). The Android shell + native camera are already done.
+- Move the structure-extraction LLM into the EU (the redacted-text call currently
+  goes to a US sub-processor — disclosed honestly on `/datenschutz`).

@@ -16,6 +16,14 @@
 
 > Digitalisierung ohne Prozessänderung.
 
+<p align="center">
+  <a href="docs/media/demo.mp4">
+    <img src="docs/media/demo.gif" alt="Aushang demo" width="320" />
+  </a>
+  <br />
+  <em><a href="docs/media/demo.mp4">▶ Watch the full video (with sound)</a></em>
+</p>
+
 A digitization layer for old-school organizations (Kitas, Vereine,
 Kirchengemeinden, Kleingartenkolonien, small businesses) that does **not** change
 their processes. The org keeps pinning paper notices to its physical board; one

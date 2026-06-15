@@ -91,11 +91,11 @@ email, and Web Push — see `worker/`.
 
 ## Getting started
 
-> **Want to run your own copy?** Clone the repo, then `npm install && npm run
-setup`. The wizard prompts for **your own** Supabase + (optional) Resend keys
-> and writes a local `.env.local` (it never touches the maintainer's secrets —
-> there are none in this repo). Then apply the migrations and `npm run dev`. Full
-> manual steps below.
+> **Want to run your own copy?** Clone the repo, then `npm install && npm run setup`.
+> The wizard prompts for **your own** Supabase + (optional) Resend keys and writes
+> a local `.env.local` (it never touches the maintainer's secrets — there are none
+> in this repo). Then apply the migrations and `npm run dev`. Full manual steps
+> below.
 
 ### 1. Prerequisites
 

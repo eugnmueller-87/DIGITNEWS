@@ -80,6 +80,12 @@ yarn-error.log*
 # out-of-tree deliverable scratch dir (not part of the app)
 _fp-build/
 
+# local copy of the final-project n8n POC workflows (live in the final-project-eugen repo, not this one)
+poc-workflows/
+
+# local source video/GIF for the final-project demo (committed to final-project-eugen, not this repo)
+clip/
+
 # MCP server config — holds a Supabase access token (root credential). NEVER
 # commit. Use .mcp.json.example as the tracked template instead.
 .mcp.json

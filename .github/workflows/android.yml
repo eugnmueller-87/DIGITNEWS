@@ -67,6 +67,12 @@ jobs:
         working-directory: android
         run: ./gradlew bundleDebug --no-daemon --stacktrace
 
+      # A debug APK is DIRECTLY installable on a phone (the .aab is not — that's
+      # a Play-upload format). Use this to side-load and test on a device.
+      - name: Gradle — build debug APK (directly installable)
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
       - name: Decode keystore (release builds only)
         id: keystore
         if: env.ANDROID_KEYSTORE_BASE64 != ''
@@ -94,11 +100,12 @@ jobs:
         if: always()
         run: rm -f android/upload.jks
 
-      - name: Upload AABs
+      - name: Upload artifacts (APK + AABs)
         uses: actions/upload-artifact@v4
         with:
-          name: aushang-android-aab
+          name: aushang-android
           path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/bundle/debug/app-debug.aab
             android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: warn

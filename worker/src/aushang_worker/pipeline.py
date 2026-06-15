@@ -66,12 +66,13 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
         redacted_words = {r.original for r in red.redactions}
         redacted_image = _blur_redacted_regions(image_bytes, ocr.boxes, redacted_words)
 
-        # 6. LLM extraction on REDACTED text only.
+        # 6. LLM extraction on REDACTED text only (provider per LLM_PROVIDER).
         envelope = extract(
-            api_key=settings.anthropic_api_key or "",
+            api_key=settings.llm_api_key or "",
             redacted_text=red.redacted_text,
             org_type=req.org_type,
             capture_date=req.capture_date,
+            provider=settings.llm_provider,
         )
 
         # 6.5 Decorative cover (text-to-image) from the SUGGESTED content_type —

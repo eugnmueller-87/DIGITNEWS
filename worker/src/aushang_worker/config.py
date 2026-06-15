@@ -21,15 +21,29 @@ class Settings:
     # https://aushang.app). The callback writes the draft via the service role.
     app_callback_url: str
 
-    # Claude API (Anthropic) key. Receives REDACTED text only — never raw images
-    # or raw PII. Optional until the extraction step is wired.
-    anthropic_api_key: str | None = None
+    # LLM provider for structure extraction: anthropic | mistral | openai |
+    # gemini. Defaults to anthropic. Receives REDACTED text only.
+    llm_provider: str = "anthropic"
+
+    # The API key for the selected provider (resolved from the provider-specific
+    # env var). Optional until the extraction step is wired.
+    llm_api_key: str | None = None
 
     # Text-to-image cover endpoint (provider-agnostic; point at an EU-hosted
     # FLUX.1 [schnell] endpoint). Receives a no-PII decorative prompt only.
     # Both optional: when unset, cover generation is skipped (fail-open).
     image_api_url: str | None = None
     image_api_key: str | None = None
+
+
+# Map provider -> the env var that holds ITS key. The wizard writes the matching
+# one. ANTHROPIC_API_KEY stays the default so existing deployments are unchanged.
+_PROVIDER_KEY_ENV = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+}
 
 
 def load_settings() -> Settings:
@@ -41,10 +55,15 @@ def load_settings() -> Settings:
     callback = os.environ.get("APP_CALLBACK_URL", "")
     if not callback:
         raise RuntimeError("APP_CALLBACK_URL is required")
+    provider = (os.environ.get("LLM_PROVIDER") or "anthropic").lower()
+    key_env = _PROVIDER_KEY_ENV.get(provider, "ANTHROPIC_API_KEY")
+    # Prefer the provider-specific key; fall back to a generic LLM_API_KEY.
+    llm_key = os.environ.get(key_env) or os.environ.get("LLM_API_KEY") or None
     return Settings(
         worker_shared_secret=secret,
         app_callback_url=callback,
-        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
+        llm_provider=provider,
+        llm_api_key=llm_key,
         image_api_url=os.environ.get("IMAGE_API_URL") or None,
         image_api_key=os.environ.get("IMAGE_API_KEY") or None,
     )

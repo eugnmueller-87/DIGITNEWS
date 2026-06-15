@@ -1,17 +1,20 @@
-"""Structured extraction via the Claude API (Anthropic) on REDACTED text only.
+"""Structured extraction on REDACTED text only — provider-agnostic.
 
 The LLM receives ONLY redacted text (placeholders like [NAME_1] preserved
 verbatim). Its JSON output is validated against the shared contract (mirrors
 src/lib/content/extraction-schema.ts). Validation failure => the caller routes
 the post to the manual path; nothing is ever auto-published.
 
-PRIVACY NOTE: Anthropic's API is US-hosted (no EU data-residency endpoint at the
-time of writing), unlike the previous Mistral (EU) integration. The "privacy by
-construction" guarantee is preserved by the redaction step UPSTREAM of this
-call: only the locally-redacted text (PII already masked to [NAME_1]-style
-placeholders) is sent here — never raw images, never raw PII. If strict EU data
-residency is later required, swap this module back to an EU LLM; nothing else in
-the pipeline changes.
+MULTI-PROVIDER: the worker can call Anthropic, Mistral, OpenAI, or Gemini,
+selected by LLM_PROVIDER. Each provider has its own endpoint / auth / structured-
+output mechanism, but they all return the SAME validated ExtractionEnvelope, so
+the rest of the pipeline is unchanged. The maintainer's deployment uses Anthropic;
+the self-host wizard lets an operator pick a provider and supply THEIR OWN key.
+
+PRIVACY NOTE: provider choice does not change the privacy model — only locally-
+redacted text is ever sent (PII already masked to [NAME_1]-style placeholders),
+never raw images, never raw PII. Data RESIDENCY does differ: Anthropic/OpenAI are
+US-hosted; Mistral (La Plateforme) is EU — pick Mistral for strict EU residency.
 """
 
 from __future__ import annotations
@@ -22,10 +25,27 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, ValidationError
 
-# Cheap, fast model for structured extraction. JSON output via output_config.
+# --- Provider endpoints + default models ------------------------------------
+# All use a cheap/fast model for structured extraction. Each provider's
+# structured-output mechanism differs (see the per-provider _call_* below).
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = "claude-haiku-4-5"
 ANTHROPIC_VERSION = "2023-06-01"
+
+MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
+MISTRAL_MODEL = "mistral-small-latest"
+
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = "gpt-4o-mini"
+
+# Gemini uses the model in the path + the key as a query param.
+GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{GEMINI_MODEL}:generateContent"
+)
+
+PROVIDERS = ("anthropic", "mistral", "openai", "gemini")
 
 CONTENT_TYPES = [
     "meal_plan",
@@ -241,28 +261,65 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
 
 
 def extract(
-    *, api_key: str, redacted_text: str, org_type: str, capture_date: str
+    *,
+    api_key: str,
+    redacted_text: str,
+    org_type: str,
+    capture_date: str,
+    provider: str = "anthropic",
 ) -> ExtractionEnvelope:
-    """Call the Claude API on the redacted text and return the validated
-    envelope.
-
-    Raises on transport error or validation failure (caller -> manual path).
+    """Extract structure from REDACTED text via the chosen provider, returning
+    the validated envelope. Raises on transport/validation failure (caller ->
+    manual path). All providers return the SAME envelope shape.
     """
+    provider = (provider or "anthropic").lower()
+    if provider not in PROVIDERS:
+        raise RuntimeError(f"unknown LLM_PROVIDER {provider!r}")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set")
+        raise RuntimeError(f"API key not set for provider {provider!r}")
 
+    system = _system_prompt(org_type, capture_date)
+    caller = {
+        "anthropic": _call_anthropic,
+        "mistral": _call_mistral,
+        "openai": _call_openai,
+        "gemini": _call_gemini,
+    }[provider]
+    content = caller(api_key=api_key, system=system, text=redacted_text)
+    return _validate_envelope(content)
+
+
+def _validate_envelope(content: str) -> ExtractionEnvelope:
+    """Parse the model's JSON text into the validated envelope (provider-agnostic).
+
+    The schema carries all five typed payloads under `details` (the model fills
+    the one matching content_type, nulls the rest). Collapse the matching branch
+    into `payload` — the shape the app + publish_post read.
+    """
+    try:
+        raw = json.loads(content)
+        details = raw.pop("details", {}) or {}
+        ct = raw.get("content_type_suggested")
+        branch = details.get(ct) if isinstance(details, dict) else None
+        raw["payload"] = branch if isinstance(branch, dict) else {}
+        return ExtractionEnvelope.model_validate(raw).normalized()
+    except (json.JSONDecodeError, ValidationError, ValueError) as e:
+        raise ValueError(f"extraction validation failed: {e}") from e
+
+
+# --- Per-provider adapters: (system, text) -> raw JSON string ---------------
+# Each constrains the model to JSON and returns the response text. The schema is
+# enforced natively where supported (Anthropic output_config, OpenAI/Gemini
+# json_schema); Mistral uses json_object mode + the schema embedded in the prompt.
+
+
+def _call_anthropic(*, api_key: str, system: str, text: str) -> str:
     body = {
         "model": ANTHROPIC_MODEL,
         "max_tokens": 4096,
-        "system": _system_prompt(org_type, capture_date),
-        "messages": [{"role": "user", "content": redacted_text}],
-        # Constrain the response to the JSON envelope (structured outputs).
-        "output_config": {
-            "format": {
-                "type": "json_schema",
-                "schema": _OUTPUT_SCHEMA,
-            }
-        },
+        "system": system,
+        "messages": [{"role": "user", "content": text}],
+        "output_config": {"format": {"type": "json_schema", "schema": _OUTPUT_SCHEMA}},
     }
     with httpx.Client(timeout=60) as client:
         resp = client.post(
@@ -276,28 +333,110 @@ def extract(
         )
         resp.raise_for_status()
         data = resp.json()
-        # A safety refusal returns stop_reason "refusal" with no usable text.
         if data.get("stop_reason") == "refusal":
             raise ValueError("extraction refused by safety classifier")
-        content = _first_text(data)
-
-    try:
-        raw = json.loads(content)
-        # The schema carries all five typed payloads under `details` (the model
-        # fills the one matching content_type, nulls the rest). Collapse the
-        # matching branch into `payload` — the shape the app + publish_post read.
-        details = raw.pop("details", {}) or {}
-        ct = raw.get("content_type_suggested")
-        branch = details.get(ct) if isinstance(details, dict) else None
-        raw["payload"] = branch if isinstance(branch, dict) else {}
-        return ExtractionEnvelope.model_validate(raw).normalized()
-    except (json.JSONDecodeError, ValidationError, ValueError) as e:
-        raise ValueError(f"extraction validation failed: {e}") from e
+        for block in data.get("content", []):
+            if isinstance(block, dict) and block.get("type") == "text":
+                return str(block.get("text", ""))
+    raise ValueError("no text block in Anthropic response")
 
 
-def _first_text(data: dict[str, Any]) -> str:
-    """Pull the first text block out of an Anthropic messages response."""
-    for block in data.get("content", []):
-        if isinstance(block, dict) and block.get("type") == "text":
-            return str(block.get("text", ""))
-    raise ValueError("no text block in response")
+def _call_openai(*, api_key: str, system: str, text: str) -> str:
+    body = {
+        "model": OPENAI_MODEL,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": text},
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "aushang_extraction",
+                "schema": _OUTPUT_SCHEMA,
+                "strict": True,
+            },
+        },
+    }
+    with httpx.Client(timeout=60) as client:
+        resp = client.post(
+            OPENAI_URL,
+            headers={
+                "authorization": f"Bearer {api_key}",
+                "content-type": "application/json",
+            },
+            json=body,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return str(data["choices"][0]["message"]["content"])
+
+
+def _call_mistral(*, api_key: str, system: str, text: str) -> str:
+    # Mistral supports json_object mode (not full json_schema), so the schema is
+    # carried in the system prompt and we request a JSON object back.
+    sys_with_schema = (
+        f"{system}\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt, das diesem "
+        f"JSON-Schema entspricht (keine Erklärungen, kein Markdown):\n"
+        f"{json.dumps(_OUTPUT_SCHEMA, ensure_ascii=False)}"
+    )
+    body = {
+        "model": MISTRAL_MODEL,
+        "messages": [
+            {"role": "system", "content": sys_with_schema},
+            {"role": "user", "content": text},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+    with httpx.Client(timeout=60) as client:
+        resp = client.post(
+            MISTRAL_URL,
+            headers={
+                "authorization": f"Bearer {api_key}",
+                "content-type": "application/json",
+            },
+            json=body,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return str(data["choices"][0]["message"]["content"])
+
+
+def _call_gemini(*, api_key: str, system: str, text: str) -> str:
+    body = {
+        "system_instruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": text}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": _gemini_schema(_OUTPUT_SCHEMA),
+        },
+    }
+    with httpx.Client(timeout=60) as client:
+        resp = client.post(
+            GEMINI_URL,
+            params={"key": api_key},
+            headers={"content-type": "application/json"},
+            json=body,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        parts = data["candidates"][0]["content"]["parts"]
+        return str(parts[0]["text"])
+
+
+def _gemini_schema(schema: Any) -> Any:
+    """Gemini's responseSchema is OpenAPI-ish and rejects `additionalProperties`
+    and JSON-Schema `type` arrays. Strip those recursively so our schema is
+    accepted (the prompt + downstream validation still constrain the output)."""
+    if isinstance(schema, dict):
+        out = {}
+        for k, v in schema.items():
+            if k == "additionalProperties":
+                continue
+            if k == "type" and isinstance(v, list):
+                # take the first non-null type (Gemini wants a scalar type)
+                v = next((t for t in v if t != "null"), "string")
+            out[k] = _gemini_schema(v)
+        return out
+    if isinstance(schema, list):
+        return [_gemini_schema(x) for x in schema]
+    return schema

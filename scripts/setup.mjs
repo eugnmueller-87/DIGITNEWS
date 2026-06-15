@@ -127,6 +127,41 @@ async function main() {
       })
     : "";
 
+  // 5) LLM provider for the worker (OCR/redaction box). The key lives on the
+  // WORKER, not the web app — written here for convenience as a separate block.
+  console.log(C.b("\n  5) LLM provider — for the OCR/redaction worker\n"));
+  console.log(
+    C.dim(
+      "  The worker sends ONLY redacted text to the LLM. Pick a provider and\n" +
+        "  paste YOUR OWN key. Mistral (EU) is the GDPR-friendly residency choice;\n" +
+        "  Anthropic/OpenAI are US-hosted; Gemini is Google.\n",
+    ),
+  );
+  const PROVIDERS = [
+    { key: "mistral", label: "Mistral (EU — GDPR-friendly residency)" },
+    { key: "anthropic", label: "Anthropic / Claude (US)" },
+    { key: "openai", label: "OpenAI (US)" },
+    { key: "gemini", label: "Google Gemini" },
+    { key: "skip", label: "Skip for now (set on the worker later)" },
+  ];
+  PROVIDERS.forEach((p, i) => console.log(`   ${i + 1}) ${p.label}`));
+  let provider = "";
+  let llmKey = "";
+  for (;;) {
+    const pick = await ask("Choose 1–5", { def: "1" });
+    const idx = Number.parseInt(pick, 10) - 1;
+    if (idx >= 0 && idx < PROVIDERS.length) {
+      provider = PROVIDERS[idx].key;
+      break;
+    }
+    console.log(C.yellow("  ↳ enter a number 1–5."));
+  }
+  if (provider !== "skip") {
+    llmKey = await ask(`${provider} API key`, {
+      hint: "your own key — stored only in this local .env (worker reads it)",
+    });
+  }
+
   console.log(C.dim("\n  Generating a Web Push (VAPID) keypair…"));
   const vapid = await genVapid();
 
@@ -148,6 +183,23 @@ async function main() {
     'WORKER_SHARED_SECRET=""',
     "",
   ];
+
+  // LLM provider block — these are read by the WORKER (worker/.env), included
+  // here so a single-box self-host has everything in one file.
+  if (provider !== "skip") {
+    const KEY_ENV = {
+      anthropic: "ANTHROPIC_API_KEY",
+      mistral: "MISTRAL_API_KEY",
+      openai: "OPENAI_API_KEY",
+      gemini: "GEMINI_API_KEY",
+    };
+    lines.push(
+      "# LLM provider for structure extraction (read by the worker).",
+      `LLM_PROVIDER="${provider}"`,
+      `${KEY_ENV[provider]}="${llmKey}"`,
+      "",
+    );
+  }
   if (vapid) {
     lines.push(
       `NEXT_PUBLIC_VAPID_PUBLIC_KEY="${vapid.publicKey}"`,

@@ -43,6 +43,18 @@ Thumbs.db
 secrets/
 vapid.json
 
+# Android signing — NEVER commit the upload keystore or its passwords
+*.jks
+*.keystore
+android/keystore.properties
+android/app/release/
+
+# Capacitor / Android local + build artifacts
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+
 # supabase local dev artifacts (keep migrations + config.toml, ignore volumes)
 /supabase/.branches
 /supabase/.temp
@@ -61,6 +73,12 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# local Claude settings (per-machine; not shared)
+.claude/settings.local.json
+
+# out-of-tree deliverable scratch dir (not part of the app)
+_fp-build/
 
 # MCP server config — holds a Supabase access token (root credential). NEVER
 # commit. Use .mcp.json.example as the tracked template instead.

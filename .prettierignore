@@ -22,3 +22,10 @@ worker/
 
 # Reference design files (not app code)
 design/
+
+# Generated native project (Capacitor) — managed by the Android toolchain
+android/
+public/cap-shell/
+
+# Out-of-tree deliverable scratch dir (not part of the app)
+_fp-build/

@@ -97,13 +97,40 @@ email, and Web Push — see `worker/`.
 
 ---
 
-## Getting started
+## Self-host (run your own copy)
 
-> **Want to run your own copy?** Clone the repo, then `npm install && npm run setup`.
-> The wizard prompts for **your own** Supabase + (optional) Resend keys and writes
-> a local `.env.local` (it never touches the maintainer's secrets — there are none
-> in this repo). Then apply the migrations and `npm run dev`. Full manual steps
-> below.
+Run your own instance in a few minutes — with **your own** keys, on **your own**
+infrastructure. This repo ships **no secrets** (a CI scan enforces it), so the
+maintainer's keys are never involved.
+
+```bash
+git clone https://github.com/eugnmueller-87/DIGITNEWS.git
+cd DIGITNEWS
+npm install
+npm run setup        # interactive wizard — see below
+npm run dev          # → http://localhost:3000
+```
+
+**The `npm run setup` wizard** prompts for:
+
+- your **Supabase** project URL + anon key + service-role key (free tier, EU
+  region recommended),
+- your **operator email** (you become the operator on first login),
+- optionally a **Resend** key for invite/reset emails,
+- your **LLM provider** — choose **Mistral (EU)**, **Anthropic**, **OpenAI**, or
+  **Gemini** and paste **your own** key (the worker uses it on redacted text
+  only).
+
+It writes a local, gitignored `.env.local` and generates a Web Push keypair.
+Then you apply the SQL migrations (one paste in the Supabase SQL editor) and
+you're running. The OCR/redaction worker (`worker/`) is optional — without it,
+captures upload but stay `processing`; the rest of the app works.
+
+Full manual walkthrough below.
+
+---
+
+## Getting started
 
 ### 1. Prerequisites
 

@@ -35,6 +35,9 @@ insert into storage.buckets (id, name, public)
 values ('cover-photos', 'cover-photos', false)
 on conflict (id) do nothing;
 
+-- Drop-then-create so the migration is re-runnable (storage policies aren't
+-- covered by `if not exists`; a partial prior run would otherwise 42710).
+drop policy if exists "cover_photos_admin_rw" on storage.objects;
 create policy "cover_photos_admin_rw" on storage.objects
   for all to authenticated
   using (

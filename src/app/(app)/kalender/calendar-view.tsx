@@ -14,6 +14,7 @@ import {
   sortByStart,
 } from "@/lib/calendar";
 import { clsx } from "@/lib/clsx";
+import { maskPlaceholders } from "@/lib/content/mask";
 
 import type { CalEvent } from "./page";
 
@@ -53,7 +54,15 @@ const MONTHS = [
   "Dezember",
 ];
 
-export function CalendarView({ events }: { events: CalEvent[] }) {
+export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
+  // Strip any leftover [NAME_x]-style redaction placeholders from titles so the
+  // calendar reads cleanly (same one-way mask the feed uses). Done once here so
+  // every render site (grid dots, day sheet, list) is covered.
+  const events = useMemo(
+    () => rawEvents.map((e) => ({ ...e, title: maskPlaceholders(e.title) })),
+    [rawEvents],
+  );
+
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() =>
     anchorMonth(events[0]?.starts_on, { y: 2026, m: 0 }),

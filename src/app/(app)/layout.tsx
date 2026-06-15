@@ -1,4 +1,3 @@
-import { CaptureLauncher } from "@/app/(app)/aufnahme/capture-launcher";
 import { AccountMenu } from "@/components/account-menu";
 import { AppNav, type NavItem } from "@/components/app-nav";
 import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
@@ -12,10 +11,10 @@ import { createClient } from "@/lib/supabase/server";
  * profile reaches any (app) page; otherwise redirect to /login.
  *
  * Mobile-first chrome: a frosted sticky top bar (logo + org name + account),
- * and a phone-only bottom tab bar (4 tabs per role) + a staff capture FAB. The
- * horizontal pill nav (AppNav) is desktop-only (≥sm). Role is resolved here on
- * the server; the bottom nav + FAB visibility derive from it — no client role
- * logic.
+ * and a phone-only bottom tab bar (4 tabs per role). The horizontal pill nav
+ * (AppNav) is desktop-only (≥sm). Role is resolved here on the server; the bottom
+ * nav derives from it — no client role logic. Capture lives on /aufnahme (in the
+ * admin nav + the Mehr hub), not a floating button.
  */
 export default async function AppLayout({
   children,
@@ -60,12 +59,12 @@ export default async function AppLayout({
   }
 
   // Phone bottom bar: exactly FOUR thumb-sized tabs per role; secondary
-  // destinations live in "Mehr". Admins get a raised capture FAB (CaptureLauncher)
-  // and a draft-count badge on Prüfen. "Bereiche" is the home tab — the organised
-  // category hub (with per-category "new" counts) that contains the Pinnwand row;
-  // the flat /feed page is still reachable from there, just not its own tab.
+  // destinations live in "Mehr". Admins get a draft-count badge on Prüfen.
+  // "Bereiche" is the home tab — the organised category hub (with per-category
+  // "new" counts) that contains the Pinnwand row; the flat /feed page is still
+  // reachable from there, just not its own tab.
   //   Eltern: Bereiche · Essen · Kalender · Mehr
-  //   Team:   Bereiche · Prüfen · Mitglieder · Mehr   (+ capture FAB)
+  //   Team:   Bereiche · Prüfen · Mitglieder · Mehr
   const bottomNav: BottomNavItem[] = isAdmin
     ? [
         { href: "/bereiche", label: "Bereiche", icon: "feed" },
@@ -122,7 +121,6 @@ export default async function AppLayout({
       />
 
       <BottomNav items={bottomNav} />
-      {isAdmin && <CaptureLauncher />}
     </div>
   );
 }

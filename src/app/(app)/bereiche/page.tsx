@@ -35,13 +35,6 @@ export default async function BereichePage() {
       <Group title="Kategorien">
         <Row
           first
-          href="/feed"
-          glyph="feed"
-          title="Pinnwand"
-          subtitle="Alle neuesten Aushänge"
-          trailing={badge("feed")}
-        />
-        <Row
           href="/essensplan"
           glyph="meal"
           title="Essensplan"

@@ -46,8 +46,19 @@ export default function DatenschutzPage() {
             Infrastruktur in der EU
           </h2>
           <p className="mt-1">
-            Datenbank, Speicher, KI-Verarbeitung und E-Mail-Versand werden in
-            der EU betrieben. Roh-Fotos verlassen unsere Infrastruktur nicht.
+            Datenbank, Speicher und E-Mail-Versand werden in der EU betrieben.
+            Roh-Fotos verlassen unsere Infrastruktur nicht. Die lokale
+            Maskierung der personenbezogenen Daten findet ebenfalls auf unserer
+            Infrastruktur statt.
+          </p>
+          <p className="mt-2">
+            Für die Struktur-Erkennung wird der bereits{" "}
+            <strong>maskierte Text</strong> an einen spezialisierten
+            KI-Dienstleister übermittelt. Dieser erhält ausschließlich den
+            maskierten Text – niemals Roh-Fotos oder unmaskierte
+            personenbezogene Daten. Dieser Dienstleister verarbeitet derzeit
+            außerhalb der EU; wir arbeiten daran, auch diesen Schritt in die EU
+            zu verlagern.
           </p>
         </section>
 

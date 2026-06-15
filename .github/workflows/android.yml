@@ -1,0 +1,105 @@
+name: Android build
+
+# Builds the Capacitor Android app bundle (AAB) in the cloud — so you get an
+# installable artifact without a local JDK/Android SDK. NOT part of the per-PR CI
+# (it's heavier and rarely needed): run it ON DEMAND from the Actions tab, or it
+# fires automatically when you push a version tag like `android-v1`.
+#
+# Output: a downloadable artifact on the run's summary page.
+#   - app-debug.aab  — ALWAYS built (unsigned; for internal install/testing).
+#   - app-release.aab — built + signed ONLY when the signing secrets below exist.
+#
+# Signing secrets (Settings → Secrets and variables → Actions) — set these to get
+# a Play-ready signed release bundle. Leave them unset and you still get the debug
+# AAB:
+#   ANDROID_KEYSTORE_BASE64   base64 of your upload keystore (.jks)
+#   ANDROID_KEYSTORE_PASSWORD  keystore password
+#   ANDROID_KEY_ALIAS          key alias
+#   ANDROID_KEY_PASSWORD       key password
+# Create the keystore once locally:
+#   keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 \
+#     -validity 10000 -alias upload
+#   base64 -w0 upload.jks > upload.jks.b64   # paste into ANDROID_KEYSTORE_BASE64
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "android-v*"
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build AAB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The app is REMOTE-URL mode (server.url = the live site), so no Next build
+      # is needed for the shell — but we still install + cap sync so the native
+      # project is regenerated from capacitor.config.ts and plugins are current.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Capacitor sync (refresh native project)
+        run: npx cap sync android
+
+      # JDK 21 — Capacitor 8 / AGP target. Temurin is the standard choice.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Gradle — build debug AAB (always)
+        working-directory: android
+        run: ./gradlew bundleDebug --no-daemon --stacktrace
+
+      - name: Decode keystore (release builds only)
+        id: keystore
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/upload.jks
+          echo "present=true" >> "$GITHUB_OUTPUT"
+
+      - name: Gradle — build signed release AAB (when keystore present)
+        if: steps.keystore.outputs.present == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease --no-daemon --stacktrace \
+            -Pandroid.injected.signing.store.file="$PWD/upload.jks" \
+            -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f android/upload.jks
+
+      - name: Upload AABs
+        uses: actions/upload-artifact@v4
+        with:
+          name: aushang-android-aab
+          path: |
+            android/app/build/outputs/bundle/debug/app-debug.aab
+            android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: warn
+          retention-days: 14

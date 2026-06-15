@@ -77,6 +77,11 @@ yarn-error.log*
 # local Claude settings (per-machine; not shared)
 .claude/settings.local.json
 
+# Private handover notes — this repo is PUBLIC; the handover contains the
+# secrets/access map, internal unknowns, and launch notes. NEVER commit.
+HANDOVER.md
+HANDOVER*.md
+
 # out-of-tree deliverable scratch dir (not part of the app)
 _fp-build/
 

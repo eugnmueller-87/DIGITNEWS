@@ -77,6 +77,10 @@ yarn-error.log*
 # local Claude settings (per-machine; not shared)
 .claude/settings.local.json
 
+# IDE / editor project files (per-machine; not shared)
+.idea/
+*.iml
+
 # Private handover notes — this repo is PUBLIC; the handover contains the
 # secrets/access map, internal unknowns, and launch notes. NEVER commit.
 HANDOVER.md

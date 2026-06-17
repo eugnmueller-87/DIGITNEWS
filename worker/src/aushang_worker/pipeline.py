@@ -9,7 +9,7 @@ import httpx
 
 from .config import Settings
 from .cover import generate_cover
-from .extraction import extract
+from .extraction import EmptyExtractionInputError, extract
 from .models import ProcessRequest, TranslateRequest
 from .ocr import preprocess, run_ocr
 from .redaction import redact
@@ -88,8 +88,22 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
         _callback_draft(req, settings, ocr, red, redacted_image, envelope, cover_image)
         log.info("job %s -> draft (%s)", req.post_id, envelope.content_type_suggested)
 
+    except EmptyExtractionInputError:
+        # Blank/blurry/unreadable photo: OCR found no text. Not an error worth a
+        # stack trace — fail the post with a clear, member-meaningful reason.
+        log.info("job %s failed: no readable text (empty OCR)", req.post_id)
+        _callback_failed(req, settings, "no_readable_text")
+    except httpx.HTTPStatusError as e:
+        # An LLM/provider HTTP error. Log the status (the body is already logged in
+        # extraction._raise_for_status_logged) so the reason is diagnosable from the
+        # logs, and record a status-tagged reason on the post.
+        status = e.response.status_code if e.response is not None else "?"
+        log.warning("job %s failed: HTTP %s from provider", req.post_id, status)
+        _callback_failed(req, settings, f"provider_http_{status}")
     except Exception as e:
-        log.warning("job %s failed: %s", req.post_id, type(e).__name__)
+        log.warning(
+            "job %s failed: %s: %s", req.post_id, type(e).__name__, str(e)[:200]
+        )
         _callback_failed(req, settings, type(e).__name__)
 
 

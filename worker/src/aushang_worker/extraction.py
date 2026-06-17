@@ -20,10 +20,31 @@ US-hosted; Mistral (La Plateforme) is EU — pick Mistral for strict EU residenc
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import httpx
 from pydantic import BaseModel, ValidationError
+
+log = logging.getLogger("aushang.extraction")
+
+
+def _raise_for_status_logged(provider: str, resp: httpx.Response) -> None:
+    """raise_for_status, but first LOG the status + a short body snippet on error.
+    The body is the provider's own error JSON (no PII — we only ever send redacted
+    text), and it's what actually tells you WHY a call failed (credit exhaustion,
+    empty content, schema, rate limit). Without this the pipeline only ever logged
+    'HTTPStatusError', which is undiagnosable. Status code only — never the body —
+    would still hide the cause, so we log a trimmed body too."""
+    if resp.is_error:
+        log.warning(
+            "%s API error: status=%s body=%s",
+            provider,
+            resp.status_code,
+            resp.text[:300],
+        )
+    resp.raise_for_status()
+
 
 # --- Provider endpoints + default models ------------------------------------
 # All use a cheap/fast model for structured extraction. Each provider's
@@ -260,6 +281,19 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
     )
 
 
+# Below this many non-whitespace characters we treat OCR as "no readable text"
+# and skip the LLM entirely. Sending an empty/near-empty message makes providers
+# 400 ("user messages must have non-empty content") — an opaque failure that used
+# to look identical to other 400s. A blank/blurry/dark photo is the common cause.
+_MIN_OCR_CHARS = 3
+
+
+class EmptyExtractionInputError(ValueError):
+    """OCR produced no usable text — the photo was blank/blurry/unreadable. We fail
+    the post cleanly with this instead of calling the LLM with empty content (which
+    every provider rejects with an opaque 400)."""
+
+
 def extract(
     *,
     api_key: str,
@@ -277,6 +311,14 @@ def extract(
         raise RuntimeError(f"unknown LLM_PROVIDER {provider!r}")
     if not api_key:
         raise RuntimeError(f"API key not set for provider {provider!r}")
+
+    # Guard the empty-OCR case BEFORE calling any provider: an empty user message
+    # is a hard 400 everywhere. Fail fast with a clear, typed error the pipeline
+    # turns into a meaningful "no readable text" failure reason.
+    if len(redacted_text.strip()) < _MIN_OCR_CHARS:
+        raise EmptyExtractionInputError(
+            "no readable text found in the image (OCR returned empty)"
+        )
 
     system = _system_prompt(org_type, capture_date)
     caller = {
@@ -331,7 +373,7 @@ def _call_anthropic(*, api_key: str, system: str, text: str) -> str:
             },
             json=body,
         )
-        resp.raise_for_status()
+        _raise_for_status_logged("anthropic", resp)
         data = resp.json()
         if data.get("stop_reason") == "refusal":
             raise ValueError("extraction refused by safety classifier")
@@ -366,7 +408,7 @@ def _call_openai(*, api_key: str, system: str, text: str) -> str:
             },
             json=body,
         )
-        resp.raise_for_status()
+        _raise_for_status_logged("openai", resp)
         data = resp.json()
         return str(data["choices"][0]["message"]["content"])
 
@@ -396,7 +438,7 @@ def _call_mistral(*, api_key: str, system: str, text: str) -> str:
             },
             json=body,
         )
-        resp.raise_for_status()
+        _raise_for_status_logged("mistral", resp)
         data = resp.json()
         return str(data["choices"][0]["message"]["content"])
 
@@ -417,7 +459,7 @@ def _call_gemini(*, api_key: str, system: str, text: str) -> str:
             headers={"content-type": "application/json"},
             json=body,
         )
-        resp.raise_for_status()
+        _raise_for_status_logged("gemini", resp)
         data = resp.json()
         parts = data["candidates"][0]["content"]["parts"]
         return str(parts[0]["text"])

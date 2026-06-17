@@ -51,5 +51,6 @@ export function formatDateTime(
   if (!iso) return "";
   const d = new Date(iso); // a full timestamp (with time) is unambiguous
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(locale === "en" ? "en-US" : "de-DE");
+  const tag = locale === "en" ? "en-US" : locale === "ru" ? "ru-RU" : "de-DE";
+  return d.toLocaleString(tag);
 }

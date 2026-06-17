@@ -47,6 +47,7 @@ export function LanguageSelect() {
         >
           <option value="de">{t.settings.languageDe}</option>
           <option value="en">{t.settings.languageEn}</option>
+          <option value="ru">{t.settings.languageRu}</option>
         </select>
       </div>
     </Card>

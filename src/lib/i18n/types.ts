@@ -3,7 +3,7 @@
  * Locale type without pulling in the dictionaries or server-only helpers.
  */
 
-export const LOCALES = ["de", "en"] as const;
+export const LOCALES = ["de", "en", "ru"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = "de";

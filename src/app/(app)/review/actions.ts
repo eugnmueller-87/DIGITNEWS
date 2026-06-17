@@ -129,10 +129,13 @@ export async function publishDraft(
   // Fire notifications (best-effort; never block/fail the publish).
   await notifyOrgOnPublish(session.orgId, title).catch(() => {});
 
-  // Fire publish-time translation into the non-German locales (best-effort; never
-  // blocks the publish — a missing translation falls back to German). Sends only
-  // member-safe content: the final title/body, the structured payload, and the
-  // just-created event titles.
+  // Fire publish-time translation into the non-German locales (best-effort; a
+  // missing translation falls back to German). Sends only member-safe content: the
+  // final title/body, the structured payload, and the just-created event titles.
+  // We await so the trigger actually runs before the action returns (unawaited work
+  // in a server action may be torn down), but triggerTranslation has a hard 5s
+  // timeout, so a slow/unreachable worker bounds the publish wait instead of
+  // hanging it. The post is already published in the DB at this point regardless.
   await triggerTranslationForPost({
     postId,
     orgId: session.orgId,

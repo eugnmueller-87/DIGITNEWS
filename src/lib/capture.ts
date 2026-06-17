@@ -139,6 +139,12 @@ export async function triggerTranslation(params: {
 }): Promise<boolean> {
   if (!serverEnv.workerUrl || !serverEnv.workerSharedSecret) return false;
 
+  // Hard timeout so a slow/unreachable worker can NEVER hang the caller. The
+  // worker returns a fast 200 ack and translates in the background, so a few
+  // seconds is plenty; if it doesn't ack in time we give up (best-effort — the
+  // post is already published; read sites fall back to German).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(
       `${serverEnv.workerUrl.replace(/\/$/, "")}/translate`,
@@ -157,10 +163,14 @@ export async function triggerTranslation(params: {
           events: params.events,
           locales: params.locales ?? ["en", "ru"],
         }),
+        signal: controller.signal,
       },
     );
     return res.ok;
   } catch {
+    // Includes the AbortError on timeout — treated as a best-effort miss.
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }

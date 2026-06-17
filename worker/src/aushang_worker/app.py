@@ -13,6 +13,8 @@ validation -> callback) lands in Phase 2. This shell exists so the quality gates
 from __future__ import annotations
 
 import hmac
+import logging
+import os
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, status
 
@@ -24,6 +26,17 @@ from .models import (
     TranslateRequest,
 )
 from .pipeline import process_job, translate_job
+
+# Configure logging ONCE at import (uvicorn loads this module on startup). Without
+# this, Python's root logger defaults to WARNING with no handler, so the worker's
+# log.info()/log.warning() diagnostics (job outcomes, provider HTTP errors, callback
+# failures) are silently dropped — which made a live extraction outage undiagnosable
+# from `docker logs`. We attach a stdout handler at INFO (override via LOG_LEVEL) so
+# every aushang.* log line is captured. All log lines are PII-free (IDs only).
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 app = FastAPI(title="Aushang Worker", version="0.1.0")
 

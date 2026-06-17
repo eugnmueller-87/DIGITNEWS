@@ -197,6 +197,12 @@ begin
       from jsonb_each(p_event_titles -> v_locale)
     loop
       if v_etitle is null or v_etitle = '' then continue; end if;
+      -- v_evid is an LLM-produced JSON key. Validate it as a UUID BEFORE the cast:
+      -- a malformed key would otherwise raise from `::uuid` and abort the whole
+      -- RPC transaction, rolling back the post-level translations inserted above
+      -- (one bad event key would wipe ALL of a post's translations). Skip instead.
+      if v_evid !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      then continue; end if;
       insert into public.event_translations (event_id, org_id, locale, title)
       select e.id, e.org_id, v_locale, left(v_etitle, 200)
       from public.events e

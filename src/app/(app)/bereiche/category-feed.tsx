@@ -54,16 +54,20 @@ export async function CategoryFeed({
       .maybeSingle(),
   ]);
 
-  const list = await localizePosts((data ?? []) as Row[], await getLocale());
+  const rows = (data ?? []) as Row[];
   const photoConsent = profileResult.data?.photo_consent ?? false;
 
-  // Clear original only when the member opted in AND the admin released the post;
-  // else the blurred image. Org-scoped raw read lives in the helper.
-  const withImg = list.filter((p) => p.redacted_image_path);
-  const imageUrls =
+  // Translation overlay and image signing are independent — run concurrently.
+  // signPostImages reads only id + redacted_image_path (unchanged by localizing),
+  // so derive the image set from the raw rows. For German the translation fetch
+  // short-circuits with no query.
+  const withImg = rows.filter((p) => p.redacted_image_path);
+  const [list, imageUrls] = await Promise.all([
+    localizePosts(rows, await getLocale()),
     withImg.length > 0
-      ? await signPostImages(withImg, session.orgId, photoConsent)
-      : new Map<string, string>();
+      ? signPostImages(withImg, session.orgId, photoConsent)
+      : Promise.resolve(new Map<string, string>()),
+  ]);
 
   if (list.length === 0) return <EmptyState title={emptyTitle} />;
 

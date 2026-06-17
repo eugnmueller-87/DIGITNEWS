@@ -67,28 +67,27 @@ export default async function FeedPage() {
     { data: postResult.data as FeedPost[] | null, error: postResult.error },
   );
 
-  // Overlay AI translations for the active locale (German falls through). One
-  // query for all rendered ids; best-effort — untranslated posts stay German.
-  const translations = await fetchPostTranslations(
-    [...alertList.map((a) => a.id), ...list.map((p) => p.id)],
-    locale,
-  );
-  const localizedAlerts = alertList.map((a) => localizePost(a, translations));
-  const localizedList = list.map((p) => localizePost(p, translations));
-
-  // Mint short-TTL signed URLs for each post's photo. signPostImages picks the
-  // CLEAR original only when the member opted in (photoConsent) AND the admin
-  // released that post (clear_photo_allowed); otherwise the blurred image. The
-  // raw read is org-scoped inside the helper. (See src/lib/photo.ts.)
+  // The translation overlay needs the post ids (so it can't join the first
+  // Promise.all), and image signing needs only the already-fetched rows. They are
+  // mutually independent, so run them CONCURRENTLY — one round-trip, not two.
+  // (For German, fetchPostTranslations short-circuits to an empty map with no
+  // query, so this costs nothing on the common path.)
   const imagePosts = (
     postResult.data as
       | ({ id: string; redacted_image_path: string | null } & FeedPost)[]
       | null
   )?.filter((p) => p.redacted_image_path);
-  const imageUrls =
+  const [translations, imageUrls] = await Promise.all([
+    fetchPostTranslations(
+      [...alertList.map((a) => a.id), ...list.map((p) => p.id)],
+      locale,
+    ),
     imagePosts && imagePosts.length > 0
-      ? await signPostImages(imagePosts, session.orgId, photoConsent)
-      : new Map<string, string>();
+      ? signPostImages(imagePosts, session.orgId, photoConsent)
+      : Promise.resolve(new Map<string, string>()),
+  ]);
+  const localizedAlerts = alertList.map((a) => localizePost(a, translations));
+  const localizedList = list.map((p) => localizePost(p, translations));
 
   const isAdmin = session.role === "admin" || session.role === "superadmin";
 

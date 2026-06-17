@@ -142,21 +142,23 @@ def _callback_draft(  # type: ignore[no-untyped-def]
             "summary": envelope.summary,
             "content_type_suggested": envelope.content_type_suggested,
         }
-        client.post(
+        resp = client.post(
             _callback_url(settings, "/api/worker/callback"),
             headers={"X-Worker-Secret": settings.worker_shared_secret},
             data=data,
             files=files,
         )
+        _check_callback(f"draft {req.post_id}", resp)
 
 
 def _callback_failed(req, settings, reason: str) -> None:  # type: ignore[no-untyped-def]
     with httpx.Client(timeout=30) as client:
-        client.post(
+        resp = client.post(
             _callback_url(settings, "/api/worker/callback"),
             headers={"X-Worker-Secret": settings.worker_shared_secret},
             data={"post_id": req.post_id, "failed": "1", "reason": reason},
         )
+        _check_callback(f"failed {req.post_id}", resp)
 
 
 def translate_job(req: TranslateRequest, settings: Settings) -> None:
@@ -192,9 +194,13 @@ def translate_job(req: TranslateRequest, settings: Settings) -> None:
             )
             continue
 
+        # Coerce ONLY real strings. A misbehaving model might return a list/dict
+        # for title/body; str() on that yields a Python repr (e.g. "['a','b']")
+        # that would render literally instead of falling back to German. Keep
+        # non-strings as "" so the read side treats the field as absent.
         node: dict[str, object] = {
-            "title": str(out.get("title", "") or ""),
-            "body": str(out.get("body", "") or ""),
+            "title": _as_str(out.get("title")),
+            "body": _as_str(out.get("body")),
         }
         payload_out = out.get("payload")
         if isinstance(payload_out, dict):
@@ -203,7 +209,9 @@ def translate_job(req: TranslateRequest, settings: Settings) -> None:
 
         events_out = out.get("events")
         if isinstance(events_out, dict):
-            event_titles[locale] = {str(k): str(v) for k, v in events_out.items() if v}
+            titles = {str(k): _as_str(v) for k, v in events_out.items() if _as_str(v)}
+            if titles:
+                event_titles[locale] = titles
 
     if not translations and not event_titles:
         log.info("translate %s -> nothing produced", req.post_id)
@@ -217,7 +225,7 @@ def _callback_translations(  # type: ignore[no-untyped-def]
     req, settings, translations, event_titles
 ) -> None:
     with httpx.Client(timeout=60) as client:
-        client.post(
+        resp = client.post(
             _callback_url(settings, "/api/worker/translation-callback"),
             headers={"X-Worker-Secret": settings.worker_shared_secret},
             data={
@@ -226,9 +234,28 @@ def _callback_translations(  # type: ignore[no-untyped-def]
                 "event_titles": _dumps(event_titles),
             },
         )
+        _check_callback(f"translation {req.post_id}", resp)
 
 
 def _dumps(obj: object) -> str:
     import json
 
     return json.dumps(obj, ensure_ascii=False)
+
+
+def _as_str(v: object) -> str:
+    """Return v only if it's actually a string, else "". Prevents a misbehaving
+    LLM's list/dict from being str()'d into a Python repr that would render
+    literally instead of falling back to the German source."""
+    return v if isinstance(v, str) else ""
+
+
+def _check_callback(label: str, resp: httpx.Response) -> None:
+    """Log a non-2xx app-callback response. httpx doesn't raise on 4xx/5xx by
+    default, so without this a rejected write (e.g. the app RPC 500'ing) is dropped
+    silently — the worker thinks it succeeded. We log rather than raise to keep the
+    never-throw-out-of-the-worker-thread contract."""
+    if resp.status_code >= 400:
+        log.warning(
+            "callback %s -> HTTP %s: %s", label, resp.status_code, resp.text[:200]
+        )

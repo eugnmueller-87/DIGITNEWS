@@ -19,7 +19,18 @@
 --
 -- Multi-tenant: every row carries org_id and is gated by my_org_id() + the parent
 -- being published/confirmed, exactly like post_details / events.
+--
+-- IDEMPOTENT: drop-then-create at the top so this is safe to re-run by hand in the
+-- SQL editor (a partial run leaves the first table behind, and a plain re-run would
+-- then fail with "relation already exists"). The tables are additive translation
+-- caches — dropping them only discards already-recomputable translations, never
+-- source content (German lives on posts/post_details/events). The live DB was
+-- hand-applied with exactly these guards.
 -- =============================================================================
+
+drop table if exists public.post_translations cascade;
+drop table if exists public.event_translations cascade;
+drop function if exists public.write_post_translations(uuid, jsonb, jsonb);
 
 -- -----------------------------------------------------------------------------
 -- post_translations — one row per (post, locale). Mirrors the translatable shape

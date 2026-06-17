@@ -247,6 +247,19 @@ class ExtractionEnvelope(BaseModel):
         return self
 
 
+def empty_envelope() -> ExtractionEnvelope:
+    """An empty draft envelope for a photo-dominant notice with no readable text.
+    No LLM call — the admin fills title/text in review. content_type 'info' is the
+    neutral default; it's only a SUGGESTION (admin confirms the real type)."""
+    return ExtractionEnvelope(
+        content_type_suggested="info",
+        confidence=0.0,
+        title="",
+        summary="",
+        payload={},
+    )
+
+
 def _system_prompt(org_type: str, capture_date: str) -> str:
     return (
         "Du extrahierst strukturierte Daten aus einem deutschen Aushang einer "
@@ -285,7 +298,7 @@ def _system_prompt(org_type: str, capture_date: str) -> str:
 # and skip the LLM entirely. Sending an empty/near-empty message makes providers
 # 400 ("user messages must have non-empty content") — an opaque failure that used
 # to look identical to other 400s. A blank/blurry/dark photo is the common cause.
-_MIN_OCR_CHARS = 3
+MIN_OCR_CHARS = 3
 
 
 class EmptyExtractionInputError(ValueError):
@@ -315,7 +328,7 @@ def extract(
     # Guard the empty-OCR case BEFORE calling any provider: an empty user message
     # is a hard 400 everywhere. Fail fast with a clear, typed error the pipeline
     # turns into a meaningful "no readable text" failure reason.
-    if len(redacted_text.strip()) < _MIN_OCR_CHARS:
+    if len(redacted_text.strip()) < MIN_OCR_CHARS:
         raise EmptyExtractionInputError(
             "no readable text found in the image (OCR returned empty)"
         )

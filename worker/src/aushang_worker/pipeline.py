@@ -9,7 +9,12 @@ import httpx
 
 from .config import Settings
 from .cover import generate_cover
-from .extraction import EmptyExtractionInputError, extract
+from .extraction import (
+    MIN_OCR_CHARS,
+    EmptyExtractionInputError,
+    empty_envelope,
+    extract,
+)
 from .models import ProcessRequest, TranslateRequest
 from .ocr import preprocess, run_ocr
 from .redaction import redact
@@ -67,7 +72,25 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
         redacted_words = {r.original for r in red.redactions}
         redacted_image = _blur_redacted_regions(image_bytes, ocr.boxes, redacted_words)
 
-        # 6. LLM extraction on REDACTED text only (provider per LLM_PROVIDER).
+        # 6. PHOTO-DOMINANT notice (little/no readable text — e.g. a board that is
+        # mostly children's activity photos). OCR yields ~nothing, so there is
+        # nothing to extract. Rather than fail (which blocks the admin from posting
+        # a legitimate photo notice), produce an EMPTY draft: the blurred photo with
+        # empty title/text for the admin to fill in /review. Skip the LLM entirely
+        # (an empty prompt 400s everywhere). content_type stays unconfirmed; the
+        # admin picks the type on review.
+        # NOTE: this is the WEB-APP rule. The native-app phase will introduce a
+        # stricter ruleset for photos containing children (per product decision).
+        if len(red.redacted_text.strip()) < MIN_OCR_CHARS:
+            log.info(
+                "job %s -> empty draft (no readable text, photo-only)", req.post_id
+            )
+            _callback_draft(
+                req, settings, ocr, red, redacted_image, empty_envelope(), None
+            )
+            return
+
+        # 7. LLM extraction on REDACTED text only (provider per LLM_PROVIDER).
         envelope = extract(
             api_key=settings.llm_api_key or "",
             redacted_text=red.redacted_text,
@@ -76,7 +99,7 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
             provider=settings.llm_provider,
         )
 
-        # 6.5 Decorative cover (text-to-image) from the SUGGESTED content_type —
+        # 7.5 Decorative cover (text-to-image) from the SUGGESTED content_type —
         # no PII, no people. FAIL-OPEN: None when unconfigured or on any error.
         cover_image = generate_cover(
             api_url=settings.image_api_url,
@@ -84,14 +107,14 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
             content_type=envelope.content_type_suggested,
         )
 
-        # 7. Callback: write the draft (with the cover if we got one).
+        # 8. Callback: write the draft (with the cover if we got one).
         _callback_draft(req, settings, ocr, red, redacted_image, envelope, cover_image)
         log.info("job %s -> draft (%s)", req.post_id, envelope.content_type_suggested)
 
     except EmptyExtractionInputError:
-        # Blank/blurry/unreadable photo: OCR found no text. Not an error worth a
-        # stack trace — fail the post with a clear, member-meaningful reason.
-        log.info("job %s failed: no readable text (empty OCR)", req.post_id)
+        # Defense in depth: extract() also guards empty input. If we somehow reach
+        # the LLM with empty text, still produce an empty draft rather than failing.
+        log.info("job %s -> empty draft (empty extraction input)", req.post_id)
         _callback_failed(req, settings, "no_readable_text")
     except httpx.HTTPStatusError as e:
         # An LLM/provider HTTP error. Log the status (the body is already logged in

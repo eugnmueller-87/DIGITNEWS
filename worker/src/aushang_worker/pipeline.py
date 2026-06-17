@@ -1,5 +1,7 @@
-"""End-to-end pipeline: fetch image → preprocess → OCR → redact → blur → LLM →
-validate → callback. All processing logs are PII-free (IDs only)."""
+"""End-to-end pipeline: fetch image → preprocess → OCR → redact (text) → LLM →
+validate → callback. The IMAGE is stored unblurred (a Kita board is public, so its
+text isn't sensitive); only the extracted TEXT is redacted before the LLM. All
+processing logs are PII-free (IDs only)."""
 
 from __future__ import annotations
 
@@ -23,31 +25,6 @@ from .translation import translate_bundle
 log = logging.getLogger("aushang.pipeline")
 
 
-def _blur_redacted_regions(
-    image_bytes: bytes,
-    boxes: list[tuple[str, int, int, int, int]],
-    redacted_words: set[str],
-) -> bytes:  # pragma: no cover - needs cv2
-    """Gaussian-blur the image regions whose OCR word was redacted."""
-    try:
-        import cv2
-        import numpy as np
-
-        arr = np.frombuffer(image_bytes, dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
-            return image_bytes
-        for word, x, y, w, h in boxes:
-            if word in redacted_words:
-                roi = img[y : y + h, x : x + w]
-                if roi.size:
-                    img[y : y + h, x : x + w] = cv2.GaussianBlur(roi, (45, 45), 0)
-        ok, buf = cv2.imencode(".jpg", img)
-        return buf.tobytes() if ok else image_bytes
-    except Exception:
-        return image_bytes
-
-
 def process_job(req: ProcessRequest, settings: Settings) -> None:
     """Run the full pipeline for one job and call back with the result.
 
@@ -65,17 +42,20 @@ def process_job(req: ProcessRequest, settings: Settings) -> None:
         # 3. OCR (German) → text + word boxes.
         ocr = run_ocr(pre)
 
-        # 4. LOCAL PII redaction (fail-closed). Only redacted text leaves here.
+        # 4. LOCAL PII redaction of the TEXT (fail-closed). Only redacted text ever
+        # leaves here for the LLM. The IMAGE is not blurred — a Kita board is public,
+        # so the photo's text isn't sensitive (see note below).
         red = redact(ocr.text)
 
-        # 5. Blur the redacted regions in the image.
-        redacted_words = {r.original for r in red.redactions}
-        redacted_image = _blur_redacted_regions(image_bytes, ocr.boxes, redacted_words)
+        # 5. The stored member-facing photo is the original (no text blurring). The
+        # privacy model is unchanged: raw originals stay member-REVOKE'd and are only
+        # released via the double-gated photo consent (src/lib/photo.ts).
+        redacted_image = image_bytes
 
         # 6. PHOTO-DOMINANT notice (little/no readable text — e.g. a board that is
         # mostly children's activity photos). OCR yields ~nothing, so there is
         # nothing to extract. Rather than fail (which blocks the admin from posting
-        # a legitimate photo notice), produce an EMPTY draft: the blurred photo with
+        # a legitimate photo notice), produce an EMPTY draft: the photo with
         # empty title/text for the admin to fill in /review. Skip the LLM entirely
         # (an empty prompt 400s everywhere). content_type stays unconfirmed; the
         # admin picks the type on review.

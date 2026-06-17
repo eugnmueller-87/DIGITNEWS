@@ -203,8 +203,8 @@ export const de = {
     failedSection: "Fehlgeschlagen · {count}",
     failedAlert:
       "Dieser Aushang konnte nicht automatisch ausgelesen werden. Du kannst ihn verwerfen und erneut fotografieren.",
-    maskedAlt: "Ausschnitt des Aushangs (maskiert)",
-    maskedBadge: "Maskiert",
+    maskedAlt: "Foto des Aushangs",
+    maskedBadge: "Original",
     coverTitle: "Titelbild (automatisch erstellt)",
     coverHelp:
       "Eine dekorative Illustration, passend zur Art des Aushangs. Schalte sie aus, wenn sie nicht passt.",
@@ -687,8 +687,8 @@ export const en: Dict = {
     failedSection: "Failed · {count}",
     failedAlert:
       "This notice couldn't be read automatically. You can discard it and photograph it again.",
-    maskedAlt: "Excerpt of the notice (masked)",
-    maskedBadge: "Masked",
+    maskedAlt: "Photo of the notice",
+    maskedBadge: "Original",
     coverTitle: "Cover image (auto-generated)",
     coverHelp:
       "A decorative illustration matching the notice type. Turn it off if it doesn't fit.",
@@ -1145,8 +1145,8 @@ export const ru: Dict = {
     failedSection: "Не удалось · {count}",
     failedAlert:
       "Это объявление не удалось прочитать автоматически. Вы можете отклонить его и сфотографировать заново.",
-    maskedAlt: "Фрагмент объявления (скрыто)",
-    maskedBadge: "Скрыто",
+    maskedAlt: "Фото объявления",
+    maskedBadge: "Оригинал",
     coverTitle: "Обложка (создана автоматически)",
     coverHelp:
       "Декоративная иллюстрация, соответствующая типу объявления. Отключите её, если не подходит.",

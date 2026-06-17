@@ -56,7 +56,6 @@ def _patch_common(monkeypatch: pytest.MonkeyPatch, ocr_text: str) -> dict[str, A
         "redact",
         lambda t: SimpleNamespace(redacted_text=t, redactions=[]),
     )
-    monkeypatch.setattr(pipeline, "_blur_redacted_regions", lambda *a: b"img")
     monkeypatch.setattr(pipeline, "generate_cover", lambda **k: None)
 
     monkeypatch.setattr(

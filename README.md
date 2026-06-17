@@ -10,7 +10,7 @@
 [![Supabase](https://img.shields.io/badge/Supabase-EU-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![Capacitor](https://img.shields.io/badge/Capacitor-Android-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com)
 [![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/explore/progressive-web-apps)
-[![i18n](https://img.shields.io/badge/i18n-DE%20%C2%B7%20EN-informational)](#)
+[![i18n](https://img.shields.io/badge/i18n-DE%20%C2%B7%20EN%20%C2%B7%20RU-informational)](#)
 [![Deploy: Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 [![Privacy by construction](https://img.shields.io/badge/Privacy-by%20construction-2EA043)](SECURITY.md)
 [![Self-host](https://img.shields.io/badge/Self--host-npm%20run%20setup-0d9488?logo=gnubash&logoColor=white)](#self-host-run-your-own-copy)
@@ -175,6 +175,8 @@ false`) — accounts are invite-only.
    - `0021` — per-member "new since last visit" category counts
    - `0022` — per-user UI language (de/en)
    - `0023` — reflection originals deleted at publish + `cover_image_path` (AI cover)
+   - `0024` — add Russian (ru) as a UI language
+   - `0025` — `post_translations` + `event_translations` (AI content translation, en/ru)
 6. Set `RESEND_API_KEY` + `EMAIL_FROM` (on a Resend-verified domain) so invite /
    password-reset emails are delivered. (Optionally also point Supabase's own
    SMTP at Resend for any mail Supabase sends directly.)
@@ -448,8 +450,14 @@ Kita began testing. Shipped since:
   address pinned to the verified domain; add-person create-or-find flow.
 - **Redaction tuning** — exclude `LOCATION`, raise fuzzy ML thresholds, so notices
   full of dates/town names aren't over-masked.
-- **Per-user language (de/en)** — members switch the app chrome between German and
-  English (`0022`); notice content stays in its German source.
+- **Per-user language (de/en/ru)** — members switch the app between German,
+  English, and Russian (`0022`, `0024`). The app chrome is fully translated, and
+  notice **content** is AI-translated at publish too: the worker translates the
+  final, admin-confirmed, already-**redacted** title/body/payload into en+ru on the
+  same EU LLM path, stored in `post_translations`/`event_translations` (`0025`) and
+  overlaid at read time — German stays the source of truth, with per-field fallback
+  to German when a translation is missing. Publishing never waits on or fails from
+  translation (best-effort); only redacted, member-safe text is ever sent.
 - **Reflection originals not retained** — a Rückblick (the type most likely to
   depict children) has its raw original **deleted at publish**; members keep the
   blurred image and the generated cover. `publish_post` force-blocks the

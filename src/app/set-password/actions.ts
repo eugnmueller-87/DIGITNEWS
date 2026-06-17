@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { activateProfile } from "@/lib/auth-flows";
 import { fmt } from "@/lib/i18n/format";
 import { getDict } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -54,6 +55,17 @@ export async function setPassword(
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
     return { ok: false, message: dict.actions.passwordSetFailed };
+  }
+
+  // Activate the profile: setting a password from the one-time invite/recovery
+  // link is the moment an invited user proves ownership. Standing login uses
+  // signInWithPassword, which never hits /auth/callback (where activation also
+  // lives), so without this an invited member would stay 'invited' forever even
+  // after logging in. Non-fatal: never block the password set on this.
+  try {
+    await activateProfile(user.id);
+  } catch {
+    /* non-fatal — the label is cosmetic; access is unaffected */
   }
 
   // Sign out so they log in fresh with the new password (clean state), then

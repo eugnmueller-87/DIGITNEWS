@@ -293,9 +293,9 @@ Defense in depth, four layers:
    `authenticated` (migration `0004`), so a member cannot read them even by
    querying the base `posts` table directly. Admin PII access is server-only
    (service role). **One deliberate exception** (migration `0020`): a member may
-   see the unblurred **original** photo of a post — but only when they opted in
-   (`profiles.photo_consent`) **and** an admin released that specific post
-   (`posts.clear_photo_allowed`), both default-off. The decision is made
+   see the raw **original** photo of a post (from the `raw-photos` bucket) — but
+   only when they opted in (`profiles.photo_consent`) **and** an admin released
+   that specific post (`posts.clear_photo_allowed`), both default-off. The decision is made
    server-side and the original is delivered only via a short-TTL **signed URL**;
    the `source_image_path` column stays REVOKE'd and the client can never set
    `clear_photo_allowed`. See [`SECURITY.md`](SECURITY.md).
@@ -373,11 +373,13 @@ An admin photographs a notice on `/aufnahme`; the browser compresses it
 (HEIC→JPEG, ≤600 KB, max 1600px) and uploads the **raw** image to the private
 `raw-photos` bucket via a signed URL. The app creates a `processing` post and
 triggers the **worker** (`worker/`) with a short-TTL signed URL. The worker:
-OpenCV deskew → Tesseract OCR (German) → **local PII redaction** (Presidio +
-spaCy + regex, fail-closed) → blur redacted regions → **Claude** (Anthropic)
-extraction on the **redacted text only** → schema-validate → callback. The
-callback (`/api/worker/callback`, shared-secret-guarded) uploads the redacted
-image and writes the draft. The admin reviews on `/review`: confirm the content
+OpenCV deskew → Tesseract OCR (German) → **local PII redaction** of the _text_
+(Presidio + spaCy + regex, fail-closed) → **Claude** (Anthropic) extraction on the
+**redacted text only** → schema-validate → callback. The callback
+(`/api/worker/callback`, shared-secret-guarded) uploads the photo and writes the
+draft. The **image is not blurred** — a notice board is public, so its text isn't
+sensitive; the privacy boundary is on the _text_ sent to the LLM and on the raw
+original's access (member-REVOKE'd, released only via double-gated consent). The admin reviews on `/review`: confirm the content
 type (pre-filled to the LLM suggestion, **tap to correct it**), edit title/body,
 optionally release the original photo, and **publish** — the only path to member
 visibility. Publishing routes the post by its confirmed `content_type` (meal plan
@@ -417,8 +419,8 @@ change: pull on the VPS, `docker build`, then recreate the container.
 ## Roadmap
 
 - **Phase 1 (done)** — walking skeleton: schema, RLS, auth, operator model.
-- **Phase 2 (done)** — capture flow + FastAPI worker (OCR + Presidio redaction +
-  image blur) + Claude extraction + schema validation.
+- **Phase 2 (done)** — capture flow + FastAPI worker (OCR + Presidio text
+  redaction) + Claude extraction + schema validation.
 - **Phase 3 (done)** — review gate UI, redaction handling, content-type confirmation,
   event creation, publish.
 - **Phase 4 (done)** — calendar (month/list), ICS per-user tokens, email-on-publish,
@@ -460,7 +462,7 @@ Kita began testing. Shipped since:
   translation (best-effort); only redacted, member-safe text is ever sent.
 - **Reflection originals not retained** — a Rückblick (the type most likely to
   depict children) has its raw original **deleted at publish**; members keep the
-  blurred image and the generated cover. `publish_post` force-blocks the
+  processed image and the generated cover. `publish_post` force-blocks the
   clear-photo release for reflections so the consent path can't reach a deleted
   original (`0023`). _Per-viewer "see the real photo" was deliberately rejected
   for reflections — see [`docs/COVER_IMAGES_SPEC.md`](docs/COVER_IMAGES_SPEC.md)

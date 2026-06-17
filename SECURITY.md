@@ -94,10 +94,14 @@ were fixed in migration `0007` + app code.
 
 ## Photo consent — releasing the clear original to members (migration 0020)
 
-By default members only ever see the **blurred** (`redacted_image_path`) image;
-the raw original (`source_image_path`, `raw-photos` bucket) is admin/worker-only
-and its column is `REVOKE`'d from `authenticated` (`0004`). `0020` adds a
-**double-gated** path to show the original to a member, never a silent default:
+By default members see the processed (`redacted_image_path`) image — the captured
+photo, no longer text-blurred (a notice board is public, so its text isn't
+sensitive; the privacy boundary is the redacted _text_ sent to the LLM, not the
+image). The raw original (`source_image_path`, `raw-photos` bucket) is still
+admin/worker-only and its column is `REVOKE`'d from `authenticated` (`0004`). The
+distinction the `redacted-photos` bucket guards is now access (not blur): `0020`
+adds a **double-gated** path to release the raw original to a member, never a
+silent default:
 
 - `profiles.photo_consent` (member opt-in, default false) — self-set via the RLS
   client, exactly like `email_digest_opt_in`; a member can set only their own.

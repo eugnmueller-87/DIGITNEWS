@@ -15,6 +15,7 @@
     "check:secrets": "node scripts/check-no-client-secrets.mjs",
     "check:source-secrets": "node scripts/check-no-source-secrets.mjs",
     "gen:icons": "node scripts/gen-icons.mjs",
+    "backfill:translations": "node --env-file=.env.local scripts/backfill-translations.mjs",
     "cap:sync": "cap sync android",
     "cap:open": "cap open android",
     "test": "vitest run",

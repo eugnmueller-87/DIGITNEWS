@@ -1,6 +1,8 @@
 import { EmptyState } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { localizePosts } from "@/lib/content/localize";
 import { type FeedPost } from "@/lib/feed";
+import { getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,7 +54,7 @@ export async function CategoryFeed({
       .maybeSingle(),
   ]);
 
-  const list = (data ?? []) as Row[];
+  const list = await localizePosts((data ?? []) as Row[], await getLocale());
   const photoConsent = profileResult.data?.photo_consent ?? false;
 
   // Clear original only when the member opted in AND the admin released the post;

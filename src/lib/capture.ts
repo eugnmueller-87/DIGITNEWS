@@ -116,3 +116,51 @@ async function triggerWorker(
     return false;
   }
 }
+
+/**
+ * Trigger publish-time translation of a post's member-visible content. Fire-and-
+ * forget: the worker translates into en+ru (Mistral/EU, on the already-redacted,
+ * member-safe text we send) and calls back to /api/worker/translation-callback,
+ * which writes the rows. Best-effort — a missing translation makes read sites fall
+ * back to the German original, so this never blocks or fails the publish.
+ *
+ * Only member-safe content is sent: the final published title/body, the structured
+ * `payload` (the same data members read), and the just-created event titles. Never
+ * raw OCR, never the source image.
+ */
+export async function triggerTranslation(params: {
+  postId: string;
+  orgId: string;
+  title: string;
+  body: string;
+  payload: Record<string, unknown> | null;
+  events: { id: string; title: string }[];
+  locales?: string[];
+}): Promise<boolean> {
+  if (!serverEnv.workerUrl || !serverEnv.workerSharedSecret) return false;
+
+  try {
+    const res = await fetch(
+      `${serverEnv.workerUrl.replace(/\/$/, "")}/translate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Worker-Secret": serverEnv.workerSharedSecret,
+        },
+        body: JSON.stringify({
+          post_id: params.postId,
+          org_id: params.orgId,
+          title: params.title,
+          body: params.body,
+          payload: params.payload,
+          events: params.events,
+          locales: params.locales ?? ["en", "ru"],
+        }),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

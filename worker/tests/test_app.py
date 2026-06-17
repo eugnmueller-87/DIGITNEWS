@@ -66,3 +66,47 @@ def test_process_validates_required_fields(missing: str) -> None:
     del job[missing]
     res = client.post("/process", json=job, headers={"X-Worker-Secret": "test-secret"})
     assert res.status_code == 422
+
+
+def _translate_job() -> dict[str, object]:
+    return {
+        "post_id": "p1",
+        "org_id": "o1",
+        "title": "Schließtage",
+        "body": "Die Kita bleibt geschlossen.",
+        "payload": None,
+        "events": [],
+        "locales": ["en", "ru"],
+    }
+
+
+def test_translate_rejects_missing_secret() -> None:
+    res = client.post("/translate", json=_translate_job())
+    assert res.status_code == 401
+
+
+def test_translate_accepts_valid_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    called: dict[str, str] = {}
+
+    def _fake_translate_job(req: object, settings: object) -> None:
+        called["post_id"] = req.post_id  # type: ignore[attr-defined]
+
+    monkeypatch.setattr("aushang_worker.app.translate_job", _fake_translate_job)
+    res = client.post(
+        "/translate", json=_translate_job(), headers={"X-Worker-Secret": "test-secret"}
+    )
+    assert res.status_code == 200
+    assert res.json() == {"accepted": True, "post_id": "p1"}
+    assert called["post_id"] == "p1"
+
+
+def test_translate_defaults_locales() -> None:
+    # locales is optional; omitting it must still validate (defaults to en+ru).
+    job = _translate_job()
+    del job["locales"]
+    res = client.post(
+        "/translate", json=job, headers={"X-Worker-Secret": "test-secret"}
+    )
+    # Background task runs translate_job which will no-op without a real API key,
+    # but the request itself must be accepted.
+    assert res.status_code == 200

@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { EmptyState } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { fetchEventTitleTranslations } from "@/lib/content/localize";
 import { publicEnv } from "@/lib/env";
-import { getDict } from "@/lib/i18n/server";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { getActiveIcsToken } from "@/lib/ics";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,7 +49,17 @@ export default async function KalenderPage() {
     getActiveIcsToken(session.userId),
   ]);
 
-  const events = (eventsResult.data ?? []) as CalEvent[];
+  const rawEvents = (eventsResult.data ?? []) as CalEvent[];
+  // Overlay AI-translated event titles for the active locale (German falls
+  // through). One query; untranslated events keep their German title.
+  const eventTitles = await fetchEventTitleTranslations(
+    rawEvents.map((e) => e.id),
+    await getLocale(),
+  );
+  const events = rawEvents.map((e) => ({
+    ...e,
+    title: eventTitles.get(e.id) ?? e.title,
+  }));
   const icsUrl = token ? `${publicEnv.siteUrl}/api/ics/${token}` : null;
 
   return (

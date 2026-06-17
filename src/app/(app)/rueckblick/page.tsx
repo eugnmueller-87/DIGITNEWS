@@ -5,6 +5,7 @@ import { CategoryChip } from "@/components/category-chip";
 import { PostDetail } from "@/components/post-detail";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
+import { localizePosts } from "@/lib/content/localize";
 import { formatDate } from "@/lib/i18n/format";
 import { getDict, getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
@@ -49,7 +50,7 @@ export default async function RueckblickPage() {
       .maybeSingle(),
   ]);
 
-  const list = (data ?? []) as ReflectionRow[];
+  const list = await localizePosts((data ?? []) as ReflectionRow[], locale);
   const photoConsent = profileResult.data?.photo_consent ?? false;
 
   // Clear original only when the member opted in AND the admin released the post;

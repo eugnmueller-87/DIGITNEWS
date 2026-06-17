@@ -5,9 +5,10 @@ import { CategoryChip } from "@/components/category-chip";
 import { Alert, Button, EmptyState, SectionHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
 import { clsx } from "@/lib/clsx";
+import { localizePost, fetchPostTranslations } from "@/lib/content/localize";
 import { maskPlaceholders } from "@/lib/content/mask";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
-import { getDict } from "@/lib/i18n/server";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +27,7 @@ export const metadata: Metadata = { title: "Pinnwand" };
 export default async function FeedPage() {
   const session = await requireSession();
   const t = await getDict();
+  const locale = await getLocale();
   const supabase = await createClient();
 
   const [alertResult, postResult, profileResult] = await Promise.all([
@@ -65,6 +67,15 @@ export default async function FeedPage() {
     { data: postResult.data as FeedPost[] | null, error: postResult.error },
   );
 
+  // Overlay AI translations for the active locale (German falls through). One
+  // query for all rendered ids; best-effort — untranslated posts stay German.
+  const translations = await fetchPostTranslations(
+    [...alertList.map((a) => a.id), ...list.map((p) => p.id)],
+    locale,
+  );
+  const localizedAlerts = alertList.map((a) => localizePost(a, translations));
+  const localizedList = list.map((p) => localizePost(p, translations));
+
   // Mint short-TTL signed URLs for each post's photo. signPostImages picks the
   // CLEAR original only when the member opted in (photoConsent) AND the admin
   // released that post (clear_photo_allowed); otherwise the blurred image. The
@@ -95,10 +106,10 @@ export default async function FeedPage() {
       )}
 
       {/* Pinned health alerts — the only cards that break the monochrome calm. */}
-      {alertList.length > 0 && (
+      {localizedAlerts.length > 0 && (
         <section className="mb-5 space-y-3">
           <SectionHeader>{t.feed.important}</SectionHeader>
-          {alertList.map((a) => {
+          {localizedAlerts.map((a) => {
             const urgent = a.health_severity === "urgent";
             return (
               <div
@@ -128,7 +139,7 @@ export default async function FeedPage() {
         </section>
       )}
 
-      {list.length === 0 ? (
+      {localizedList.length === 0 ? (
         loadFailed ? null : (
           <EmptyState
             title={t.feed.emptyTitle}
@@ -145,7 +156,7 @@ export default async function FeedPage() {
         )
       ) : (
         <div className="grid gap-3">
-          {list.map((post) => (
+          {localizedList.map((post) => (
             <FeedCard
               key={post.id}
               isAdmin={isAdmin}

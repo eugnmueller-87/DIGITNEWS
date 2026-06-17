@@ -10,9 +10,10 @@ import httpx
 from .config import Settings
 from .cover import generate_cover
 from .extraction import extract
-from .models import ProcessRequest
+from .models import ProcessRequest, TranslateRequest
 from .ocr import preprocess, run_ocr
 from .redaction import redact
+from .translation import translate_bundle
 
 log = logging.getLogger("aushang.pipeline")
 
@@ -141,6 +142,75 @@ def _callback_failed(req, settings, reason: str) -> None:  # type: ignore[no-unt
             _callback_url(settings, "/api/worker/callback"),
             headers={"X-Worker-Secret": settings.worker_shared_secret},
             data={"post_id": req.post_id, "failed": "1", "reason": reason},
+        )
+
+
+def translate_job(req: TranslateRequest, settings: Settings) -> None:
+    """Translate one published post's member-visible content into each requested
+    locale and call back. BEST-EFFORT: a locale that fails to translate is simply
+    omitted (read sites fall back to German). Never raises out of the worker thread.
+
+    The content received here is already redacted + member-safe (the app sends the
+    final published title/body/payload), so no PII handling happens here.
+    """
+    translations: dict[str, dict[str, object]] = {}
+    event_titles: dict[str, dict[str, str]] = {}
+
+    for locale in req.locales:
+        if locale == "de":
+            continue  # German is the source; never translate into it.
+        # One bundle per locale: post strings + event titles in a single call.
+        bundle: dict[str, object] = {"title": req.title, "body": req.body}
+        if req.payload is not None:
+            bundle["payload"] = req.payload
+        if req.events:
+            bundle["events"] = {e.id: e.title for e in req.events}
+        try:
+            out = translate_bundle(
+                api_key=settings.llm_api_key or "",
+                bundle=bundle,
+                target_locale=locale,
+                provider=settings.llm_provider,
+            )
+        except Exception as e:  # best-effort: skip this locale on any failure
+            log.warning(
+                "translate %s [%s] failed: %s", req.post_id, locale, type(e).__name__
+            )
+            continue
+
+        node: dict[str, object] = {
+            "title": str(out.get("title", "") or ""),
+            "body": str(out.get("body", "") or ""),
+        }
+        payload_out = out.get("payload")
+        if isinstance(payload_out, dict):
+            node["payload"] = payload_out
+        translations[locale] = node
+
+        events_out = out.get("events")
+        if isinstance(events_out, dict):
+            event_titles[locale] = {str(k): str(v) for k, v in events_out.items() if v}
+
+    if not translations and not event_titles:
+        log.info("translate %s -> nothing produced", req.post_id)
+        return
+
+    _callback_translations(req, settings, translations, event_titles)
+    log.info("translate %s -> %s", req.post_id, ",".join(sorted(translations)))
+
+
+def _callback_translations(  # type: ignore[no-untyped-def]
+    req, settings, translations, event_titles
+) -> None:
+    with httpx.Client(timeout=60) as client:
+        client.post(
+            _callback_url(settings, "/api/worker/translation-callback"),
+            headers={"X-Worker-Secret": settings.worker_shared_secret},
+            data={
+                "post_id": req.post_id,
+                "translations": _dumps(translations),
+                "event_titles": _dumps(event_titles),
+            },
         )
 
 

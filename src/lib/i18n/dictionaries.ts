@@ -6,8 +6,10 @@
  * Read strings by PROPERTY ACCESS (t.nav.bereiche), never via a stringly-typed
  * key path — the latter is what makes tsc slow.
  *
- * Scope: app CHROME only. Aushang CONTENT (post titles/bodies) stays German (it's
- * OCR'd German source). Emails + brand.tagline/footerPitch are out of scope.
+ * Scope: app CHROME only. Aushang CONTENT (post titles/bodies/payload) is German
+ * at the source (OCR'd) but AI-translated at publish into the other locales — that
+ * lives in post_translations (migration 0025), overlaid by src/lib/content/localize
+ * at read time, NOT here. Emails + brand.tagline/footerPitch are out of scope.
  *
  * Interpolation: strings with {placeholders} are filled via fmt() from ./format.
  */

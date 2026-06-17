@@ -4,7 +4,8 @@ import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
 import { CategoryChip } from "@/components/category-chip";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
-import { getDict } from "@/lib/i18n/server";
+import { localizePosts } from "@/lib/content/localize";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Essensplan" };
@@ -28,7 +29,10 @@ export default async function EssensplanPage() {
     .order("published_at", { ascending: false })
     .limit(20);
 
-  const list = posts ?? [];
+  const list = await localizePosts(
+    (posts ?? []) as { id: string; title: string | null }[],
+    await getLocale(),
+  );
 
   return (
     <div className="space-y-4">

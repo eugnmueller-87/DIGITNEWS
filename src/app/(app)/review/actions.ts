@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/auth";
+import { triggerTranslation } from "@/lib/capture";
 import { CONTENT_TYPES } from "@/lib/content/types";
 import type { ContentType } from "@/lib/content/types";
 import { sendEmail } from "@/lib/email/client";
@@ -128,9 +129,60 @@ export async function publishDraft(
   // Fire notifications (best-effort; never block/fail the publish).
   await notifyOrgOnPublish(session.orgId, title).catch(() => {});
 
+  // Fire publish-time translation into the non-German locales (best-effort; never
+  // blocks the publish — a missing translation falls back to German). Sends only
+  // member-safe content: the final title/body, the structured payload, and the
+  // just-created event titles.
+  await triggerTranslationForPost({
+    postId,
+    orgId: session.orgId,
+    title,
+    body,
+  }).catch(() => {});
+
   revalidatePath("/review");
   revalidatePath("/feed");
   return { ok: true, message: dict.review.published };
+}
+
+/**
+ * Build the translation bundle for a just-published post and hand it to the worker.
+ * Reads the post's structured payload (extraction.payload — what members see) and
+ * the events created at publish, then fires the fire-and-forget translate trigger.
+ */
+async function triggerTranslationForPost(params: {
+  postId: string;
+  orgId: string;
+  title: string;
+  body: string;
+}): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: post } = await admin
+    .from("posts")
+    .select("extraction")
+    .eq("id", params.postId)
+    .maybeSingle();
+
+  const extraction = post?.extraction as { payload?: unknown } | null;
+  const payload =
+    extraction?.payload && typeof extraction.payload === "object"
+      ? (extraction.payload as Record<string, unknown>)
+      : null;
+
+  const { data: events } = await admin
+    .from("events")
+    .select("id, title")
+    .eq("post_id", params.postId);
+
+  await triggerTranslation({
+    postId: params.postId,
+    orgId: params.orgId,
+    title: params.title,
+    body: params.body,
+    payload,
+    events: (events ?? []).map((e) => ({ id: e.id, title: e.title })),
+  });
 }
 
 /** Discard a draft (archived, not published). */

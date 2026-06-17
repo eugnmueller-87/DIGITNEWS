@@ -39,6 +39,11 @@ vi.mock("@/lib/email/templates", () => ({
   publishNotificationEmail: () => ({ subject: "s", html: "h", text: "t" }),
 }));
 vi.mock("@/lib/env", () => ({ publicEnv: { siteUrl: "https://test.local" } }));
+// Publish fires a best-effort translation trigger; stub it so the test doesn't
+// load capture.ts -> env.server (which requires the service-role key at import).
+vi.mock("@/lib/capture", () => ({
+  triggerTranslation: vi.fn().mockResolvedValue(true),
+}));
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({

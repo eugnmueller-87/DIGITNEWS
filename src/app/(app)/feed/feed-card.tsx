@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { takedownPost } from "@/app/(app)/review/actions";
+import { removePostImages, takedownPost } from "@/app/(app)/review/actions";
 import { BottomSheet } from "@/components/bottom-sheet";
 import {
   CategoryChip,
@@ -37,9 +37,11 @@ export interface FeedCardData {
 export function FeedCard({
   post,
   isAdmin = false,
+  isSuperadmin = false,
 }: {
   post: FeedCardData;
   isAdmin?: boolean;
+  isSuperadmin?: boolean;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -48,6 +50,10 @@ export function FeedCard({
   const [removed, setRemoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Superadmin image removal (separate from the takedown confirm flow).
+  const [confirmingImage, setConfirmingImage] = useState(false);
+  const [imageRemoved, setImageRemoved] = useState(false);
+  const [imagePending, startImageTransition] = useTransition();
   const isEvent = post.content_type === "event_notice";
   // The Pinnwand now carries every content_type, so the chip reflects the real
   // category. health_notice is pinned separately as an alert (never a card here),
@@ -78,6 +84,23 @@ export function FeedCard({
       }
     });
   }
+
+  function removeImage() {
+    setError(null);
+    startImageTransition(async () => {
+      const res = await removePostImages(post.id);
+      if (res.ok) {
+        setImageRemoved(true); // hide the photo in the sheet; post text stays
+        setConfirmingImage(false);
+      } else {
+        setError(res.message);
+        setConfirmingImage(false);
+      }
+    });
+  }
+
+  // Show the photo unless it was just removed by the superadmin.
+  const showImage = !!post.imageUrl && !imageRemoved;
 
   // After a successful take-down, drop the card from the list immediately.
   if (removed) return null;
@@ -122,10 +145,10 @@ export function FeedCard({
           {post.title}
         </h2>
         <div className="mt-2">
-          {post.imageUrl && (
+          {showImage && (
             /* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */
             <img
-              src={post.imageUrl}
+              src={post.imageUrl ?? ""}
               alt={post.title ?? t.feed.title}
               loading="lazy"
               className="mb-3 w-full rounded-[12px] border border-border bg-surface-2 object-contain"
@@ -146,6 +169,48 @@ export function FeedCard({
           >
             <Icon name="calendar" size={18} /> {t.feed.inCalendar}
           </a>
+        )}
+
+        {/* Superadmin-only: remove the image(s) from this post, keeping the text.
+            Only shown while an image is still present. */}
+        {isSuperadmin && showImage && (
+          <div className="mt-4 border-t border-border pt-4">
+            {error && (
+              <div className="mb-2">
+                <Alert variant="error">{error}</Alert>
+              </div>
+            )}
+            {confirmingImage ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  disabled={imagePending}
+                  className="press h-11 flex-1 rounded-full bg-tomato font-bold text-white disabled:opacity-50"
+                >
+                  {imagePending
+                    ? t.feed.removingImage
+                    : t.feed.confirmRemoveImage}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingImage(false)}
+                  disabled={imagePending}
+                  className="press h-11 rounded-full border border-border px-5 font-bold text-ink-soft"
+                >
+                  {t.common.cancel}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingImage(true)}
+                className="press flex w-full items-center justify-center gap-2 rounded-full border border-border py-2.5 font-bold text-tomato"
+              >
+                {t.feed.removeImage}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Admin-only: take this published post down (depublish). */}

@@ -85,6 +85,9 @@ export const de = {
     takedown: "Aushang entfernen",
     takingDown: "Wird entfernt …",
     confirmTakedown: "Wirklich entfernen",
+    removeImage: "Bild entfernen",
+    removingImage: "Bild wird entfernt …",
+    confirmRemoveImage: "Bild wirklich entfernen",
   },
 
   bereiche: {
@@ -234,6 +237,8 @@ export const de = {
     published: "Veröffentlicht.",
     discarded: "Verworfen.",
     takenDown: "Aushang entfernt.",
+    imageRemoved: "Bild entfernt.",
+    removeImageFailed: "Bild konnte nicht entfernt werden.",
   },
 
   settings: {
@@ -569,6 +574,9 @@ export const en: Dict = {
     takedown: "Remove notice",
     takingDown: "Removing …",
     confirmTakedown: "Confirm removal",
+    removeImage: "Remove image",
+    removingImage: "Removing image …",
+    confirmRemoveImage: "Confirm image removal",
   },
 
   bereiche: {
@@ -718,6 +726,8 @@ export const en: Dict = {
     published: "Published.",
     discarded: "Discarded.",
     takenDown: "Notice removed.",
+    imageRemoved: "Image removed.",
+    removeImageFailed: "Couldn't remove the image.",
   },
 
   settings: {
@@ -1027,6 +1037,9 @@ export const ru: Dict = {
     takedown: "Снять объявление",
     takingDown: "Удаление …",
     confirmTakedown: "Подтвердить удаление",
+    removeImage: "Удалить изображение",
+    removingImage: "Удаление изображения …",
+    confirmRemoveImage: "Подтвердить удаление изображения",
   },
 
   bereiche: {
@@ -1176,6 +1189,8 @@ export const ru: Dict = {
     published: "Опубликовано.",
     discarded: "Отклонено.",
     takenDown: "Объявление снято.",
+    imageRemoved: "Изображение удалено.",
+    removeImageFailed: "Не удалось удалить изображение.",
   },
 
   settings: {

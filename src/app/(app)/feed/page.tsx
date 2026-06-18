@@ -90,6 +90,7 @@ export default async function FeedPage() {
   const localizedList = list.map((p) => localizePost(p, translations));
 
   const isAdmin = session.role === "admin" || session.role === "superadmin";
+  const isSuperadmin = session.role === "superadmin";
 
   return (
     <div>
@@ -159,6 +160,7 @@ export default async function FeedPage() {
             <FeedCard
               key={post.id}
               isAdmin={isAdmin}
+              isSuperadmin={isSuperadmin}
               post={{
                 id: post.id,
                 title: post.title,

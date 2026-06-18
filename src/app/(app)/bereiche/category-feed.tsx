@@ -33,6 +33,7 @@ export async function CategoryFeed({
   const session = await requireSession();
   const supabase = await createClient();
   const isAdmin = session.role === "admin" || session.role === "superadmin";
+  const isSuperadmin = session.role === "superadmin";
 
   const filter = includeNull
     ? `content_type.eq.${contentType},content_type.is.null`
@@ -77,6 +78,7 @@ export async function CategoryFeed({
         <FeedCard
           key={p.id}
           isAdmin={isAdmin}
+          isSuperadmin={isSuperadmin}
           post={{
             id: p.id,
             title: p.title,

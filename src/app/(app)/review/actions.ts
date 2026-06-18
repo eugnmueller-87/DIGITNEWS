@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireSuperadmin } from "@/lib/auth";
 import { triggerTranslation } from "@/lib/capture";
 import { CONTENT_TYPES } from "@/lib/content/types";
 import type { ContentType } from "@/lib/content/types";
@@ -241,6 +241,58 @@ export async function takedownPost(postId: string): Promise<ReviewActionState> {
   revalidatePath("/info");
   revalidatePath("/gesundheit");
   return { ok: true, message: dict.review.takenDown };
+}
+
+/**
+ * Superadmin-only: strip the IMAGE(S) off any post (cross-org), even after
+ * publish — the digital TEXT/content stays. The definer RPC nulls all three image
+ * columns and returns the prior paths; we then purge the bytes from the three
+ * buckets. The post (title/body/extraction/events) is untouched. Authz is enforced
+ * twice: requireSuperadmin() here + the RPC re-checks role='superadmin'.
+ */
+export async function removePostImages(
+  postId: string,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+  const admin = createAdminClient();
+
+  const { data, error } = await admin.rpc("superadmin_remove_post_images", {
+    p_actor_id: session.userId,
+    p_post_id: postId,
+  });
+  if (error) {
+    return { ok: false, message: dict.review.removeImageFailed };
+  }
+
+  // The RPC returns a single row with the prior paths. Purge the bytes from each
+  // bucket (best-effort per bucket — the columns are already nulled, so a leftover
+  // object is just orphaned storage, never a visibility leak).
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | {
+        source_image_path: string | null;
+        redacted_image_path: string | null;
+        cover_image_path: string | null;
+      }
+    | undefined;
+  if (row?.source_image_path) {
+    await admin.storage.from("raw-photos").remove([row.source_image_path]);
+  }
+  if (row?.redacted_image_path) {
+    await admin.storage
+      .from("redacted-photos")
+      .remove([row.redacted_image_path]);
+  }
+  if (row?.cover_image_path) {
+    await admin.storage.from("cover-photos").remove([row.cover_image_path]);
+  }
+
+  revalidatePath("/feed");
+  revalidatePath("/rueckblick");
+  revalidatePath("/essensplan");
+  revalidatePath("/info");
+  revalidatePath("/gesundheit");
+  return { ok: true, message: dict.review.imageRemoved };
 }
 
 /**

@@ -12,6 +12,7 @@ interface Row extends FeedPost {
   content_type: string | null;
   extraction: { payload?: unknown } | null;
   redacted_image_path: string | null;
+  cover_image_path: string | null;
 }
 
 /**
@@ -43,7 +44,7 @@ export async function CategoryFeed({
     supabase
       .from("posts_public")
       .select(
-        "id, title, body, content_type, extraction, redacted_image_path, published_at",
+        "id, title, body, content_type, extraction, redacted_image_path, cover_image_path, published_at",
       )
       .or(filter)
       .order("published_at", { ascending: false })
@@ -87,6 +88,7 @@ export async function CategoryFeed({
             published_at: p.published_at,
             payload: p.extraction?.payload ?? null,
             imageUrl: imageUrls.get(p.id) ?? null,
+            hasImage: !!(p.redacted_image_path || p.cover_image_path),
           }}
         />
       ))}

@@ -24,8 +24,12 @@ export interface FeedCardData {
   published_at: string | null;
   /** Structured extraction payload (typed per content_type) for the detail view. */
   payload?: unknown;
-  /** Short-TTL signed URL of the (masked) photo, or null. Shown in the sheet. */
+  /** Short-TTL signed URL of the photo, or null. Shown in the sheet when present. */
   imageUrl?: string | null;
+  /** Whether the post has ANY image in the DB (redacted/cover/source). Drives the
+   *  superadmin "remove image" control — independent of whether a preview URL
+   *  could be minted (a signed URL can be null even when an image exists). */
+  hasImage?: boolean;
 }
 
 /**
@@ -99,8 +103,13 @@ export function FeedCard({
     });
   }
 
-  // Show the photo unless it was just removed by the superadmin.
+  // Show the photo preview only if we have a signed URL and it wasn't just removed.
   const showImage = !!post.imageUrl && !imageRemoved;
+  // The superadmin "remove image" control depends on the post HAVING an image in
+  // the DB — NOT on a preview URL being available (a signed URL can be null even
+  // when an image exists, e.g. health alerts that skip signing). Falls back to the
+  // URL presence if the flag wasn't passed.
+  const canRemoveImage = (post.hasImage ?? !!post.imageUrl) && !imageRemoved;
 
   // After a successful take-down, drop the card from the list immediately.
   if (removed) return null;
@@ -172,8 +181,8 @@ export function FeedCard({
         )}
 
         {/* Superadmin-only: remove the image(s) from this post, keeping the text.
-            Only shown while an image is still present. */}
-        {isSuperadmin && showImage && (
+            Shown whenever the post HAS an image in the DB (even if no preview URL). */}
+        {isSuperadmin && canRemoveImage && (
           <div className="mt-4 border-t border-border pt-4">
             {error && (
               <div className="mb-2">

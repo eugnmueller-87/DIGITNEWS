@@ -45,7 +45,7 @@ export default async function FeedPage() {
     supabase
       .from("posts_public")
       .select(
-        "id, title, body, category, content_type, extraction, redacted_image_path, published_at",
+        "id, title, body, category, content_type, extraction, redacted_image_path, cover_image_path, published_at",
       )
       .or("content_type.is.null,content_type.neq.health_notice")
       .order("published_at", { ascending: false })
@@ -171,6 +171,12 @@ export default async function FeedPage() {
                   (post as { extraction?: { payload?: unknown } }).extraction
                     ?.payload ?? null,
                 imageUrl: imageUrls.get(post.id) ?? null,
+                hasImage: !!(
+                  (post as { redacted_image_path?: string | null })
+                    .redacted_image_path ||
+                  (post as { cover_image_path?: string | null })
+                    .cover_image_path
+                ),
               }}
             />
           ))}

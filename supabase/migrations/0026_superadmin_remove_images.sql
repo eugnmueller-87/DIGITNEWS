@@ -13,6 +13,15 @@
 -- but with NO org-scope match — a superadmin acts across orgs by design.
 -- =============================================================================
 
+-- source_image_path was `text not null` (0001) to document "every post originates
+-- from a raw photo". This feature DELIBERATELY breaks that invariant: after an
+-- operator strips a post's images the post legitimately has no source image, so
+-- the column must become nullable — otherwise the UPDATE below raises a NOT NULL
+-- violation (23502) on any real post. All readers already null-guard
+-- source_image_path (publish_post reads it into a local; the photo/signed-URL
+-- logic checks it), so a legitimately-NULL value introduces no regression.
+alter table public.posts alter column source_image_path drop not null;
+
 -- We read the current paths into locals FIRST (so we can return them to the
 -- caller for byte-purging), then null the columns. A single UPDATE ... RETURNING
 -- would return the NEW (already-nulled) values, which is useless here.

@@ -11,6 +11,8 @@ import { getDict, getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
 
+import { ReflectionImage } from "./reflection-image";
+
 export const metadata: Metadata = { title: "Rückblick" };
 
 interface ReflectionRow {
@@ -35,6 +37,7 @@ export default async function RueckblickPage() {
   const t = await getDict();
   const locale = await getLocale();
   const supabase = await createClient();
+  const isSuperadmin = session.role === "superadmin";
 
   const [{ data }, profileResult] = await Promise.all([
     supabase
@@ -93,12 +96,11 @@ export default async function RueckblickPage() {
                   {p.title}
                 </h2>
                 {imageUrl && (
-                  /* eslint-disable-next-line @next/next/no-img-element -- signed URL, not a static asset */
-                  <img
-                    src={imageUrl}
+                  <ReflectionImage
+                    postId={p.id}
+                    imageUrl={imageUrl}
                     alt={p.title ?? t.rueckblick.fallbackAlt}
-                    loading="lazy"
-                    className="mt-3 w-full rounded-[12px] border border-border bg-surface-2 object-contain"
+                    isSuperadmin={isSuperadmin}
                   />
                 )}
                 <div className="mt-3">

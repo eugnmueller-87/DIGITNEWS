@@ -12,6 +12,12 @@ import { publicEnv } from "@/lib/env";
 import { getDict } from "@/lib/i18n/server";
 import { pushToOrg } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  parseEventCategory,
+  parseIsoDate,
+  parseIsoTime,
+  parseNonEmpty,
+} from "@/lib/validation";
 
 export interface ReviewActionState {
   ok: boolean;
@@ -293,6 +299,139 @@ export async function removePostImages(
   revalidatePath("/info");
   revalidatePath("/gesundheit");
   return { ok: true, message: dict.review.imageRemoved };
+}
+
+// ---------------------------------------------------------------------------
+// Superadmin manual calendar events (no photo, no LLM). The operator types an
+// event by hand for ANY org. Each event hangs on a synthetic 'archived' carrier
+// post (invisible on /feed) via the security-definer RPCs in migration 0027 —
+// the events.post_id NOT NULL invariant is preserved, no schema change. Authz:
+// requireSuperadmin() here + each RPC re-checks role='superadmin' (cross-org).
+// ---------------------------------------------------------------------------
+
+/** Parse + validate the shared event fields from the form (throws on bad input). */
+function parseEventForm(formData: FormData): {
+  title: string;
+  category: "closure" | "event" | "deadline";
+  startsOn: string;
+  endsOn: string | null;
+  allDay: boolean;
+  timeStart: string | null;
+  timeEnd: string | null;
+} {
+  const title = parseNonEmpty(formData.get("title"), "Titel", 200);
+  const category = parseEventCategory(formData.get("category"));
+  const startsOn = parseIsoDate(formData.get("startsOn"), "Startdatum", true)!;
+  const endsOn = parseIsoDate(formData.get("endsOn"), "Enddatum", false);
+  if (endsOn && endsOn < startsOn) {
+    throw new Error("Das Enddatum liegt vor dem Startdatum.");
+  }
+  const allDay = formData.get("allDay") === "1";
+  // All-day events carry no times (the RPC also enforces this).
+  const timeStart = allDay
+    ? null
+    : parseIsoTime(formData.get("timeStart"), "Startzeit");
+  const timeEnd = allDay
+    ? null
+    : parseIsoTime(formData.get("timeEnd"), "Endzeit");
+  if (timeStart && timeEnd && timeEnd < timeStart) {
+    throw new Error("Die Endzeit liegt vor der Startzeit.");
+  }
+  return { title, category, startsOn, endsOn, allDay, timeStart, timeEnd };
+}
+
+/** Operator creates a calendar event by hand in a chosen org. */
+export async function createManualEvent(
+  _prev: ReviewActionState,
+  formData: FormData,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+
+  let fields: ReturnType<typeof parseEventForm>;
+  let orgId: string;
+  try {
+    orgId = parseNonEmpty(formData.get("orgId"), "Organisation", 100);
+    fields = parseEventForm(formData);
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("superadmin_create_event", {
+    p_actor_id: session.userId,
+    p_org_id: orgId,
+    p_title: fields.title,
+    p_category: fields.category,
+    p_starts_on: fields.startsOn,
+    p_ends_on: fields.endsOn,
+    p_all_day: fields.allDay,
+    p_time_start: fields.timeStart,
+    p_time_end: fields.timeEnd,
+  });
+  if (error) {
+    return { ok: false, message: dict.calendar.manualSaveFailed };
+  }
+
+  revalidatePath("/kalender");
+  return { ok: true, message: dict.calendar.manualCreated };
+}
+
+/** Operator edits a manual event in place (bumps ics_sequence in the RPC). */
+export async function updateManualEvent(
+  _prev: ReviewActionState,
+  formData: FormData,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+
+  let fields: ReturnType<typeof parseEventForm>;
+  let eventId: string;
+  try {
+    eventId = parseNonEmpty(formData.get("eventId"), "Termin", 100);
+    fields = parseEventForm(formData);
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("superadmin_update_event", {
+    p_actor_id: session.userId,
+    p_event_id: eventId,
+    p_title: fields.title,
+    p_category: fields.category,
+    p_starts_on: fields.startsOn,
+    p_ends_on: fields.endsOn,
+    p_all_day: fields.allDay,
+    p_time_start: fields.timeStart,
+    p_time_end: fields.timeEnd,
+  });
+  if (error) {
+    return { ok: false, message: dict.calendar.manualSaveFailed };
+  }
+
+  revalidatePath("/kalender");
+  return { ok: true, message: dict.calendar.manualUpdated };
+}
+
+/** Operator cancels a manual event (status='cancelled' + ICS tombstone). */
+export async function deleteManualEvent(
+  eventId: string,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("superadmin_delete_event", {
+    p_actor_id: session.userId,
+    p_event_id: eventId,
+  });
+  if (error) {
+    return { ok: false, message: dict.calendar.manualSaveFailed };
+  }
+
+  revalidatePath("/kalender");
+  return { ok: true, message: dict.calendar.manualDeleted };
 }
 
 /**

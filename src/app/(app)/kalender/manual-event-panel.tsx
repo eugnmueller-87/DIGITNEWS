@@ -11,6 +11,9 @@ import {
   createManualEvent,
   updateManualEvent,
   deleteManualEvent,
+  broadcastEvent,
+  updateBroadcast,
+  cancelBroadcast,
   type ReviewActionState,
 } from "../review/actions";
 
@@ -26,35 +29,55 @@ export interface ManualEvent {
   time_end: string | null;
 }
 
+/** One broadcast collapsed to a single row (N per-org copies share these). */
+export interface BroadcastEvent {
+  broadcast_id: string;
+  title: string;
+  category: "closure" | "event" | "deadline";
+  starts_on: string;
+  ends_on: string | null;
+  all_day: boolean;
+  time_start: string | null;
+  time_end: string | null;
+  org_count: number;
+}
+
 const initial: ReviewActionState = { ok: false, message: null };
 
+// The form drives one of three actions depending on mode.
+type EditTarget =
+  | { kind: "create" }
+  | { kind: "event"; event: ManualEvent }
+  | { kind: "broadcast"; broadcast: BroadcastEvent };
+
 /**
- * Operator-only (superadmin) calendar management: hand-enter a calendar event
- * for ANY org, plus edit/cancel existing manual events. Members and org admins
- * never see this — the page gates it on isSuperadmin, and the create/edit/delete
- * server actions re-check requireSuperadmin() + the RPCs re-check the role. The
- * event hangs on an invisible carrier post (migration 0027), so it shows on the
- * calendar but never on the Pinnwand.
+ * Operator-only (superadmin) calendar management. Hand-enter a calendar event
+ * for ONE org, or BROADCAST it to all orgs at once; plus edit/cancel existing
+ * manual events and broadcasts. Members and org admins never see this — the page
+ * gates it on isSuperadmin, the actions re-check requireSuperadmin(), and the
+ * RPCs re-check the role. Events hang on invisible carrier posts (0027/0028), so
+ * they show on the calendar but never on the Pinnwand.
  */
 export function ManualEventPanel({
   orgs,
   events,
+  broadcasts,
 }: {
   orgs: { id: string; name: string }[];
   events: ManualEvent[];
+  broadcasts: BroadcastEvent[];
 }) {
   const t = useT();
   const m = t.calendar.manual;
   const [open, setOpen] = useState(false);
-  // null = create mode; a ManualEvent = edit mode for that row.
-  const [editing, setEditing] = useState<ManualEvent | null>(null);
+  const [target, setTarget] = useState<EditTarget>({ kind: "create" });
 
   if (!open) {
     return (
       <button
         type="button"
         onClick={() => {
-          setEditing(null);
+          setTarget({ kind: "create" });
           setOpen(true);
         }}
         className="press flex w-full items-center justify-center gap-2 rounded-[16px] border border-dashed border-border bg-paper py-3 font-bold text-ink-soft"
@@ -68,12 +91,27 @@ export function ManualEventPanel({
     <Card>
       <EventForm
         orgs={orgs}
-        editing={editing}
+        target={target}
         onClose={() => {
           setOpen(false);
-          setEditing(null);
+          setTarget({ kind: "create" });
         }}
       />
+
+      {broadcasts.length > 0 && (
+        <div className="mt-5 space-y-2 border-t border-border pt-4">
+          <p className="text-sm font-bold text-ink-soft">
+            {m.broadcastSection}
+          </p>
+          {broadcasts.map((b) => (
+            <BroadcastRow
+              key={b.broadcast_id}
+              b={b}
+              onEdit={() => setTarget({ kind: "broadcast", broadcast: b })}
+            />
+          ))}
+        </div>
+      )}
 
       {events.length > 0 && (
         <div className="mt-5 space-y-2 border-t border-border pt-4">
@@ -82,7 +120,7 @@ export function ManualEventPanel({
               key={ev.id}
               ev={ev}
               orgName={orgs.find((o) => o.id === ev.org_id)?.name ?? ev.org_id}
-              onEdit={() => setEditing(ev)}
+              onEdit={() => setTarget({ kind: "event", event: ev })}
             />
           ))}
         </div>
@@ -93,20 +131,39 @@ export function ManualEventPanel({
 
 function EventForm({
   orgs,
-  editing,
+  target,
   onClose,
 }: {
   orgs: { id: string; name: string }[];
-  editing: ManualEvent | null;
+  target: EditTarget;
   onClose: () => void;
 }) {
   const t = useT();
   const m = t.calendar.manual;
-  const [state, formAction, pending] = useActionState(
-    editing ? updateManualEvent : createManualEvent,
-    initial,
+
+  // Editing a broadcast vs an event vs creating. The create form additionally
+  // offers a "release to all orgs" toggle that switches the submit action.
+  const editingEvent = target.kind === "event" ? target.event : null;
+  const editingBroadcast =
+    target.kind === "broadcast" ? target.broadcast : null;
+  const editing = editingEvent ?? editingBroadcast;
+
+  const [broadcastMode, setBroadcastMode] = useState(
+    target.kind === "broadcast",
   );
+
+  const action = editingEvent
+    ? updateManualEvent
+    : editingBroadcast
+      ? updateBroadcast
+      : broadcastMode
+        ? broadcastEvent
+        : createManualEvent;
+
+  const [state, formAction, pending] = useActionState(action, initial);
   const [allDay, setAllDay] = useState(editing?.all_day ?? true);
+
+  const showOrgPicker = target.kind === "create" && !broadcastMode;
 
   return (
     <form action={formAction} className="space-y-3.5">
@@ -123,9 +180,30 @@ function EventForm({
         </button>
       </div>
 
-      {editing && <input type="hidden" name="eventId" value={editing.id} />}
+      {editingEvent && (
+        <input type="hidden" name="eventId" value={editingEvent.id} />
+      )}
+      {editingBroadcast && (
+        <input
+          type="hidden"
+          name="broadcastId"
+          value={editingBroadcast.broadcast_id}
+        />
+      )}
 
-      {!editing && (
+      {target.kind === "create" && (
+        <label className="flex items-center gap-2.5 rounded-[12px] border border-border bg-surface-2 px-4 py-3 text-sm font-bold text-ink">
+          <input
+            type="checkbox"
+            checked={broadcastMode}
+            onChange={(e) => setBroadcastMode(e.target.checked)}
+            className="h-5 w-5 rounded border-border"
+          />
+          {m.broadcastToggle}
+        </label>
+      )}
+
+      {showOrgPicker && (
         <div className="space-y-1.5">
           <Label htmlFor="orgId">{m.org}</Label>
           <select
@@ -248,6 +326,51 @@ function EventRow({
   onEdit: () => void;
 }) {
   const t = useT();
+  return (
+    <ManageRow
+      title={ev.title}
+      meta={`${ev.starts_on}${ev.ends_on ? ` – ${ev.ends_on}` : ""} · ${t.calendar.category[ev.category]} · ${orgName}`}
+      onEdit={onEdit}
+      onDelete={() => deleteManualEvent(ev.id)}
+    />
+  );
+}
+
+function BroadcastRow({
+  b,
+  onEdit,
+}: {
+  b: BroadcastEvent;
+  onEdit: () => void;
+}) {
+  const t = useT();
+  const m = t.calendar.manual;
+  return (
+    <ManageRow
+      title={b.title}
+      badge={`${m.broadcastBadge} · ${b.org_count}`}
+      meta={`${b.starts_on}${b.ends_on ? ` – ${b.ends_on}` : ""} · ${t.calendar.category[b.category]}`}
+      onEdit={onEdit}
+      onDelete={() => cancelBroadcast(b.broadcast_id)}
+    />
+  );
+}
+
+/** Shared manage row: title + meta, an edit link, and a confirm-delete control. */
+function ManageRow({
+  title,
+  meta,
+  badge,
+  onEdit,
+  onDelete,
+}: {
+  title: string;
+  meta: string;
+  badge?: string;
+  onEdit: () => void;
+  onDelete: () => Promise<ReviewActionState>;
+}) {
+  const t = useT();
   const m = t.calendar.manual;
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -259,7 +382,7 @@ function EventRow({
   function remove() {
     setError(null);
     startTransition(async () => {
-      const res = await deleteManualEvent(ev.id);
+      const res = await onDelete();
       if (res.ok) setRemoved(true);
       else {
         setError(res.message);
@@ -272,12 +395,15 @@ function EventRow({
     <div className="rounded-[12px] border border-border bg-surface-2 p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-ink">{ev.title}</p>
-          <p className="mt-0.5 text-[13px] text-ink-soft">
-            {ev.starts_on}
-            {ev.ends_on ? ` – ${ev.ends_on}` : ""} ·{" "}
-            {t.calendar.category[ev.category]} · {orgName}
+          <p className="truncate text-sm font-bold text-ink">
+            {badge && (
+              <span className="mr-2 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent-deep">
+                {badge}
+              </span>
+            )}
+            {title}
           </p>
+          <p className="mt-0.5 text-[13px] text-ink-soft">{meta}</p>
         </div>
         <div className="flex shrink-0 gap-2">
           <button
@@ -286,7 +412,7 @@ function EventRow({
             disabled={pending}
             className="text-sm font-bold text-accent-deep"
           >
-            {t.calendar.manual.editTitle}
+            {m.editTitle}
           </button>
           {confirming ? (
             <button

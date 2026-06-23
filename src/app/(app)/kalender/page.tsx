@@ -11,7 +11,11 @@ import { createClient } from "@/lib/supabase/server";
 
 import { CalendarSubBanner } from "./calendar-sub-banner";
 import { CalendarView } from "./calendar-view";
-import { ManualEventPanel, type ManualEvent } from "./manual-event-panel";
+import {
+  ManualEventPanel,
+  type ManualEvent,
+  type BroadcastEvent,
+} from "./manual-event-panel";
 
 export const metadata: Metadata = { title: "Kalender" };
 
@@ -57,35 +61,68 @@ export default async function KalenderPage() {
   // anchor org — these reads are gated by the isSuperadmin check above.
   let orgOptions: { id: string; name: string }[] = [];
   let manualEvents: ManualEvent[] = [];
+  let broadcasts: BroadcastEvent[] = [];
   if (isSuperadmin) {
     const { createAdminClient } = await import("@/lib/supabase/admin");
     const admin = createAdminClient();
     const [{ data: orgs }, { data: mevents }] = await Promise.all([
       admin.from("orgs").select("id, name").order("name", { ascending: true }),
-      // Manual events are those whose carrier post is an archived 'event_notice'.
+      // Manual events: carrier post is an archived 'event_notice'. broadcast_id
+      // distinguishes single-org events (NULL) from per-org broadcast copies.
       admin
         .from("events")
         .select(
-          "id, org_id, title, category, starts_on, ends_on, all_day, time_start, time_end, posts!inner(status, content_type)",
+          "id, org_id, title, category, starts_on, ends_on, all_day, time_start, time_end, broadcast_id, posts!inner(status, content_type)",
         )
         .eq("status", "confirmed")
         .eq("posts.status", "archived")
         .eq("posts.content_type", "event_notice")
         .order("starts_on", { ascending: true })
-        .limit(200),
+        .limit(500),
     ]);
     orgOptions = (orgs ?? []) as { id: string; name: string }[];
-    manualEvents = ((mevents ?? []) as unknown as ManualEvent[]).map((e) => ({
-      id: e.id,
-      org_id: e.org_id,
-      title: e.title,
-      category: e.category,
-      starts_on: e.starts_on,
-      ends_on: e.ends_on,
-      all_day: e.all_day,
-      time_start: e.time_start,
-      time_end: e.time_end,
-    }));
+
+    type Row = ManualEvent & { broadcast_id: string | null };
+    const rows = (mevents ?? []) as unknown as Row[];
+
+    // Single-org manual events have no broadcast_id.
+    manualEvents = rows
+      .filter((e) => e.broadcast_id == null)
+      .map((e) => ({
+        id: e.id,
+        org_id: e.org_id,
+        title: e.title,
+        category: e.category,
+        starts_on: e.starts_on,
+        ends_on: e.ends_on,
+        all_day: e.all_day,
+        time_start: e.time_start,
+        time_end: e.time_end,
+      }));
+
+    // Broadcasts: collapse the N per-org copies into ONE row per broadcast_id
+    // (a representative copy carries the shared fields). org_count is the spread.
+    const byBroadcast = new Map<string, BroadcastEvent>();
+    for (const e of rows) {
+      if (e.broadcast_id == null) continue;
+      const existing = byBroadcast.get(e.broadcast_id);
+      if (existing) {
+        existing.org_count += 1;
+      } else {
+        byBroadcast.set(e.broadcast_id, {
+          broadcast_id: e.broadcast_id,
+          title: e.title,
+          category: e.category,
+          starts_on: e.starts_on,
+          ends_on: e.ends_on,
+          all_day: e.all_day,
+          time_start: e.time_start,
+          time_end: e.time_end,
+          org_count: 1,
+        });
+      }
+    }
+    broadcasts = [...byBroadcast.values()];
   }
 
   const rawEvents = (eventsResult.data ?? []) as CalEvent[];
@@ -111,7 +148,11 @@ export default async function KalenderPage() {
       <CalendarSubBanner icsUrl={icsUrl} hasSub={token != null} />
 
       {isSuperadmin && (
-        <ManualEventPanel orgs={orgOptions} events={manualEvents} />
+        <ManualEventPanel
+          orgs={orgOptions}
+          events={manualEvents}
+          broadcasts={broadcasts}
+        />
       )}
 
       {events.length === 0 ? (

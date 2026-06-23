@@ -434,6 +434,104 @@ export async function deleteManualEvent(
   return { ok: true, message: dict.calendar.manualDeleted };
 }
 
+// ---------------------------------------------------------------------------
+// Broadcast: one event released to ALL real orgs at once (migration 0028). Each
+// org gets its own carrier + event sharing a broadcast_id; edit/cancel act on
+// the whole group. Same authz as the single-org path (requireSuperadmin + RPC
+// role re-check).
+// ---------------------------------------------------------------------------
+
+/** Operator broadcasts a calendar event to every real org. */
+export async function broadcastEvent(
+  _prev: ReviewActionState,
+  formData: FormData,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+
+  let fields: ReturnType<typeof parseEventForm>;
+  try {
+    fields = parseEventForm(formData);
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("superadmin_broadcast_event", {
+    p_actor_id: session.userId,
+    p_title: fields.title,
+    p_category: fields.category,
+    p_starts_on: fields.startsOn,
+    p_ends_on: fields.endsOn,
+    p_all_day: fields.allDay,
+    p_time_start: fields.timeStart,
+    p_time_end: fields.timeEnd,
+  });
+  if (error) {
+    return { ok: false, message: dict.calendar.manualSaveFailed };
+  }
+
+  revalidatePath("/kalender");
+  return { ok: true, message: dict.calendar.broadcastCreated };
+}
+
+/** Operator edits a broadcast (all per-org copies at once). */
+export async function updateBroadcast(
+  _prev: ReviewActionState,
+  formData: FormData,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+
+  let fields: ReturnType<typeof parseEventForm>;
+  let broadcastId: string;
+  try {
+    broadcastId = parseNonEmpty(formData.get("broadcastId"), "Broadcast", 100);
+    fields = parseEventForm(formData);
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("superadmin_update_broadcast", {
+    p_actor_id: session.userId,
+    p_broadcast_id: broadcastId,
+    p_title: fields.title,
+    p_category: fields.category,
+    p_starts_on: fields.startsOn,
+    p_ends_on: fields.endsOn,
+    p_all_day: fields.allDay,
+    p_time_start: fields.timeStart,
+    p_time_end: fields.timeEnd,
+  });
+  if (error) {
+    return { ok: false, message: dict.calendar.manualSaveFailed };
+  }
+
+  revalidatePath("/kalender");
+  return { ok: true, message: dict.calendar.broadcastUpdated };
+}
+
+/** Operator cancels a broadcast (all per-org copies; ICS tombstone each). */
+export async function cancelBroadcast(
+  broadcastId: string,
+): Promise<ReviewActionState> {
+  const session = await requireSuperadmin();
+  const dict = await getDict();
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("superadmin_cancel_broadcast", {
+    p_actor_id: session.userId,
+    p_broadcast_id: broadcastId,
+  });
+  if (error) {
+    return { ok: false, message: dict.calendar.manualSaveFailed };
+  }
+
+  revalidatePath("/kalender");
+  return { ok: true, message: dict.calendar.broadcastDeleted };
+}
+
 /**
  * Notify an org's members when a post is published: web push to all subscribers,
  * and an email to members who opted into the digest. Best-effort; never throws.

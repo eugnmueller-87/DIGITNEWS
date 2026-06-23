@@ -19,6 +19,17 @@ export interface MonthCursor {
   m: number;
 }
 
+/**
+ * Today's month in the VIEWER's local time. "What month is it" is inherently a
+ * local-time question, so we read the local getters of a `new Date()` (now).
+ * This is safe from the UTC-parsing pitfall the rest of this module avoids:
+ * that pitfall is `new Date("YYYY-MM-DD")` (parsed as UTC midnight), not the
+ * local getters of the current instant. Used as the calendar's opening month.
+ */
+export function currentMonth(now: Date = new Date()): MonthCursor {
+  return { y: now.getFullYear(), m: now.getMonth() };
+}
+
 /** Does an event span a given `YYYY-MM-DD` day? Inclusive on both ends. */
 export function covers(ev: DateSpan, iso: string): boolean {
   const end = ev.ends_on ?? ev.starts_on;

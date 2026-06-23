@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { DateTile } from "@/components/date-tile";
 import {
-  anchorMonth,
   covers,
+  currentMonth,
   isoOf,
   monthGrid,
   nextMonth,
@@ -48,9 +48,10 @@ export function CalendarView({ events: rawEvents }: { events: CalEvent[] }) {
   );
 
   const [view, setView] = useState<View>("month");
-  const [cursor, setCursor] = useState(() =>
-    anchorMonth(events[0]?.starts_on, { y: 2026, m: 0 }),
-  );
+  // Always open on the CURRENT month (viewer's local time), never anchored to
+  // the first event's month — that pinned the grid to whenever events happened
+  // to be (e.g. February) and confused members. They can page to events.
+  const [cursor, setCursor] = useState(() => currentMonth());
   // The tapped day (ISO) whose events are shown in the detail sheet, or a single
   // tapped event from the list view.
   const [sheetDay, setSheetDay] = useState<string | null>(null);

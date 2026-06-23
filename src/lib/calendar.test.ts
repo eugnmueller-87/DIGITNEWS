@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   anchorMonth,
   covers,
+  currentMonth,
   isoOf,
   monthGrid,
   nextMonth,
@@ -65,6 +66,16 @@ describe("anchorMonth", () => {
       y: 2026,
       m: 5,
     });
+  });
+});
+
+describe("currentMonth", () => {
+  it("returns the local-time year and 0-based month of the given date", () => {
+    // Use a local-time constructor (y, m, d) so the test is timezone-stable:
+    // it asserts the same fields it reads back, regardless of the viewer's zone.
+    expect(currentMonth(new Date(2026, 5, 23))).toEqual({ y: 2026, m: 5 });
+    expect(currentMonth(new Date(2027, 0, 1))).toEqual({ y: 2027, m: 0 });
+    expect(currentMonth(new Date(2025, 11, 31))).toEqual({ y: 2025, m: 11 });
   });
 });
 

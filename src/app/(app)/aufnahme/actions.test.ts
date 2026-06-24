@@ -74,6 +74,19 @@ describe("finalizeCapture", () => {
     );
   });
 
+  it("threads allowDuplicate through to startProcessing (default false)", async () => {
+    startProcessing.mockResolvedValue({ postId: "p1", triggered: true });
+    await finalizeCapture("org-1/abc.jpg", "deadbeef");
+    expect(startProcessing).toHaveBeenCalledWith(
+      expect.objectContaining({ allowDuplicate: false }),
+    );
+
+    await finalizeCapture("org-1/abc.jpg", "deadbeef", true);
+    expect(startProcessing).toHaveBeenLastCalledWith(
+      expect.objectContaining({ allowDuplicate: true }),
+    );
+  });
+
   it("maps a duplicate image to a friendly, non-error result", async () => {
     startProcessing.mockRejectedValueOnce(new DuplicateImageError());
     const res = await finalizeCapture("org-1/abc.jpg", "deadbeef");

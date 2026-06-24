@@ -46,6 +46,9 @@ export async function startProcessing(params: {
   orgType: string;
   sourcePath: string;
   sourceHash?: string | null;
+  // Set when the admin confirmed "upload anyway" on a detected duplicate: the
+  // RPC then skips the exact-photo dedup and stores a NULL hash.
+  allowDuplicate?: boolean;
 }): Promise<{ postId: string; triggered: boolean }> {
   const admin = createAdminClient();
 
@@ -54,6 +57,7 @@ export async function startProcessing(params: {
     p_org_id: params.orgId,
     p_source_path: params.sourcePath,
     p_source_hash: params.sourceHash ?? null,
+    p_allow_duplicate: params.allowDuplicate ?? false,
   });
   if (error || !postId) {
     // The RPC raises 'duplicate_image' (and the partial unique index is the

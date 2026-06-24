@@ -12,6 +12,9 @@ export type CaptureStatus = "idle" | "working" | "done" | "error";
 export interface Shot {
   id: string;
   state: "uploading" | "processing" | "queued" | "failed" | "duplicate";
+  // On a 'duplicate' shot, the already-uploaded raw path + hash so the admin can
+  // confirm "upload anyway" without re-uploading the bytes.
+  pending?: { path: string; hash: string };
 }
 
 /** SHA-256 (hex) of a Blob's bytes — identifies an exact-duplicate capture. */
@@ -79,11 +82,13 @@ export function useCapture() {
     if (!target.ok || !target.path || !target.token) {
       throw new Error(target.message ?? "upload");
     }
+    // Capture the narrowed path so it stays `string` inside later closures.
+    const path = target.path;
 
     const supabase = createClient();
     const { error: upErr } = await supabase.storage
       .from("raw-photos")
-      .uploadToSignedUrl(target.path, target.token, compressed, {
+      .uploadToSignedUrl(path, target.token, compressed, {
         contentType: "image/jpeg",
       });
     if (upErr) throw new Error("upload");
@@ -92,11 +97,21 @@ export function useCapture() {
       s.map((x) => (x.id === shotId ? { ...x, state: "processing" } : x)),
     );
 
-    const res = await finalizeCapture(target.path, sourceHash);
+    const res = await finalizeCapture(path, sourceHash);
     if (!res.ok) {
       if (res.duplicate) {
+        // Already-captured photo: keep the uploaded path+hash so the admin can
+        // confirm "upload anyway" (re-finalize with allowDuplicate, no re-upload).
         setShots((s) =>
-          s.map((x) => (x.id === shotId ? { ...x, state: "duplicate" } : x)),
+          s.map((x) =>
+            x.id === shotId
+              ? {
+                  ...x,
+                  state: "duplicate",
+                  pending: { path, hash: sourceHash },
+                }
+              : x,
+          ),
         );
         setNotice(res.message ?? "Dieser Aushang wurde bereits aufgenommen.");
         return;
@@ -111,6 +126,42 @@ export function useCapture() {
           : x,
       ),
     );
+  }
+
+  /**
+   * Confirm "upload anyway" for a duplicate shot. Re-finalizes the
+   * already-uploaded photo with allowDuplicate=true — no re-upload, the bytes
+   * are already in the private bucket at the stored path.
+   */
+  async function confirmDuplicate(shotId: string) {
+    const shot = shots.find((x) => x.id === shotId);
+    if (!shot?.pending) return;
+    const { path, hash } = shot.pending;
+    setError(null);
+    setNotice(null);
+    setShots((s) =>
+      s.map((x) =>
+        x.id === shotId ? { ...x, state: "processing", pending: undefined } : x,
+      ),
+    );
+    try {
+      const res = await finalizeCapture(path, hash, true);
+      if (!res.ok) throw new Error(res.message ?? "finalize");
+      setShots((s) =>
+        s.map((x) =>
+          x.id === shotId
+            ? { ...x, state: res.triggered ? "queued" : "processing" }
+            : x,
+        ),
+      );
+    } catch {
+      setShots((s) =>
+        s.map((x) => (x.id === shotId ? { ...x, state: "failed" } : x)),
+      );
+      setError(
+        "Ein Foto konnte nicht verarbeitet werden. Bitte erneut versuchen.",
+      );
+    }
   }
 
   // Inside the native shell, use the Capacitor camera/picker (loaded lazily so
@@ -146,6 +197,7 @@ export function useCapture() {
     notice,
     shots,
     handleFiles,
+    confirmDuplicate,
     working: status === "working",
   };
 }

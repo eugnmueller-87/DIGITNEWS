@@ -35,6 +35,7 @@ export async function getUploadTarget(): Promise<{
 export async function finalizeCapture(
   sourcePath: string,
   sourceHash?: string,
+  allowDuplicate = false,
 ): Promise<{
   ok: boolean;
   triggered?: boolean;
@@ -59,6 +60,7 @@ export async function finalizeCapture(
       orgType: org?.org_type ?? "sonstiges",
       sourcePath,
       sourceHash,
+      allowDuplicate,
     });
     return { ok: true, triggered };
   } catch (e) {

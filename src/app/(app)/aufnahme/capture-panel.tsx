@@ -27,6 +27,7 @@ export function CapturePanel() {
     notice,
     shots,
     handleFiles,
+    confirmDuplicate,
     working,
   } = useCapture();
 
@@ -108,7 +109,20 @@ export function CapturePanel() {
                       <Icon name="check" size={14} /> {t.aufnahme.queued}
                     </span>
                   )}
-                  {shot.state === "duplicate" && t.aufnahme.duplicate}
+                  {shot.state === "duplicate" && (
+                    <span className="flex items-center gap-2">
+                      <span className="text-ink-soft">
+                        {t.aufnahme.duplicate}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void confirmDuplicate(shot.id)}
+                        className="press rounded-full bg-accent px-3 py-1 text-xs font-bold text-white"
+                      >
+                        {t.aufnahme.uploadAnyway}
+                      </button>
+                    </span>
+                  )}
                   {shot.state === "failed" && (
                     <span className="text-tomato">{t.aufnahme.failed}</span>
                   )}

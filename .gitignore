@@ -95,6 +95,10 @@ poc-workflows/
 # local source video/GIF for the final-project demo (committed to final-project-eugen, not this repo)
 clip/
 
+# local presentation deck + screenshots (the deck lives in final-project-eugen; these are not part of the app)
+Presentation/
+Screenshots/
+
 # MCP server config — holds a Supabase access token (root credential). NEVER
 # commit. Use .mcp.json.example as the tracked template instead.
 .mcp.json

@@ -15,7 +15,11 @@ import { useCapture } from "./use-capture";
  * via useCapture; the camera input keeps capture="environment", the gallery one
  * has none. Nothing changes the privacy/upload path.
  */
-export function CapturePanel() {
+export function CapturePanel({
+  isSuperadmin = false,
+}: {
+  isSuperadmin?: boolean;
+}) {
   const t = useT();
   const {
     cameraInputRef,
@@ -114,13 +118,16 @@ export function CapturePanel() {
                       <span className="text-ink-soft">
                         {t.aufnahme.duplicate}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => void confirmDuplicate(shot.id)}
-                        className="press rounded-full bg-accent px-3 py-1 text-xs font-bold text-white"
-                      >
-                        {t.aufnahme.uploadAnyway}
-                      </button>
+                      {/* Operator-only: override the dedup and post anyway. */}
+                      {isSuperadmin && (
+                        <button
+                          type="button"
+                          onClick={() => void confirmDuplicate(shot.id)}
+                          className="press rounded-full bg-accent px-3 py-1 text-xs font-bold text-white"
+                        >
+                          {t.aufnahme.uploadAnyway}
+                        </button>
+                      )}
                     </span>
                   )}
                   {shot.state === "failed" && (

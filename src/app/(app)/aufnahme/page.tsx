@@ -13,8 +13,10 @@ export const metadata: Metadata = { title: "Aushang fotografieren" };
  * worker. The worker OCRs, redacts PII, and produces a draft for review.
  */
 export default async function AufnahmePage() {
-  await requireAdmin();
+  const session = await requireAdmin();
   const t = await getDict();
+  // Only the operator can override the exact-photo dedup ("upload anyway").
+  const isSuperadmin = session.role === "superadmin";
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -25,7 +27,7 @@ export default async function AufnahmePage() {
           {t.aufnahme.subtitle}
         </p>
       </div>
-      <CapturePanel />
+      <CapturePanel isSuperadmin={isSuperadmin} />
     </div>
   );
 }

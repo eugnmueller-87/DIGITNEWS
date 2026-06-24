@@ -74,13 +74,25 @@ describe("finalizeCapture", () => {
     );
   });
 
-  it("threads allowDuplicate through to startProcessing (default false)", async () => {
+  it("passes allowDuplicate=false through for a normal capture", async () => {
     startProcessing.mockResolvedValue({ postId: "p1", triggered: true });
     await finalizeCapture("org-1/abc.jpg", "deadbeef");
     expect(startProcessing).toHaveBeenCalledWith(
       expect.objectContaining({ allowDuplicate: false }),
     );
+  });
 
+  it("refuses the duplicate override for a non-superadmin admin", async () => {
+    startProcessing.mockResolvedValue({ postId: "p1", triggered: true });
+    const res = await finalizeCapture("org-1/abc.jpg", "deadbeef", true);
+    expect(res.ok).toBe(false);
+    // The override never reaches startProcessing for a normal admin.
+    expect(startProcessing).not.toHaveBeenCalled();
+  });
+
+  it("threads the duplicate override through for a superadmin", async () => {
+    requireAdmin.mockResolvedValue({ ...SESSION, role: "superadmin" });
+    startProcessing.mockResolvedValue({ postId: "p1", triggered: true });
     await finalizeCapture("org-1/abc.jpg", "deadbeef", true);
     expect(startProcessing).toHaveBeenLastCalledWith(
       expect.objectContaining({ allowDuplicate: true }),

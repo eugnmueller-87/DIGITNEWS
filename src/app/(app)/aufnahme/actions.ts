@@ -45,6 +45,12 @@ export async function finalizeCapture(
   const session = await requireAdmin();
   const dict = await getDict();
 
+  // The "upload anyway" duplicate override is OPERATOR-only (the RPC enforces
+  // this too). A normal org admin stays hard-blocked on a duplicate.
+  if (allowDuplicate && session.role !== "superadmin") {
+    return { ok: false, message: dict.actions.duplicatePhoto };
+  }
+
   // Resolve the org_type for the worker prompt hint.
   const supabase = await createClient();
   const { data: org } = await supabase

@@ -25,6 +25,16 @@ const config: CapacitorConfig = {
     // Only allow our own origin to be treated as the app (no arbitrary nav).
     allowNavigation: ["kita-connect.cloud"],
   },
+  android: {
+    // Mark the native WebView's User-Agent so the SAME web code can detect "this
+    // is the native app" (window.Capacitor is NOT injected on remote-URL pages,
+    // so the UA string is the only reliable signal). The app uses this to SKIP
+    // the service worker entirely — a native shell over a live site needs no SW,
+    // and a cached redirect in the SW was looping the WebView. Web users are
+    // unaffected (their UA has no marker, so they keep the SW). Changing this is
+    // a native-shell change → requires `cap sync` + a new AAB.
+    appendUserAgent: "AushangApp",
+  },
 };
 
 export default config;

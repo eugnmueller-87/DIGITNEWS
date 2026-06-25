@@ -3,8 +3,12 @@
  * navigations and static assets. Auth-gated pages still hit the network first so
  * a logged-out user never sees stale private content from the cache. */
 
-const CACHE = "aushang-v2";
-const SHELL = ["/feed", "/offline"];
+// v3: never pre-cache /feed (auth-gated) and never cache redirect/non-OK
+// navigations — a cached logged-out /feed→/login redirect was replayed by the
+// Android System WebView as an infinite navigation loop (ERR_TOO_MANY_REDIRECTS).
+// The version bump force-evicts already-poisoned v2 caches on activate.
+const CACHE = "aushang-v3";
+const SHELL = ["/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -41,16 +45,22 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Navigations: network-first (so private content is fresh), fall back to the
-  // cached shell when offline.
+  // cached shell when offline. NEVER cache a redirect (e.g. a logged-out
+  // /feed→/login) or a non-OK/opaque response: the Android System WebView will
+  // replay a cached redirect as a navigation and loop (ERR_TOO_MANY_REDIRECTS).
+  // Chrome already refuses to cache redirected responses; this makes the SW
+  // behave correctly everywhere. Only a real 200 same-origin page is stored.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const copy = res.clone();
-          caches
-            .open(CACHE)
-            .then((c) => c.put(request, copy))
-            .catch(() => {});
+          if (res.ok && res.type === "basic" && !res.redirected) {
+            const copy = res.clone();
+            caches
+              .open(CACHE)
+              .then((c) => c.put(request, copy))
+              .catch(() => {});
+          }
           return res;
         })
         .catch(() =>

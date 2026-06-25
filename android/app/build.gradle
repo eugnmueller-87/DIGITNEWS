@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// Release signing config is read from a LOCAL, git-ignored keystore.properties
+// (see .gitignore). When the file is absent (CI, a fresh clone), the release
+// build simply has no signing config and the rest of the build is unchanged —
+// nothing here breaks an unsigned/debug build. Format of keystore.properties:
+//   storeFile=../../<path>/aushang-upload.jks
+//   storePassword=...
+//   keyAlias=aushang
+//   keyPassword=...
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "app.aushang"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +30,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            // Only attach the signing config when the keystore is present locally.
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -6,6 +6,7 @@ import {
   createJoinCode,
   approveApplication,
   rejectApplication,
+  resendApplicationVerification,
 } from "@/lib/applications";
 import { requireAdmin } from "@/lib/auth";
 import { getDict } from "@/lib/i18n/server";
@@ -56,6 +57,25 @@ export async function approveApplicationAction(
   }
   revalidatePath("/admin/mitglieder");
   return { ok: true, message: dict.actions.approved };
+}
+
+/**
+ * Admin: re-send the verification email for a pending application (e.g. the
+ * original landed in spam or expired). Mints a fresh 24h token; the RPC
+ * re-checks org+role and that the application is still pending.
+ */
+export async function resendVerificationAction(
+  appId: string,
+): Promise<QrActionState> {
+  const session = await requireAdmin();
+  const dict = await getDict();
+  try {
+    await resendApplicationVerification(session.userId, appId);
+  } catch {
+    return { ok: false, message: dict.actions.resendFailed };
+  }
+  revalidatePath("/admin/mitglieder");
+  return { ok: true, message: dict.actions.resent };
 }
 
 /** Admin: reject an application (purges child data). */

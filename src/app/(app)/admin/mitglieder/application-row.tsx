@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n/provider";
 import {
   approveApplicationAction,
   rejectApplicationAction,
+  resendVerificationAction,
 } from "./qr-actions";
 
 /**
@@ -37,6 +38,7 @@ export function ApplicationRow({
   const t = useT();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   function act(
     fn: (id: string) => Promise<{ ok: boolean; message: string | null }>,
@@ -45,6 +47,16 @@ export function ApplicationRow({
     startTransition(async () => {
       const res = await fn(id);
       if (!res.ok) setError(res.message);
+    });
+  }
+
+  function resend() {
+    setError(null);
+    setResent(false);
+    startTransition(async () => {
+      const res = await resendVerificationAction(id);
+      if (res.ok) setResent(true);
+      else setError(res.message);
     });
   }
 
@@ -69,6 +81,21 @@ export function ApplicationRow({
               {t.members.awaitingEmail}
             </div>
           )}
+          {awaitingEmail &&
+            (resent ? (
+              <div className="mt-1.5 text-xs font-semibold text-sage">
+                {t.members.resent}
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={resend}
+                className="mt-1.5 text-xs font-bold text-accent-deep disabled:opacity-50"
+              >
+                {t.members.resendVerification}
+              </button>
+            ))}
         </div>
 
         {!awaitingEmail && (

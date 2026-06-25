@@ -141,6 +141,35 @@ async function sendVerificationEmail(
   await sendEmail({ to: email, subject, html, text });
 }
 
+/**
+ * Admin: re-send the verification email for a PENDING application. Mints a fresh
+ * token (new 24h expiry) via the security-definer RPC, then emails the new link
+ * to the applicant. Used when the original mail was missed / landed in spam, or
+ * the link expired. Authz: requireAdmin upstream + the RPC re-checks org+role.
+ */
+export async function resendApplicationVerification(
+  actorId: string,
+  appId: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { token, hash } = newVerifyToken();
+
+  const { data: email, error } = await admin.rpc(
+    "resend_application_verification",
+    {
+      p_actor_id: actorId,
+      p_app_id: appId,
+      p_token_hash: hash,
+      p_ttl_minutes: 1440, // 24h
+    },
+  );
+  if (error || !email) {
+    throw new Error(error?.message || "Konnte Link nicht erneut senden.");
+  }
+
+  await sendVerificationEmail(String(email), appId, token);
+}
+
 /** PUBLIC verify. Returns true if the token matches an un-expired pending app. */
 export async function verifyApplication(
   appId: string,

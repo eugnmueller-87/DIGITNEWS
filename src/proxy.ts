@@ -54,16 +54,50 @@ export async function proxy(request: NextRequest) {
 
   // Everything else requires authentication.
   if (!user) {
+    // Loop-breaker for the Android WebView Set-Cookie race. On a token rotation,
+    // `getUser()` writes a fresh (chunked) auth cookie onto `response`. The
+    // Android System WebView commits those Set-Cookie headers from a redirect
+    // less reliably than Chrome, so the rotated session can be momentarily
+    // unreadable on the immediate follow-up request — producing /feed → /login →
+    // /feed → … (ERR_TOO_MANY_REDIRECTS). If we ALREADY bounced this client to
+    // /login for this exact destination on the previous request, do NOT redirect
+    // again: let the request through ONCE so the cookie can settle. This never
+    // grants data access — the protected route still runs requireSession()
+    // server-side and RLS is the final backstop; the worst case for a genuinely
+    // logged-out user is the page shell loads and redirects on the next tick.
+    if (request.cookies.get("ah_auth_bounce")?.value === pathname) {
+      // Clear the breadcrumb and pass through; the page-level auth check decides.
+      response.cookies.set("ah_auth_bounce", "", { path: "/", maxAge: 0 });
+      return response;
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     // Preserve where they were headed (path only — never echo arbitrary host).
     url.search = `?next=${encodeURIComponent(pathname)}`;
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    // Carry any cookies the session refresh just rotated onto the REDIRECT (a
+    // plain redirect would drop the Set-Cookie headers set on `response`), so the
+    // refreshed session actually reaches the client.
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie);
+    }
+    // Drop a short-lived breadcrumb so a straight bounce-back is caught above.
+    redirect.cookies.set("ah_auth_bounce", pathname, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+      maxAge: 10,
+    });
+    return redirect;
   }
 
-  // Authenticated. Role enforcement for admin/superadmin paths is delegated to
-  // the route-group layouts (authoritative DB checks). Mark the request coarsely
-  // for observability, but do NOT trust these headers for authz.
+  // Authenticated. Clear any leftover loop-breaker breadcrumb.
+  response.cookies.set("ah_auth_bounce", "", { path: "/", maxAge: 0 });
+
+  // Role enforcement for admin/superadmin paths is delegated to the route-group
+  // layouts (authoritative DB checks). Mark the request coarsely for
+  // observability, but do NOT trust these headers for authz.
   if (isSuperadminPath(pathname)) {
     response.headers.set("x-aushang-superadmin-route", "1");
   } else if (isAdminPath(pathname)) {

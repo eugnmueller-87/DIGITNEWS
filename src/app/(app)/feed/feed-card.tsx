@@ -12,6 +12,7 @@ import {
 import { Icon } from "@/components/icons";
 import { PostDetail } from "@/components/post-detail";
 import { Alert } from "@/components/ui";
+import { clsx } from "@/lib/clsx";
 import { maskPlaceholders } from "@/lib/content/mask";
 import { formatDate } from "@/lib/i18n/format";
 import { useLocale, useT } from "@/lib/i18n/provider";
@@ -22,6 +23,9 @@ export interface FeedCardData {
   body: string | null;
   content_type: string | null;
   published_at: string | null;
+  /** health_notice severity (info|advisory|urgent) — picks the right chip when
+   *  a health post is shown as a card (e.g. in the /gesundheit library). */
+  health_severity?: string | null;
   /** Structured extraction payload (typed per content_type) for the detail view. */
   payload?: unknown;
   /** Short-TTL signed URL of the photo, or null. Shown in the sheet when present. */
@@ -30,6 +34,8 @@ export interface FeedCardData {
    *  superadmin "remove image" control — independent of whether a preview URL
    *  could be minted (a signed URL can be null even when an image exists). */
   hasImage?: boolean;
+  /** Published since the member's last visit → highlighted until seen. */
+  isNew?: boolean;
 }
 
 /**
@@ -42,14 +48,17 @@ export function FeedCard({
   post,
   isAdmin = false,
   isSuperadmin = false,
+  autoOpen = false,
 }: {
   post: FeedCardData;
   isAdmin?: boolean;
   isSuperadmin?: boolean;
+  /** Deep-link: open this card's detail sheet on mount (e.g. /feed?post=<id>). */
+  autoOpen?: boolean;
 }) {
   const t = useT();
   const locale = useLocale();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [confirming, setConfirming] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,16 +68,22 @@ export function FeedCard({
   const [imageRemoved, setImageRemoved] = useState(false);
   const [imagePending, startImageTransition] = useTransition();
   const isEvent = post.content_type === "event_notice";
-  // The Pinnwand now carries every content_type, so the chip reflects the real
-  // category. health_notice is pinned separately as an alert (never a card here),
-  // so it isn't in this map; null/unknown render as "info" (the routing contract).
+  // The chip reflects the real category. On the Pinnwand, health_notice posts are
+  // pinned separately as alerts — but in the category libraries (/gesundheit etc.)
+  // they ARE shown as cards, so health_notice must map to a health chip (by
+  // severity) rather than falling through to "info". null/unknown → "info".
   const CHIP_BY_TYPE: Record<string, ChipCategory> = {
     event_notice: "event_notice",
     meal_plan: "meal_plan",
     reflection: "reflection",
     info: "info",
   };
-  const cat: ChipCategory = CHIP_BY_TYPE[post.content_type ?? ""] ?? "info";
+  const cat: ChipCategory =
+    post.content_type === "health_notice"
+      ? post.health_severity === "urgent"
+        ? "health_urgent"
+        : "health_advisory"
+      : (CHIP_BY_TYPE[post.content_type ?? ""] ?? "info");
   const chipLabel = t.chip[cat];
 
   const dateLabel = post.published_at
@@ -119,11 +134,21 @@ export function FeedCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="press w-full rounded-[16px] border border-border bg-paper p-4 text-left"
+        className={clsx(
+          "press w-full rounded-[16px] border bg-paper p-4 text-left",
+          // New since the last visit → accent border until seen.
+          post.isNew ? "border-accent" : "border-border",
+        )}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <CategoryGlyph category={cat} />
           <CategoryChip category={cat} label={chipLabel} />
+          {post.isNew && (
+            <span
+              aria-label={t.feed.newBadge}
+              className="size-2 shrink-0 rounded-full bg-accent"
+            />
+          )}
           {dateLabel && (
             <span className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
               {dateLabel}

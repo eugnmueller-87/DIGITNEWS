@@ -75,6 +75,7 @@ export const de = {
     loadError:
       "Die Pinnwand konnte gerade nicht geladen werden. Bitte lade die Seite neu.",
     important: "Wichtig",
+    newBadge: "Neu",
     emptyTitle: "Noch keine Aushänge.",
     emptyHintAdmin:
       "Tippe auf die Kamera, um einen Aushang aufzunehmen — nach dem Prüfen erscheint er hier.",
@@ -599,6 +600,7 @@ export const en: Dict = {
     title: "Board",
     loadError: "The board couldn't load just now. Please reload the page.",
     important: "Important",
+    newBadge: "New",
     emptyTitle: "No notices yet.",
     emptyHintAdmin:
       "Tap the camera to capture a notice — after review it appears here.",
@@ -1097,6 +1099,7 @@ export const ru: Dict = {
     loadError:
       "Сейчас не удалось загрузить доску объявлений. Пожалуйста, обновите страницу.",
     important: "Важно",
+    newBadge: "Новое",
     emptyTitle: "Пока нет объявлений.",
     emptyHintAdmin:
       "Нажмите на камеру, чтобы сфотографировать объявление — после проверки оно появится здесь.",

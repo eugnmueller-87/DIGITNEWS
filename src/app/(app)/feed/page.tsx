@@ -8,6 +8,7 @@ import { clsx } from "@/lib/clsx";
 import { localizePost, fetchPostTranslations } from "@/lib/content/localize";
 import { maskPlaceholders } from "@/lib/content/mask";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
+import { formatDate } from "@/lib/i18n/format";
 import { getDict, getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
@@ -24,39 +25,61 @@ export const metadata: Metadata = { title: "Pinnwand" };
  * 2-line body. Reads go through the member-safe posts_public view (no PII) under
  * RLS, so they can only ever return this org's published posts.
  */
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  // Deep-link from the publish notification: /feed?post=<id> auto-opens that
+  // post's detail sheet. (Next 16 makes searchParams a Promise.)
+  searchParams: Promise<{ post?: string }>;
+}) {
   const session = await requireSession();
   const t = await getDict();
   const locale = await getLocale();
   const supabase = await createClient();
+  const openPostId = (await searchParams).post ?? null;
 
-  const [alertResult, postResult, profileResult] = await Promise.all([
-    supabase
-      .from("posts_public")
-      .select("id, title, body, health_severity, published_at")
-      .eq("content_type", "health_notice")
-      .order("published_at", { ascending: false })
-      .limit(50),
-    // The Pinnwand is the central stream of EVERYTHING published — every
-    // content_type plus unconfirmed (null) posts. We only exclude health_notice
-    // because those are already pinned at the top as alerts (avoid showing them
-    // twice). The dedicated libraries (Bereiche → Rückblick/Essensplan/…) are
-    // just filtered views of the same posts, not the only place they appear.
-    supabase
-      .from("posts_public")
-      .select(
-        "id, title, body, category, content_type, extraction, redacted_image_path, cover_image_path, published_at",
-      )
-      .or("content_type.is.null,content_type.neq.health_notice")
-      .order("published_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("profiles")
-      .select("photo_consent")
-      .eq("id", session.userId)
-      .maybeSingle(),
-  ]);
+  const [alertResult, postResult, profileResult, viewResult] =
+    await Promise.all([
+      supabase
+        .from("posts_public")
+        .select("id, title, body, health_severity, published_at")
+        .eq("content_type", "health_notice")
+        .order("published_at", { ascending: false })
+        .limit(50),
+      // The Pinnwand is the central stream of EVERYTHING published — every
+      // content_type plus unconfirmed (null) posts. We only exclude health_notice
+      // because those are already pinned at the top as alerts (avoid showing them
+      // twice). The dedicated libraries (Bereiche → Rückblick/Essensplan/…) are
+      // just filtered views of the same posts, not the only place they appear.
+      supabase
+        .from("posts_public")
+        .select(
+          "id, title, body, category, content_type, extraction, redacted_image_path, cover_image_path, published_at",
+        )
+        .or("content_type.is.null,content_type.neq.health_notice")
+        .order("published_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("profiles")
+        .select("photo_consent")
+        .eq("id", session.userId)
+        .maybeSingle(),
+      // The member's last visit to the feed (for the "new since last seen"
+      // highlight). RLS scopes category_views to the current user. MarkSeen
+      // (rendered below) bumps last_seen_at AFTER render, so new posts highlight
+      // on this visit and clear on the next.
+      supabase
+        .from("category_views")
+        .select("last_seen_at")
+        .eq("category", "feed")
+        .maybeSingle(),
+    ]);
   const photoConsent = profileResult.data?.photo_consent ?? false;
+  const lastSeen = (viewResult.data as { last_seen_at?: string } | null)
+    ?.last_seen_at;
+  const lastSeenMs = lastSeen ? Date.parse(lastSeen) : 0;
+  const isNew = (publishedAt: string | null) =>
+    !!publishedAt && Date.parse(publishedAt) > lastSeenMs;
 
   const {
     alerts: alertList,
@@ -121,10 +144,19 @@ export default async function FeedPage() {
                     : "border-border bg-paper",
                 )}
               >
-                <CategoryChip
-                  category={urgent ? "health_urgent" : "health_advisory"}
-                  label={urgent ? t.chip.health_urgent : t.chip.health_advisory}
-                />
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <CategoryChip
+                    category={urgent ? "health_urgent" : "health_advisory"}
+                    label={
+                      urgent ? t.chip.health_urgent : t.chip.health_advisory
+                    }
+                  />
+                  {a.published_at && (
+                    <span className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
+                      {formatDate(a.published_at, locale, t, { noYear: true })}
+                    </span>
+                  )}
+                </div>
                 <h3 className="mt-2 text-[17px] font-bold text-ink">
                   {a.title}
                 </h3>
@@ -161,6 +193,7 @@ export default async function FeedPage() {
               key={post.id}
               isAdmin={isAdmin}
               isSuperadmin={isSuperadmin}
+              autoOpen={post.id === openPostId}
               post={{
                 id: post.id,
                 title: post.title,
@@ -177,6 +210,7 @@ export default async function FeedPage() {
                   (post as { cover_image_path?: string | null })
                     .cover_image_path
                 ),
+                isNew: isNew(post.published_at),
               }}
             />
           ))}

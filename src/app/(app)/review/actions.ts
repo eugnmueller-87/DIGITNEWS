@@ -133,7 +133,7 @@ export async function publishDraft(
   }
 
   // Fire notifications (best-effort; never block/fail the publish).
-  await notifyOrgOnPublish(session.orgId, title).catch(() => {});
+  await notifyOrgOnPublish(session.orgId, title, postId).catch(() => {});
 
   // Fire publish-time translation into the non-German locales (best-effort; a
   // missing translation falls back to German). Sends only member-safe content: the
@@ -536,14 +536,21 @@ export async function cancelBroadcast(
  * Notify an org's members when a post is published: web push to all subscribers,
  * and an email to members who opted into the digest. Best-effort; never throws.
  */
-async function notifyOrgOnPublish(orgId: string, title: string): Promise<void> {
+async function notifyOrgOnPublish(
+  orgId: string,
+  title: string,
+  postId: string,
+): Promise<void> {
   const admin = createAdminClient();
+
+  // Deep-link straight to the published post (opens its detail sheet on /feed).
+  const url = `${publicEnv.siteUrl}/feed?post=${postId}`;
 
   // Web push (fan-out; dead subs pruned inside pushToOrg).
   await pushToOrg(orgId, {
     title: "Neuer Aushang",
     body: title,
-    url: `${publicEnv.siteUrl}/feed`,
+    url,
   });
 
   // Email to opted-in members.
@@ -562,10 +569,7 @@ async function notifyOrgOnPublish(orgId: string, title: string): Promise<void> {
     .filter((u) => ids.includes(u.id) && u.email)
     .map((u) => u.email as string);
 
-  const { subject, html, text } = publishNotificationEmail(
-    title,
-    `${publicEnv.siteUrl}/feed`,
-  );
+  const { subject, html, text } = publishNotificationEmail(title, url);
   await Promise.all(
     emails.map((to) => sendEmail({ to, subject, html, text }).catch(() => {})),
   );

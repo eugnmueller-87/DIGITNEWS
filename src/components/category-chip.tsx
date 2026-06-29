@@ -100,13 +100,15 @@ export function CategoryChip({
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-bold tracking-[0.01em]",
+        // min-w-0 + truncate so a long label yields space (e.g. to a date) on
+        // narrow screens instead of pushing siblings off-screen.
+        "inline-flex min-w-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-bold tracking-[0.01em]",
         s.fill,
         s.text,
       )}
     >
       <Icon name={s.glyph} size={13} />
-      {label}
+      <span className="truncate">{label}</span>
     </span>
   );
 }

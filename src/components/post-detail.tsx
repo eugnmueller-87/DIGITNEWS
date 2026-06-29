@@ -453,17 +453,32 @@ function InfoDetail({
     return null;
   }
 
+  // The admin-written body and the AI-extracted notes are DIFFERENT sources:
+  // the body is what the admin typed/edited, notes is the AI's free-text summary.
+  // Show the admin's body first (the human's words lead), then notes below it
+  // when notes adds something different — so a manually added text is never
+  // swallowed by an AI-extracted notes field.
+  const cleanBody = maskPlaceholders(body);
+  const showNotesToo = !!notes && notes !== cleanBody;
+
   return (
     <div className="space-y-4">
-      {/* Intro: the notes lead if present, else the full body paragraph so the
-          reader still gets the complete text above the structured detail. */}
-      {notes ? (
-        <p className="text-[16px] leading-relaxed text-ink-soft">{notes}</p>
-      ) : (
-        body && (
-          <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink-soft">
-            {maskPlaceholders(body)}
+      {/* Intro: the admin's body leads (falls back to notes if no body), so the
+          reader gets the full human-written text above the structured detail. */}
+      {cleanBody ? (
+        <div className="space-y-2">
+          <p className="whitespace-pre-line text-[16px] leading-relaxed text-ink">
+            {cleanBody}
           </p>
+          {showNotesToo && (
+            <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink-soft">
+              {notes}
+            </p>
+          )}
+        </div>
+      ) : (
+        notes && (
+          <p className="text-[16px] leading-relaxed text-ink-soft">{notes}</p>
         )
       )}
 

@@ -41,7 +41,10 @@ export function AppNav({
   );
 
   return (
-    <nav className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    // Wrap pills onto multiple rows instead of scrolling, so every item — incl.
+    // the operator's extra "Operator" pill — is always fully visible without a
+    // cut-off button or horizontal scroll.
+    <nav className="flex flex-wrap items-center gap-2 pb-1">
       {items.map(pill)}
       {adminItems.length > 0 && (
         <span aria-hidden className="mx-1 h-6 w-px shrink-0 bg-border" />

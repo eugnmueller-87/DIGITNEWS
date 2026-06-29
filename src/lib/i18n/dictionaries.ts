@@ -198,6 +198,7 @@ export const de = {
   // here, intentionally different from calendar.category.event = "Fest".
   postDetail: {
     weekOf: "Woche ab",
+    fullMessage: "Ganze Mitteilung",
     estimate: "Schätzung",
     nutriWeek: "Nutri-Score der Woche",
     whatToDo: "Was zu tun ist:",
@@ -721,6 +722,7 @@ export const en: Dict = {
 
   postDetail: {
     weekOf: "Week of",
+    fullMessage: "Full message",
     estimate: "Estimate",
     nutriWeek: "Nutri-Score of the week",
     whatToDo: "What to do:",
@@ -1220,6 +1222,7 @@ export const ru: Dict = {
 
   postDetail: {
     weekOf: "Неделя с",
+    fullMessage: "Полное сообщение",
     estimate: "Оценка",
     nutriWeek: "Nutri-Score недели",
     whatToDo: "Что делать:",

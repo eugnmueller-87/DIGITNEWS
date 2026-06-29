@@ -381,43 +381,62 @@ function eventTimeRange(ev: EventNoticeItem, dict: Dict): string | null {
 
 function EventNoticeDetail({
   payload,
+  body,
   locale,
   dict,
 }: {
   payload: EventNoticePayload;
+  body: string | null;
   locale: Locale;
   dict: Dict;
 }) {
+  const cleanBody = maskPlaceholders(body);
   return (
-    <ul className="space-y-3">
-      {payload.events.map((ev, i) => {
-        const time = eventTimeRange(ev, dict);
-        return (
-          <li key={i} className="flex gap-3">
-            <DateTile iso={ev.starts_on} dict={dict} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-bold uppercase tracking-wide text-ink-faint">
-                {dict.postDetail.eventCategory[ev.category] ??
-                  dict.calendar.eventSheetTitle}
-              </p>
-              <h3 className="mt-0.5 text-[16px] font-bold leading-snug text-ink">
-                {maskPlaceholders(ev.title)}
-              </h3>
-              <p className="mt-0.5 text-[14px] font-semibold text-ink-soft">
-                {formatRange(ev.starts_on, ev.ends_on, locale, dict)}
-                {time && <span className="text-ink-faint"> · {time}</span>}
-                {ev.all_day && (
-                  <span className="text-ink-faint">
-                    {" "}
-                    · {dict.calendar.allDay}
-                  </span>
-                )}
-              </p>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="space-y-4">
+      {/* The scannable dates lead. */}
+      <ul className="space-y-3">
+        {payload.events.map((ev, i) => {
+          const time = eventTimeRange(ev, dict);
+          return (
+            <li key={i} className="flex gap-3">
+              <DateTile iso={ev.starts_on} dict={dict} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold uppercase tracking-wide text-ink-faint">
+                  {dict.postDetail.eventCategory[ev.category] ??
+                    dict.calendar.eventSheetTitle}
+                </p>
+                <h3 className="mt-0.5 text-[16px] font-bold leading-snug text-ink">
+                  {maskPlaceholders(ev.title)}
+                </h3>
+                <p className="mt-0.5 text-[14px] font-semibold text-ink-soft">
+                  {formatRange(ev.starts_on, ev.ends_on, locale, dict)}
+                  {time && <span className="text-ink-faint"> · {time}</span>}
+                  {ev.all_day && (
+                    <span className="text-ink-faint">
+                      {" "}
+                      · {dict.calendar.allDay}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* The full announcement, secondary: below the dates, under a quiet
+          heading, so it informs without burying the scannable info. */}
+      {cleanBody && (
+        <div className="border-t border-border pt-3">
+          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-wide text-ink-faint">
+            {dict.postDetail.fullMessage}
+          </p>
+          <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink-soft">
+            {cleanBody}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -564,7 +583,12 @@ export function PostDetail({
     case "event_notice":
       if (isEventNotice(payload))
         return (
-          <EventNoticeDetail payload={payload} locale={locale} dict={dict} />
+          <EventNoticeDetail
+            payload={payload}
+            body={body}
+            locale={locale}
+            dict={dict}
+          />
         );
       break;
     case "info":

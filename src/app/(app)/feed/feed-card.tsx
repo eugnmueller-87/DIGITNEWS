@@ -49,12 +49,16 @@ export function FeedCard({
   isAdmin = false,
   isSuperadmin = false,
   autoOpen = false,
+  tone = "default",
 }: {
   post: FeedCardData;
   isAdmin?: boolean;
   isSuperadmin?: boolean;
   /** Deep-link: open this card's detail sheet on mount (e.g. /feed?post=<id>). */
   autoOpen?: boolean;
+  /** "urgent" paints the card surface tomato — for pinned urgent health alerts
+   *  at the top of the feed. Default cards are the calm paper surface. */
+  tone?: "default" | "urgent";
 }) {
   const t = useT();
   const locale = useLocale();
@@ -135,9 +139,14 @@ export function FeedCard({
         type="button"
         onClick={() => setOpen(true)}
         className={clsx(
-          "press w-full rounded-[16px] border bg-paper p-4 text-left",
-          // New since the last visit → accent border until seen.
-          post.isNew ? "border-accent" : "border-border",
+          "press w-full rounded-[16px] border p-4 text-left",
+          // Urgent alerts get the tomato surface; the rest stay calm paper.
+          tone === "urgent"
+            ? "border-tomato bg-tomato-soft"
+            : // New since the last visit → accent border until seen.
+              post.isNew
+              ? "border-accent bg-paper"
+              : "border-border bg-paper",
         )}
       >
         <div className="flex min-w-0 items-center gap-2.5">

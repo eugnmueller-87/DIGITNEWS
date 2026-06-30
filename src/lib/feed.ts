@@ -6,13 +6,19 @@
 
 import type { HealthSeverity } from "@/lib/database.types";
 
-/** Health alert as surfaced at the top of the feed (subset of PublicPost). */
+/** Health alert as surfaced at the top of the feed (subset of PublicPost).
+ *  Carries the same render inputs as a FeedPost so a pinned alert can be shown
+ *  as a fully tappable FeedCard (detail sheet with body + payload + photo), not
+ *  just a static block. */
 export interface FeedAlert {
   id: string;
   title: string | null;
   body: string | null;
   health_severity: HealthSeverity | null;
   published_at: string | null;
+  extraction?: { payload?: unknown } | null;
+  redacted_image_path?: string | null;
+  cover_image_path?: string | null;
 }
 
 /** A general (non-alert) feed card. */

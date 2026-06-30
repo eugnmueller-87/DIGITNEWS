@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
 
 import { MarkSeen } from "@/app/(app)/bereiche/mark-seen";
-import { CategoryChip } from "@/components/category-chip";
 import { Alert, Button, EmptyState, SectionHeader } from "@/components/ui";
 import { requireSession } from "@/lib/auth";
-import { clsx } from "@/lib/clsx";
 import { localizePost, fetchPostTranslations } from "@/lib/content/localize";
-import { maskPlaceholders } from "@/lib/content/mask";
 import { buildFeedView, type FeedAlert, type FeedPost } from "@/lib/feed";
-import { formatDate } from "@/lib/i18n/format";
 import { getDict, getLocale } from "@/lib/i18n/server";
 import { signPostImages } from "@/lib/photo";
 import { createClient } from "@/lib/supabase/server";
@@ -42,7 +38,9 @@ export default async function FeedPage({
     await Promise.all([
       supabase
         .from("posts_public")
-        .select("id, title, body, health_severity, published_at")
+        .select(
+          "id, title, body, health_severity, extraction, redacted_image_path, cover_image_path, published_at",
+        )
         .eq("content_type", "health_notice")
         .order("published_at", { ascending: false })
         .limit(50),
@@ -95,17 +93,23 @@ export default async function FeedPage({
   // mutually independent, so run them CONCURRENTLY — one round-trip, not two.
   // (For German, fetchPostTranslations short-circuits to an empty map with no
   // query, so this costs nothing on the common path.)
-  const imagePosts = (
-    postResult.data as
+  // Alerts are now full tappable cards too, so their images must be signed
+  // alongside the general posts' (one shared batch).
+  const imagePosts = [
+    ...((postResult.data as
       | ({ id: string; redacted_image_path: string | null } & FeedPost)[]
-      | null
-  )?.filter((p) => p.redacted_image_path);
+      | null) ?? []),
+    ...(alertList as { id: string; redacted_image_path?: string | null }[]),
+  ].filter(
+    (p): p is { id: string; redacted_image_path: string } =>
+      !!p.redacted_image_path,
+  );
   const [translations, imageUrls] = await Promise.all([
     fetchPostTranslations(
       [...alertList.map((a) => a.id), ...list.map((p) => p.id)],
       locale,
     ),
-    imagePosts && imagePosts.length > 0
+    imagePosts.length > 0
       ? signPostImages(imagePosts, session.orgId, photoConsent)
       : Promise.resolve(new Map<string, string>()),
   ]);
@@ -128,46 +132,35 @@ export default async function FeedPage({
         </div>
       )}
 
-      {/* Pinned health alerts — the only cards that break the monochrome calm. */}
+      {/* Pinned health alerts — the only cards that break the monochrome calm.
+          Now full tappable FeedCards (same detail sheet as every other card), so
+          a member can open them to read the complete notice (e.g. the full
+          infection-control text), on desktop AND mobile. Urgent ones keep the
+          tomato surface via tone="urgent". */}
       {localizedAlerts.length > 0 && (
         <section className="mb-5 space-y-3">
           <SectionHeader>{t.feed.important}</SectionHeader>
-          {localizedAlerts.map((a) => {
-            const urgent = a.health_severity === "urgent";
-            return (
-              <div
-                key={a.id}
-                className={clsx(
-                  "rounded-[16px] border p-4",
-                  urgent
-                    ? "border-tomato bg-tomato-soft"
-                    : "border-border bg-paper",
-                )}
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <CategoryChip
-                    category={urgent ? "health_urgent" : "health_advisory"}
-                    label={
-                      urgent ? t.chip.health_urgent : t.chip.health_advisory
-                    }
-                  />
-                  {a.published_at && (
-                    <span className="ml-auto shrink-0 text-[13px] font-semibold tabular-nums text-ink-faint">
-                      {formatDate(a.published_at, locale, t, { noYear: true })}
-                    </span>
-                  )}
-                </div>
-                <h3 className="mt-2 text-[17px] font-bold text-ink">
-                  {a.title}
-                </h3>
-                {a.body && (
-                  <p className="mt-1 text-[15px] leading-relaxed text-ink-soft">
-                    {maskPlaceholders(a.body)}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+          {localizedAlerts.map((a) => (
+            <FeedCard
+              key={a.id}
+              isAdmin={isAdmin}
+              isSuperadmin={isSuperadmin}
+              autoOpen={a.id === openPostId}
+              tone={a.health_severity === "urgent" ? "urgent" : "default"}
+              post={{
+                id: a.id,
+                title: a.title,
+                body: a.body,
+                content_type: "health_notice",
+                health_severity: a.health_severity,
+                published_at: a.published_at,
+                payload: a.extraction?.payload ?? null,
+                imageUrl: imageUrls.get(a.id) ?? null,
+                hasImage: !!(a.redacted_image_path || a.cover_image_path),
+                isNew: isNew(a.published_at),
+              }}
+            />
+          ))}
         </section>
       )}
 
